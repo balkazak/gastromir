@@ -44,6 +44,8 @@
 .footer {
   background-color: var(--dark);
   color: var(--white);
+  padding-top: 6rem;
+  padding-bottom: 2rem;
 }
 
 .footer-grid {

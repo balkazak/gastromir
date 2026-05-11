@@ -46,13 +46,32 @@
               <span>Итого к оплате:</span>
               <strong>{{ formatPrice(cartStore.totalPrice) }} ₸</strong>
             </div>
-            <button 
-              class="btn btn-secondary btn-block" 
-              @click="generateInvoice" 
-              :disabled="!orderData.customerName || !orderData.address || !orderData.phone"
-            >
-              Отправить заказ
-            </button>
+            
+            <div class="footer-actions">
+              <button 
+                class="btn btn-whatsapp btn-block" 
+                @click="sendToWhatsApp" 
+                :disabled="!orderData.customerName || !orderData.phone"
+              >
+                Отправить в WhatsApp
+              </button>
+              
+              <button 
+                class="btn btn-secondary btn-block" 
+                @click="generateInvoice" 
+                :disabled="!orderData.customerName || !orderData.address || !orderData.phone"
+              >
+                Скачать накладную (Word)
+              </button>
+              
+              <button 
+                class="btn btn-outline-dark btn-block" 
+                @click="sendToEmail" 
+                :disabled="!orderData.customerName"
+              >
+                Отправить на Email
+              </button>
+            </div>
           </div>
         </div>
 
@@ -83,6 +102,23 @@ const orderData = reactive({
 
 const formatPrice = (price) => {
   return new Intl.NumberFormat('ru-RU').format(price)
+}
+
+const sendToWhatsApp = () => {
+  const itemsText = cartStore.items.map(item => `- ${item.name}: ${item.quantity} ${item.unit} x ${formatPrice(item.price)} тг`).join('\n')
+  const totalText = `Итого: ${formatPrice(cartStore.totalPrice)} тг`
+  const message = `👋 *Новый заказ в GASTROMIR!*\n\n*Ресторан:* ${orderData.customerName}\n*Телефон:* ${orderData.phone}\n*Адрес:* ${orderData.address}\n\n*Заказ:*\n${itemsText}\n\n*${totalText}*`
+  
+  const encodedMessage = encodeURIComponent(message)
+  window.open(`https://wa.me/77015141404?text=${encodedMessage}`, '_blank')
+}
+
+const sendToEmail = () => {
+  const itemsText = cartStore.items.map(item => `- ${item.name}: ${item.quantity} ${item.unit} x ${formatPrice(item.price)} тг`).join('%0D%0A')
+  const totalText = `Итого: ${formatPrice(cartStore.totalPrice)} тг`
+  const body = `Новый заказ в GASTROMIR%0D%0A%0D%0AРесторан: ${orderData.customerName}%0D%0AТелефон: ${orderData.phone}%0D%0AАдрес: ${orderData.address}%0D%0A%0D%0AЗаказ:%0D%0A${itemsText}%0D%0A%0D%0A${totalText}`
+  
+  window.location.href = `mailto:gastromir.kz@gmail.com?subject=Новый заказ от ${orderData.customerName}&body=${body}`
 }
 
 const generateInvoice = async () => {
@@ -131,7 +167,7 @@ const generateInvoice = async () => {
         ...cartStore.items.map((item, index) => 
           new Paragraph({
             children: [
-              new TextRun({ text: `${index + 1}. ${item.name} — ${item.quantity} × ${formatPrice(item.price)} = ${formatPrice(item.quantity * item.price)}` })
+              new TextRun({ text: `${index + 1}. ${item.name} — ${item.quantity} ${item.unit} × ${formatPrice(item.price)} = ${formatPrice(item.quantity * item.price)}` })
             ],
             spacing: { after: 100 }
           })
@@ -166,10 +202,9 @@ const generateInvoice = async () => {
   const blob = await Packer.toBlob(doc)
   saveAs(blob, `Накладная_${orderNum}.docx`)
   
-  // Reset and Close
-  alert('Заказ оформлен! Накладная скачана. Отправьте её на почту gastromir.kz@gmail.com')
-  cartStore.clearCart()
-  cartStore.closeModal()
+  // Also offer to send via WhatsApp
+  const confirmWA = confirm('Накладная скачана. Отправить заказ в WhatsApp?')
+  if (confirmWA) sendToWhatsApp()
 }
 </script>
 
@@ -374,6 +409,46 @@ const generateInvoice = async () => {
   background: #f1f5f9;
 }
 
+.footer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.btn-whatsapp {
+  background: #25D366;
+  color: var(--white);
+}
+
+.btn-whatsapp:hover {
+  background: #128C7E;
+  transform: translateY(-2px);
+}
+
+.btn-outline-dark {
+  border: 1px solid var(--primary);
+  color: var(--primary);
+}
+
+.btn-outline-dark:hover {
+  background: var(--primary);
+  color: var(--white);
+}
+
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+
+@media (max-width: 600px) {
+  .modal-overlay { padding: 0; }
+  .modal-content { 
+    max-height: 100vh; 
+    border-radius: 0; 
+    height: 100%;
+  }
+  .modal-body { padding: 1.25rem; }
+  .cart-item { gap: 1rem; }
+  .order-form { padding: 1.5rem; border-radius: 1.5rem; }
+  .modal-footer { padding: 1.25rem; }
+  .total-row { font-size: 1.1rem; }
+}
 </style>

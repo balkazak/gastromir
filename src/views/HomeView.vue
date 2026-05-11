@@ -251,6 +251,14 @@ h1 span {
   z-index: 10;
 }
 
+@media (max-width: 768px) {
+  .floating-card {
+    left: 1rem;
+    bottom: 1rem;
+    padding: 1rem;
+  }
+}
+
 .floating-card h4 {
   color: var(--primary);
   margin-bottom: 0.2rem;
@@ -449,6 +457,7 @@ h1 span {
   .hero-grid {
     grid-template-columns: 1fr;
     text-align: center;
+    gap: 3rem;
   }
   .hero-content p {
     margin-left: auto;
@@ -456,16 +465,36 @@ h1 span {
   }
   .hero-actions {
     justify-content: center;
+    flex-direction: column;
   }
   .hero-stats {
     justify-content: center;
+    gap: 2rem;
   }
   .image-wrapper {
-    max-width: 500px;
+    max-width: 100%;
     margin: 0 auto;
   }
   h1 {
-    font-size: 3rem;
+    font-size: 2.8rem;
   }
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+  .vs-badge {
+    margin: -1rem auto;
+    z-index: 5;
+  }
+  .comp-card.gastromir {
+    transform: none;
+    margin-top: 1rem;
+  }
+}
+
+@media (max-width: 600px) {
+  h1 { font-size: 2.2rem; }
+  .comp-card { padding: 2rem; }
+  .offer-card { padding: 2rem; border-radius: 2rem; }
+  .offer-content h2 { font-size: 1.8rem; }
 }
 </style>

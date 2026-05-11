@@ -400,18 +400,44 @@ const isItemInCart = (id) => {
 .cart-info span { font-weight: 700; color: var(--primary); }
 .cart-info p { font-size: 0.9rem; color: var(--gray); }
 
-@media (max-width: 992px) {
+@media (max-width: 1024px) {
+  .catalog-layout { grid-template-columns: 200px 1fr; gap: 2rem; }
+}
+
+@media (max-width: 768px) {
   .catalog-layout { grid-template-columns: 1fr; }
-  .sidebar { display: none; }
+  .sidebar { 
+    position: sticky;
+    top: 80px;
+    z-index: 10;
+    background: var(--white);
+    padding: 1rem;
+    margin-bottom: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    overflow-x: auto;
+  }
+  .category-list {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .category-list li {
+    white-space: nowrap;
+    margin-bottom: 0;
+    padding: 0.5rem 1rem;
+  }
 }
 
 @media (max-width: 600px) {
+  .products-grid { grid-template-columns: 1fr; }
   .cart-summary {
     left: 1rem;
     right: 1rem;
     bottom: 1rem;
     justify-content: space-between;
-    padding: 0.75rem 1.5rem;
+    padding: 0.75rem 1.25rem;
+    gap: 1rem;
   }
+  .cart-info { gap: 0.5rem; }
 }
 </style>

@@ -141,29 +141,58 @@ nav.scrolled {
 }
 
 @media (max-width: 768px) {
+  nav { padding: 1rem 0; background: var(--glass); }
+  
+  .logo-img {
+    height: 35px;
+    max-width: 150px;
+  }
+  
   .mobile-toggle {
     display: block;
+    background: none;
+    border: none;
+    color: var(--white);
+    cursor: pointer;
   }
 
   .nav-links {
     position: fixed;
     top: 0;
     right: -100%;
-    width: 80%;
+    width: 100%;
     height: 100vh;
-    background: var(--white);
+    background: var(--primary);
     flex-direction: column;
     justify-content: center;
-    transition: 0.3s ease;
-    box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+    transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 999;
+    gap: 2.5rem;
   }
 
   .nav-links.active {
     right: 0;
   }
 
+  .nav-links a {
+    font-size: 1.5rem;
+    color: var(--white);
+    opacity: 1;
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 0.5rem;
+  }
+
+  .cart-trigger {
+    margin: 1rem 0;
+    transform: scale(1.3);
+  }
+
   .nav-cta {
-    margin-top: 1rem;
+    width: 80%;
+    text-align: center;
+    padding: 1.25rem;
   }
 }
 </style>

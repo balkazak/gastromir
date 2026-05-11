@@ -1398,5 +1398,13 @@
     "category": "Орехи",
     "unit": "кг",
     "manufacturer": "Казахстан"
+  },
+  {
+    "id": 176,
+    "name": "Арахис жареный",
+    "price": 2000,
+    "category": "Орехи",
+    "unit": "кг",
+    "manufacturer": "Казахстан"
   }
 ]
