@@ -1,5 +1,11 @@
 <template>
   <Transition name="fade">
+    <div v-if="showToast" class="toast-success">
+      <span>✅ Накладная отправлена на Email!</span>
+    </div>
+  </Transition>
+
+  <Transition name="fade">
     <div v-if="cartStore.isModalOpen" class="modal-overlay" @click.self="cartStore.closeModal">
       <div class="modal-content" v-motion-pop>
         <div class="modal-header">
@@ -71,9 +77,9 @@
               <button 
                 class="btn btn-outline-dark btn-block" 
                 @click="sendToEmail" 
-                :disabled="!orderData.customerName"
+                :disabled="!orderData.customerName || !orderData.phone || isSendingEmail"
               >
-                Отправить на Email
+                {{ isSendingEmail ? 'Отправка...' : 'Отправить на Email' }}
               </button>
             </div>
           </div>
@@ -90,11 +96,12 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import { X, Trash2, ShoppingCart } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, WidthType, BorderStyle, ImageRun } from 'docx'
 import { saveAs } from 'file-saver'
+import logoUrl from '@/assets/logo.png'
 
 const cartStore = useCartStore()
 
@@ -117,173 +124,170 @@ const sendToWhatsApp = () => {
   window.open(`https://wa.me/77015141404?text=${encodedMessage}`, '_blank')
 }
 
-const sendToEmail = () => {
-  const itemsText = cartStore.items.map(item => `- ${item.name}: ${item.quantity} ${item.unit} x ${formatPrice(item.price)} тг`).join('%0D%0A')
-  const totalText = `Итого: ${formatPrice(cartStore.totalPrice)} тг`
-  const body = `Новый заказ в GASTROMIR%0D%0A%0D%0AРесторан: ${orderData.customerName}%0D%0AТелефон: ${orderData.phone}%0D%0AАдрес: ${orderData.address}%0D%0A%0D%0AЗаказ:%0D%0A${itemsText}%0D%0A%0D%0A${totalText}`
-  
-  window.location.href = `mailto:gastromir.kz@gmail.com?subject=Новый заказ от ${orderData.customerName}&body=${body}`
+const isSendingEmail = ref(false)
+const showToast = ref(false)
+
+const showSuccessToast = () => {
+  showToast.value = true
+  setTimeout(() => { showToast.value = false }, 4000)
 }
 
-const generateInvoice = async () => {
+const sendToEmail = async () => {
+  isSendingEmail.value = true
+
   const date = new Date().toLocaleDateString('ru-RU')
   const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-  const orderNum = `УД-${new Date().getTime().toString().slice(-6)}-01`
+
+  const itemsList = cartStore.items.map((item, i) =>
+    `${i + 1}. ${item.name} — ${item.quantity} ${item.unit} × ${formatPrice(item.price)} = ${formatPrice(item.quantity * item.price)} тг`
+  ).join('\n')
+
+  const weightNote = cartStore.hasWeightItems
+    ? '\n\nПРИМЕЧАНИЕ: Для весовых товаров итоговая стоимость зависит от фактического веса и рассчитывается после сборки заказа.'
+    : ''
+
+  const message = `===============================\nНАКЛАДНАЯ\n===============================\n\nПоставщик: ИП Сатубалдина З.А.\nБИН/ИИН: 540725400961\nТелефон: +7 701 514 14 04\n\nПолучатель: ${orderData.customerName}\nТелефон: ${orderData.phone}\nАдрес: ${orderData.address}\n\nДата: ${date}\nВремя: ${time}\n\n--------------------------------\nТОВАР\n--------------------------------\n${itemsList}\n\n--------------------------------\nИТОГО: ${formatPrice(cartStore.totalPrice)} тг\nК ОПЛАТЕ: ${formatPrice(cartStore.totalPrice)} тг\n\n================================\nСпасибо за заказ!\nGASTRO MIR\n================================${weightNote}`
+
+  try {
+    const response = await fetch('https://formspree.io/f/xkoyakek', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        _subject: `Новый заказ от ${orderData.customerName}`,
+        Ресторан: orderData.customerName,
+        Телефон: orderData.phone,
+        Адрес: orderData.address,
+        Накладная: message
+      })
+    })
+
+    if (response.ok) {
+      cartStore.clearCart()
+      cartStore.closeModal()
+      orderData.customerName = ''
+      orderData.phone = ''
+      orderData.address = ''
+      showSuccessToast()
+    } else {
+      alert('Ошибка при отправке. Попробуйте ещё раз.')
+    }
+  } catch (error) {
+    console.error('Ошибка отправки:', error)
+    alert('Ошибка при отправке. Проверьте подключение к интернету.')
+  } finally {
+    isSendingEmail.value = false
+  }
+}
+
+const buildDocxBlob = async () => {
+  const date = new Date().toLocaleDateString('ru-RU')
+  const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
 
   let imageBuffer = null
   try {
-    const response = await fetch('/src/assets/logo.png')
-    const blob = await response.blob()
-    imageBuffer = await blob.arrayBuffer()
+    const response = await fetch(logoUrl)
+    if (response.ok) {
+      const blob = await response.blob()
+      imageBuffer = new Uint8Array(await blob.arrayBuffer())
+    }
   } catch (e) {
-    console.error("Could not load logo", e)
+    console.error('Could not load logo', e)
   }
 
   const createText = (text, bold = false, size = 22) => new TextRun({ text, bold, size })
   const createLine = (text, bold = false, size = 22) => new Paragraph({ children: [createText(text, bold, size)] })
   const createCentered = (text, bold = false, size = 22) => new Paragraph({ children: [createText(text, bold, size)], alignment: AlignmentType.CENTER })
 
-  const headerLogo = imageBuffer ? [
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new ImageRun({
-          data: imageBuffer,
-          transformation: {
-            width: 250,
-            height: 100,
-          },
-        })
-      ]
-    })
-  ] : []
+  const headerLogo = imageBuffer ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new ImageRun({ data: imageBuffer, transformation: { width: 250, height: 100 } })] })] : []
 
   const tableHeaderRow = new TableRow({
     children: [
-      new TableCell({ children: [createLine("№", true)], width: { size: 10, type: WidthType.PERCENTAGE } }),
-      new TableCell({ children: [createLine("Наименование", true)], width: { size: 45, type: WidthType.PERCENTAGE } }),
-      new TableCell({ children: [createLine("Кол-во", true)], width: { size: 15, type: WidthType.PERCENTAGE } }),
-      new TableCell({ children: [createLine("Цена", true)], width: { size: 15, type: WidthType.PERCENTAGE } }),
-      new TableCell({ children: [createLine("Сумма", true)], width: { size: 15, type: WidthType.PERCENTAGE } }),
+      new TableCell({ children: [createLine('№', true)], width: { size: 10, type: WidthType.PERCENTAGE } }),
+      new TableCell({ children: [createLine('Наименование', true)], width: { size: 45, type: WidthType.PERCENTAGE } }),
+      new TableCell({ children: [createLine('Кол-во', true)], width: { size: 15, type: WidthType.PERCENTAGE } }),
+      new TableCell({ children: [createLine('Цена', true)], width: { size: 15, type: WidthType.PERCENTAGE } }),
+      new TableCell({ children: [createLine('Сумма', true)], width: { size: 15, type: WidthType.PERCENTAGE } }),
     ]
   })
 
-  const tableRows = cartStore.items.map((item, index) => {
-    return new TableRow({
-      children: [
-        new TableCell({ children: [createLine(`${index + 1}.`)] }),
-        new TableCell({ children: [createLine(`${item.name}`)] }),
-        new TableCell({ children: [createLine(`${item.quantity} ${item.unit}`)] }),
-        new TableCell({ children: [createLine(formatPrice(item.price))] }),
-        new TableCell({ children: [createLine(formatPrice(item.quantity * item.price))] }),
-      ]
-    })
-  })
+  const tableRows = cartStore.items.map((item, index) => new TableRow({
+    children: [
+      new TableCell({ children: [createLine(`${index + 1}.`)] }),
+      new TableCell({ children: [createLine(item.name)] }),
+      new TableCell({ children: [createLine(`${item.quantity} ${item.unit}`)] }),
+      new TableCell({ children: [createLine(formatPrice(item.price))] }),
+      new TableCell({ children: [createLine(formatPrice(item.quantity * item.price))] }),
+    ]
+  }))
 
   const doc = new Document({
-    sections: [{
-      properties: {},
-      children: [
-        ...headerLogo,
-        createCentered("==============================="),
-        createCentered("НАКЛАДНАЯ", true, 28),
-        createCentered("==============================="),
-        new Paragraph({ spacing: { after: 200 } }),
-
-        createLine("Поставщик: ИП Сатубалдина З.А."),
-        createLine("БИН/ИИН: 540725400961"),
-        createLine("Телефон: +7 701 514 14 04"),
-        new Paragraph({ spacing: { after: 200 } }),
-        
-        createLine(`Получатель: ${orderData.customerName}`),
-        createLine(`Телефон: ${orderData.phone}`),
-        new Paragraph({ spacing: { after: 200 } }),
-        
-        createLine(`Дата: ${date}`),
-        createLine(`Время: ${time}`),
-        new Paragraph({ spacing: { after: 200 } }),
-
-        createCentered("--------------------------------"),
-        createCentered("ТОВАР", true),
-        createCentered("--------------------------------"),
-        new Paragraph({ spacing: { after: 200 } }),
-        
-        new Table({
-          rows: [tableHeaderRow, ...tableRows],
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          borders: {
-            top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-            bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-            left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-            right: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-            insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-            insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-          }
-        }),
-        new Paragraph({ spacing: { after: 200 } }),
-
-        createCentered("--------------------------------"),
-        createLine(`ИТОГО: ${formatPrice(cartStore.totalPrice)} тг`, true),
-        createLine(`Скидка: 0 тг`),
-        createLine(`К ОПЛАТЕ: ${formatPrice(cartStore.totalPrice)} тг`, true, 24),
-        new Paragraph({ spacing: { after: 200 } }),
-
-        createCentered("--------------------------------"),
-        createCentered("СПОСОБ ОПЛАТЫ", true),
-        createCentered("--------------------------------"),
-        createLine("☐ Наличный расчет"),
-        createLine("☐ Перевод Kaspi"),
-        createLine("☐ Kaspi QR"),
-        createLine("☐ Счет на оплату"),
-        createLine("☐ Отсрочка платежа"),
-        new Paragraph({ spacing: { after: 200 } }),
-
-        createLine("Kaspi: ____________________"),
-        new Paragraph({ spacing: { after: 200 } }),
-        
-        createLine("Счет на оплату №: _________"),
-        createLine("Договор №: ________________"),
-        createLine("Банк: _____________________"),
-        new Paragraph({ spacing: { after: 200 } }),
-
-        createLine("Статус оплаты:"),
-        createLine("☐ Оплачено"),
-        createLine("☐ Частично оплачено"),
-        createLine("☐ Ожидает оплаты"),
-        new Paragraph({ spacing: { after: 200 } }),
-
-        createCentered("--------------------------------"),
-        createCentered("ИНФОРМАЦИЯ ДОСТАВКИ", true),
-        createCentered("--------------------------------"),
-        createLine(`Курьер: ___________________`),
-        createLine(`Адрес: ${orderData.address}`),
-        createLine(`Комментарий: ______________`),
-        new Paragraph({ spacing: { after: 200 } }),
-
-        createCentered("==============================="),
-        createCentered("Спасибо за заказ!", true, 24),
-        createCentered("GASTRO MIR", true, 28),
-        createCentered("==============================="),
-        new Paragraph({ spacing: { after: 200 } }),
-
-        ...(cartStore.hasWeightItems ? [
-          new Paragraph({
-            children: [new TextRun({ text: "ПРИМЕЧАНИЕ:", bold: true })],
-          }),
-          new Paragraph({
-            children: [new TextRun({ text: "Для весовых товаров итоговая стоимость зависит от фактического веса и рассчитывается после сборки заказа.", italics: true })],
-          }),
-        ] : []),
-      ],
-    }],
+    sections: [{ properties: {}, children: [
+      ...headerLogo,
+      createCentered('==============================='),
+      createCentered('НАКЛАДНАЯ', true, 28),
+      createCentered('==============================='),
+      new Paragraph({ spacing: { after: 200 } }),
+      createLine('Поставщик: ИП Сатубалдина З.А.'),
+      createLine('БИН/ИИН: 540725400961'),
+      createLine('Телефон: +7 701 514 14 04'),
+      new Paragraph({ spacing: { after: 200 } }),
+      createLine(`Получатель: ${orderData.customerName}`),
+      createLine(`Телефон: ${orderData.phone}`),
+      new Paragraph({ spacing: { after: 200 } }),
+      createLine(`Дата: ${date}`),
+      createLine(`Время: ${time}`),
+      new Paragraph({ spacing: { after: 200 } }),
+      createCentered('--------------------------------'),
+      createCentered('ТОВАР', true),
+      createCentered('--------------------------------'),
+      new Paragraph({ spacing: { after: 200 } }),
+      new Table({ rows: [tableHeaderRow, ...tableRows], width: { size: 100, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.SINGLE, size: 1, color: '000000' }, bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' }, left: { style: BorderStyle.SINGLE, size: 1, color: '000000' }, right: { style: BorderStyle.SINGLE, size: 1, color: '000000' }, insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: '000000' }, insideVertical: { style: BorderStyle.SINGLE, size: 1, color: '000000' } } }),
+      new Paragraph({ spacing: { after: 200 } }),
+      createCentered('--------------------------------'),
+      createLine(`ИТОГО: ${formatPrice(cartStore.totalPrice)} тг`, true),
+      createLine('Скидка: 0 тг'),
+      createLine(`К ОПЛАТЕ: ${formatPrice(cartStore.totalPrice)} тг`, true, 24),
+      new Paragraph({ spacing: { after: 200 } }),
+      createCentered('--------------------------------'),
+      createCentered('СПОСОБ ОПЛАТЫ', true),
+      createCentered('--------------------------------'),
+      createLine('☐ Наличный расчет'), createLine('☐ Перевод Kaspi'), createLine('☐ Kaspi QR'), createLine('☐ Счет на оплату'), createLine('☐ Отсрочка платежа'),
+      new Paragraph({ spacing: { after: 200 } }),
+      createLine('Kaspi: ____________________'),
+      new Paragraph({ spacing: { after: 200 } }),
+      createLine('Счет на оплату №: _________'), createLine('Договор №: ________________'), createLine('Банк: _____________________'),
+      new Paragraph({ spacing: { after: 200 } }),
+      createLine('Статус оплаты:'), createLine('☐ Оплачено'), createLine('☐ Частично оплачено'), createLine('☐ Ожидает оплаты'),
+      new Paragraph({ spacing: { after: 200 } }),
+      createCentered('--------------------------------'),
+      createCentered('ИНФОРМАЦИЯ ДОСТАВКИ', true),
+      createCentered('--------------------------------'),
+      createLine('Курьер: ___________________'),
+      createLine(`Адрес: ${orderData.address}`),
+      createLine('Комментарий: ______________'),
+      new Paragraph({ spacing: { after: 200 } }),
+      createCentered('==============================='),
+      createCentered('Спасибо за заказ!', true, 24),
+      createCentered('GASTRO MIR', true, 28),
+      createCentered('==============================='),
+      new Paragraph({ spacing: { after: 200 } }),
+      ...(cartStore.hasWeightItems ? [
+        new Paragraph({ children: [new TextRun({ text: 'ПРИМЕЧАНИЕ:', bold: true })] }),
+        new Paragraph({ children: [new TextRun({ text: 'Для весовых товаров итоговая стоимость зависит от фактического веса и рассчитывается после сборки заказа.', italics: true })] }),
+      ] : []),
+    ]}],
   })
 
-  const blob = await Packer.toBlob(doc)
+  return Packer.toBlob(doc)
+}
+
+const generateInvoice = async () => {
+  const orderNum = `УД-${new Date().getTime().toString().slice(-6)}-01`
+  const blob = await buildDocxBlob()
   saveAs(blob, `Накладная_${orderNum}.docx`)
-  
-  // Also offer to send via WhatsApp
-  const confirmWA = confirm('Накладная скачана. Отправить заказ в WhatsApp?')
-  if (confirmWA) sendToWhatsApp()
 }
 </script>
 
@@ -550,5 +554,27 @@ const generateInvoice = async () => {
   .order-form { padding: 1.5rem; border-radius: 1.5rem; }
   .modal-footer { padding: 1.25rem; }
   .total-row { font-size: 1.1rem; }
+}
+
+.toast-success {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #22c55e;
+  color: #fff;
+  padding: 1rem 2rem;
+  border-radius: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  z-index: 9999;
+  box-shadow: 0 8px 30px rgba(34,197,94,0.35);
+  white-space: nowrap;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 </style>
