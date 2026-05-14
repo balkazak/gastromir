@@ -105,6 +105,14 @@ onMounted(() => {
   text-align: center;
 }
 
+@media (max-width: 768px) {
+  .page-header { padding-top: 7rem; }
+}
+
+@media (max-width: 480px) {
+  .page-header { padding-top: 5.5rem; }
+}
+
 .page-header h1 span { color: var(--secondary); }
 
 .steps-flow {
@@ -198,7 +206,19 @@ onMounted(() => {
 .text-white { color: var(--white); }
 
 @media (max-width: 768px) {
-  .steps-flow { flex-direction: column; gap: 3rem; }
-  .step-arrow { position: static; margin-top: 1rem; }
+  .steps-flow { flex-direction: column; gap: 2rem; }
+  .step-arrow { position: static; margin-top: 0.5rem; }
+  .step-num { width: 45px; height: 45px; font-size: 1.2rem; margin-bottom: 1rem; border-width: 3px; }
+  .step-content h3 { font-size: 1rem; margin-bottom: 0.5rem; }
+  .step-content p { font-size: 0.8rem; }
+  .whom-grid { gap: 1rem; margin-top: 2rem; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .whom-card { padding: 1.25rem; border-radius: 1rem; gap: 0.5rem; }
+  .whom-icon { width: 24px; height: 24px; }
+  .whom-card span { font-size: 0.9rem; }
+  .benefits-grid { gap: 1rem; margin-top: 2rem; }
+  .benefit-box { padding: 1.5rem; border-radius: 1.25rem; }
+  .benefit-box h3 { font-size: 1rem; margin-bottom: 0.5rem; }
+  .benefit-box p { font-size: 0.85rem; }
+  .section-header p { font-size: 0.9rem; }
 }
 </style>

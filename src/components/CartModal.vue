@@ -13,6 +13,7 @@
               <div class="item-details">
                 <h4>{{ item.name }}</h4>
                 <p>{{ formatPrice(item.price) }} ₸ <span class="unit">/ {{ item.unit }}</span></p>
+                <span v-if="item.unit === 'кг'" class="weight-badge">⚖️ весовой</span>
               </div>
               <div class="item-actions">
                 <div class="qty-control">
@@ -42,6 +43,9 @@
           </div>
 
           <div class="modal-footer">
+            <p v-if="cartStore.hasWeightItems" class="weight-disclaimer">
+              ⚖️ Для весовых товаров итоговая стоимость зависит от фактического веса и рассчитывается после сборки заказа.
+            </p>
             <div class="total-row">
               <span>Итого к оплате:</span>
               <strong>{{ formatPrice(cartStore.totalPrice) }} ₸</strong>
@@ -89,7 +93,7 @@
 import { reactive } from 'vue'
 import { X, Trash2, ShoppingCart } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, WidthType, BorderStyle } from 'docx'
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, WidthType, BorderStyle, ImageRun } from 'docx'
 import { saveAs } from 'file-saver'
 
 const cartStore = useCartStore()
@@ -123,78 +127,153 @@ const sendToEmail = () => {
 
 const generateInvoice = async () => {
   const date = new Date().toLocaleDateString('ru-RU')
+  const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
   const orderNum = `УД-${new Date().getTime().toString().slice(-6)}-01`
+
+  let imageBuffer = null
+  try {
+    const response = await fetch('/src/assets/logo.png')
+    const blob = await response.blob()
+    imageBuffer = await blob.arrayBuffer()
+  } catch (e) {
+    console.error("Could not load logo", e)
+  }
+
+  const createText = (text, bold = false, size = 22) => new TextRun({ text, bold, size })
+  const createLine = (text, bold = false, size = 22) => new Paragraph({ children: [createText(text, bold, size)] })
+  const createCentered = (text, bold = false, size = 22) => new Paragraph({ children: [createText(text, bold, size)], alignment: AlignmentType.CENTER })
+
+  const headerLogo = imageBuffer ? [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new ImageRun({
+          data: imageBuffer,
+          transformation: {
+            width: 250,
+            height: 100,
+          },
+        })
+      ]
+    })
+  ] : []
+
+  const tableHeaderRow = new TableRow({
+    children: [
+      new TableCell({ children: [createLine("№", true)], width: { size: 10, type: WidthType.PERCENTAGE } }),
+      new TableCell({ children: [createLine("Наименование", true)], width: { size: 45, type: WidthType.PERCENTAGE } }),
+      new TableCell({ children: [createLine("Кол-во", true)], width: { size: 15, type: WidthType.PERCENTAGE } }),
+      new TableCell({ children: [createLine("Цена", true)], width: { size: 15, type: WidthType.PERCENTAGE } }),
+      new TableCell({ children: [createLine("Сумма", true)], width: { size: 15, type: WidthType.PERCENTAGE } }),
+    ]
+  })
+
+  const tableRows = cartStore.items.map((item, index) => {
+    return new TableRow({
+      children: [
+        new TableCell({ children: [createLine(`${index + 1}.`)] }),
+        new TableCell({ children: [createLine(`${item.name}`)] }),
+        new TableCell({ children: [createLine(`${item.quantity} ${item.unit}`)] }),
+        new TableCell({ children: [createLine(formatPrice(item.price))] }),
+        new TableCell({ children: [createLine(formatPrice(item.quantity * item.price))] }),
+      ]
+    })
+  })
 
   const doc = new Document({
     sections: [{
       properties: {},
       children: [
-        new Paragraph({
-          children: [
-            new TextRun({ text: "НАКЛАДНАЯ ДЛЯ ПЕЧАТИ", bold: true, size: 28 }),
-          ],
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 400 },
+        ...headerLogo,
+        createCentered("==============================="),
+        createCentered("НАКЛАДНАЯ", true, 28),
+        createCentered("==============================="),
+        new Paragraph({ spacing: { after: 200 } }),
+
+        createLine("Поставщик: ИП Сатубалдина З.А."),
+        createLine("БИН/ИИН: 540725400961"),
+        createLine("Телефон: +7 701 514 14 04"),
+        new Paragraph({ spacing: { after: 200 } }),
+        
+        createLine(`Получатель: ${orderData.customerName}`),
+        createLine(`Телефон: ${orderData.phone}`),
+        new Paragraph({ spacing: { after: 200 } }),
+        
+        createLine(`Дата: ${date}`),
+        createLine(`Время: ${time}`),
+        new Paragraph({ spacing: { after: 200 } }),
+
+        createCentered("--------------------------------"),
+        createCentered("ТОВАР", true),
+        createCentered("--------------------------------"),
+        new Paragraph({ spacing: { after: 200 } }),
+        
+        new Table({
+          rows: [tableHeaderRow, ...tableRows],
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: {
+            top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            right: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+          }
         }),
-        new Paragraph({
-          children: [new TextRun({ text: `№ ${orderNum}`, bold: true, size: 24 })],
-          spacing: { after: 200 },
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: `Клиент: ${orderData.customerName}`, bold: true, size: 22 })],
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: `Телефон: ${orderData.phone}` })],
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: `Адрес: ${orderData.address}` })],
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: `Дата: ${date}` })],
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: "Поставщик: Gastro Mir" })],
-          spacing: { after: 400 },
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: "⸻".repeat(20) })],
-          spacing: { after: 200 },
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: "ТОВАРНАЯ ЧАСТЬ", bold: true })],
-          spacing: { after: 200 },
-        }),
-        ...cartStore.items.map((item, index) => 
+        new Paragraph({ spacing: { after: 200 } }),
+
+        createCentered("--------------------------------"),
+        createLine(`ИТОГО: ${formatPrice(cartStore.totalPrice)} тг`, true),
+        createLine(`Скидка: 0 тг`),
+        createLine(`К ОПЛАТЕ: ${formatPrice(cartStore.totalPrice)} тг`, true, 24),
+        new Paragraph({ spacing: { after: 200 } }),
+
+        createCentered("--------------------------------"),
+        createCentered("СПОСОБ ОПЛАТЫ", true),
+        createCentered("--------------------------------"),
+        createLine("☐ Наличный расчет"),
+        createLine("☐ Перевод Kaspi"),
+        createLine("☐ Kaspi QR"),
+        createLine("☐ Счет на оплату"),
+        createLine("☐ Отсрочка платежа"),
+        new Paragraph({ spacing: { after: 200 } }),
+
+        createLine("Kaspi: ____________________"),
+        new Paragraph({ spacing: { after: 200 } }),
+        
+        createLine("Счет на оплату №: _________"),
+        createLine("Договор №: ________________"),
+        createLine("Банк: _____________________"),
+        new Paragraph({ spacing: { after: 200 } }),
+
+        createLine("Статус оплаты:"),
+        createLine("☐ Оплачено"),
+        createLine("☐ Частично оплачено"),
+        createLine("☐ Ожидает оплаты"),
+        new Paragraph({ spacing: { after: 200 } }),
+
+        createCentered("--------------------------------"),
+        createCentered("ИНФОРМАЦИЯ ДОСТАВКИ", true),
+        createCentered("--------------------------------"),
+        createLine(`Курьер: ___________________`),
+        createLine(`Адрес: ${orderData.address}`),
+        createLine(`Комментарий: ______________`),
+        new Paragraph({ spacing: { after: 200 } }),
+
+        createCentered("==============================="),
+        createCentered("Спасибо за заказ!", true, 24),
+        createCentered("GASTRO MIR", true, 28),
+        createCentered("==============================="),
+        new Paragraph({ spacing: { after: 200 } }),
+
+        ...(cartStore.hasWeightItems ? [
           new Paragraph({
-            children: [
-              new TextRun({ text: `${index + 1}. ${item.name} — ${item.quantity} ${item.unit} × ${formatPrice(item.price)} = ${formatPrice(item.quantity * item.price)}` })
-            ],
-            spacing: { after: 100 }
-          })
-        ),
-        new Paragraph({
-          children: [new TextRun({ text: "⸻".repeat(20) })],
-          spacing: { before: 200, after: 200 },
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: `ИТОГО К ОПЛАТЕ: ${formatPrice(cartStore.totalPrice)} тг`, bold: true, size: 24 })
-          ],
-          spacing: { after: 400 },
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: "⸻".repeat(20) })],
-          spacing: { after: 200 },
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: "ПРИМЕЧАНИЕ:", bold: true })],
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: "Спасибо за заказ." })],
-        }),
-        new Paragraph({
-          children: [new TextRun({ text: "Castro Mir" })],
-        }),
+            children: [new TextRun({ text: "ПРИМЕЧАНИЕ:", bold: true })],
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: "Для весовых товаров итоговая стоимость зависит от фактического веса и рассчитывается после сборки заказа.", italics: true })],
+          }),
+        ] : []),
       ],
     }],
   })
@@ -329,6 +408,27 @@ const generateInvoice = async () => {
   border-radius: 2rem;
   margin-bottom: 2rem;
   border: 1px solid #e2e8f0;
+}
+
+.weight-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  color: var(--secondary-dark);
+  background: #FEF3C7;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.35rem;
+  margin-top: 0.25rem;
+  font-weight: 600;
+}
+
+.weight-disclaimer {
+  font-size: 0.8rem;
+  color: var(--secondary-dark);
+  background: #FEF3C7;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1rem;
+  line-height: 1.4;
 }
 
 .order-form h3 {

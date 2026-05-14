@@ -153,6 +153,18 @@ const highlights = [
   overflow: hidden;
 }
 
+@media (max-width: 768px) {
+  .hero {
+    padding: 7rem 0 3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero {
+    padding: 5.5rem 0 2rem;
+  }
+}
+
 .hero-grid {
   display: grid;
   grid-template-columns: 1.2fr 0.8fr;
@@ -457,11 +469,12 @@ h1 span {
   .hero-grid {
     grid-template-columns: 1fr;
     text-align: center;
-    gap: 3rem;
+    gap: 2rem;
   }
   .hero-content p {
     margin-left: auto;
     margin-right: auto;
+    font-size: 1rem;
   }
   .hero-actions {
     justify-content: center;
@@ -476,14 +489,18 @@ h1 span {
     margin: 0 auto;
   }
   h1 {
-    font-size: 2.8rem;
+    font-size: 2.2rem;
   }
   .comparison-grid {
     grid-template-columns: 1fr;
+    margin-top: 2rem;
   }
   .vs-badge {
     margin: -1rem auto;
     z-index: 5;
+    width: 45px;
+    height: 45px;
+    font-size: 1rem;
   }
   .comp-card.gastromir {
     transform: none;
@@ -491,10 +508,121 @@ h1 span {
   }
 }
 
-@media (max-width: 600px) {
-  h1 { font-size: 2.2rem; }
-  .comp-card { padding: 2rem; }
-  .offer-card { padding: 2rem; border-radius: 2rem; }
-  .offer-content h2 { font-size: 1.8rem; }
+@media (max-width: 768px) {
+  .hero-content p {
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+  }
+  .badge {
+    padding: 0.35rem 0.8rem;
+    font-size: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .hero-actions {
+    margin-bottom: 1.5rem;
+  }
+  .hero-stats {
+    gap: 1.5rem;
+  }
+  .stat-num {
+    font-size: 1.2rem;
+  }
+  .stat-label {
+    font-size: 0.8rem;
+  }
+  .comp-card {
+    padding: 1.5rem;
+    border-radius: 1.5rem;
+  }
+  .comp-card h3 {
+    font-size: 1.15rem;
+    margin-bottom: 1.25rem;
+  }
+  .comp-card li {
+    font-size: 0.9rem;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  .card-logo {
+    font-size: 1.4rem;
+    margin-bottom: 1.25rem;
+  }
+  .section-header p {
+    font-size: 0.9rem;
+  }
+  .highlights-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  .h-card {
+    padding: 1.5rem;
+    border-radius: 1rem;
+  }
+  .h-icon {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 0.75rem;
+  }
+  .h-card h3 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  .h-card p {
+    font-size: 0.85rem;
+  }
+  .partners {
+    padding: 2rem 0;
+  }
+  .partner {
+    font-size: 1.1rem;
+  }
+  .section-tag {
+    font-size: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .offer-section {
+    padding-bottom: 3rem;
+  }
+  .offer-card {
+    padding: 2rem 1.5rem;
+    border-radius: 1.5rem;
+  }
+  .offer-content h2 {
+    font-size: 1.4rem;
+    margin-bottom: 1.25rem;
+  }
+  .offer-content li {
+    font-size: 0.9rem;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+  .offer-content ul {
+    margin-bottom: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 { font-size: 1.6rem; }
+  .hero-content p {
+    font-size: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+  .comp-card {
+    padding: 1.25rem;
+  }
+  .comp-card li {
+    font-size: 0.8rem;
+  }
+  .offer-card {
+    padding: 1.5rem 1.25rem;
+    border-radius: 1.25rem;
+  }
+  .offer-content h2 {
+    font-size: 1.25rem;
+  }
+  .offer-content li {
+    font-size: 0.8rem;
+  }
 }
 </style>

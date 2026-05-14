@@ -77,6 +77,9 @@
                       </button>
                     </div>
                   </div>
+                  <p v-if="product.unit === 'кг'" class="weight-note">
+                    ⚖️ Весовой товар — итоговая стоимость зависит от фактического веса
+                  </p>
                 </div>
               </div>
             </div>
@@ -302,6 +305,16 @@ const isItemInCart = (id) => {
   font-size: 0.85rem;
   color: var(--gray);
   margin-bottom: 1.5rem;
+}
+
+.weight-note {
+  font-size: 0.75rem;
+  color: var(--secondary-dark);
+  background: #FEF3C7;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.5rem;
+  margin-top: 0.75rem;
+  line-height: 1.3;
 }
 
 .product-footer {

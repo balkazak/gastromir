@@ -24,6 +24,10 @@ export const useCartStore = defineStore('cart', () => {
     return items.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   })
 
+  const hasWeightItems = computed(() => {
+    return items.value.some(item => item.unit === 'кг')
+  })
+
   const addItem = (product) => {
     const existing = items.value.find(i => i.id === product.id)
     if (existing) {
@@ -68,6 +72,7 @@ export const useCartStore = defineStore('cart', () => {
     isModalOpen,
     totalItems,
     totalPrice,
+    hasWeightItems,
     addItem,
     updateQuantity,
     removeItem,

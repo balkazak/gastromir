@@ -82,7 +82,7 @@ nav.scrolled {
 }
 
 .logo-img {
-  height: 45px;
+  height: 70px;
   width: auto;
 }
 
@@ -144,8 +144,7 @@ nav.scrolled {
   nav { padding: 1rem 0; background: var(--glass); }
   
   .logo-img {
-    height: 35px;
-    max-width: 150px;
+    height: 55px;
   }
   
   .mobile-toggle {

@@ -124,6 +124,16 @@ const problems = [
   margin-bottom: 1.5rem;
 }
 
+@media (max-width: 768px) {
+  .page-header { padding-top: 7rem; }
+  .page-header h1 { font-size: 2rem; margin-bottom: 0.75rem; }
+}
+
+@media (max-width: 480px) {
+  .page-header { padding-top: 5.5rem; }
+  .page-header h1 { font-size: 1.6rem; }
+}
+
 .page-header span {
   color: var(--secondary);
 }
@@ -143,6 +153,12 @@ const problems = [
   position: relative;
   padding: 2rem;
   border-left: 4px solid var(--primary-light);
+}
+
+@media (max-width: 768px) {
+  .values-grid { gap: 1.5rem; margin-top: 2rem; grid-template-columns: 1fr; }
+  .value-item { padding: 1.25rem; }
+  .value-number { font-size: 2.5rem; }
 }
 
 .value-number {
@@ -255,8 +271,16 @@ const problems = [
 .sol-card li { margin-bottom: 1rem; font-size: 1.2rem; font-weight: 600; }
 
 @media (max-width: 768px) {
-  .problems-grid { grid-template-columns: 1fr; }
-  .comp-row { grid-template-columns: 1fr; gap: 1rem; text-align: center; }
-  .vs { display: none; }
+  .problems-grid { grid-template-columns: 1fr; gap: 2rem; }
+  .comparison-grid { grid-template-columns: 1fr; margin-top: 2rem; }
+  .comp-card { padding: 1.5rem; }
+  .comp-card h3 { font-size: 1.15rem; margin-bottom: 1.25rem; }
+  .comp-card li { font-size: 0.9rem; gap: 0.75rem; margin-bottom: 0.75rem; }
+  .card-logo { font-size: 1.4rem; margin-bottom: 1.25rem; }
+  .vs-badge { width: 45px; height: 45px; font-size: 1rem; margin: -0.75rem auto; }
+  .problem-item { font-size: 0.9rem; margin-bottom: 1rem; gap: 0.75rem; }
+  .sol-card { padding: 1.5rem; }
+  .sol-card li { font-size: 1rem; margin-bottom: 0.5rem; }
+  .section-header p { font-size: 0.9rem; }
 }
 </style>

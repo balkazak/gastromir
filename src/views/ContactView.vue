@@ -73,17 +73,19 @@
               <form @submit.prevent="handleSubmit" v-if="!submitted">
                 <div class="form-group">
                   <label>Название ресторана</label>
-                  <input type="text" placeholder="Укажите название" required />
+                  <input type="text" v-model="formData.restaurant" placeholder="Укажите название" required />
                 </div>
                 <div class="form-group">
                   <label>Ваше имя</label>
-                  <input type="text" placeholder="Как к вам обращаться?" required />
+                  <input type="text" v-model="formData.name" placeholder="Как к вам обращаться?" required />
                 </div>
                 <div class="form-group">
                   <label>Телефон</label>
-                  <input type="tel" placeholder="+7 (___) ___ __ __" required />
+                  <input type="tel" v-model="formData.phone" placeholder="+7 (___) ___ __ __" required />
                 </div>
-                <button type="submit" class="btn btn-primary btn-block">Отправить заявку</button>
+                <button type="submit" class="btn btn-primary btn-block" :disabled="isSubmitting">
+                  {{ isSubmitting ? 'Отправка...' : 'Отправить заявку' }}
+                </button>
               </form>
 
               <div v-else class="success-msg" v-motion-pop>
@@ -108,10 +110,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { MapPin, Mail, Clock, Phone } from 'lucide-vue-next'
 
 const submitted = ref(false)
+const isSubmitting = ref(false)
+const formData = reactive({
+  restaurant: '',
+  name: '',
+  phone: ''
+})
 
 const requisites = {
   'Компания': 'GASTROMIR',
@@ -123,8 +131,33 @@ const requisites = {
   'Номер счёта': 'KZ44722S000001273436'
 }
 
-const handleSubmit = () => {
-  submitted.value = true
+const handleSubmit = async () => {
+  isSubmitting.value = true
+  try {
+    const response = await fetch('https://formspree.io/f/xkoyakek', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        Ресторан: formData.restaurant,
+        Имя: formData.name,
+        Телефон: formData.phone
+      })
+    })
+
+    if (response.ok) {
+      submitted.value = true
+    } else {
+      alert('Произошла ошибка при отправке заявки. Пожалуйста, попробуйте позже.')
+    }
+  } catch (error) {
+    console.error('Ошибка отправки формы:', error)
+    alert('Произошла ошибка при отправке заявки. Пожалуйста, проверьте подключение и попробуйте позже.')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -144,8 +177,23 @@ const handleSubmit = () => {
   gap: 6rem;
 }
 
+@media (max-width: 768px) {
+  .page-header { padding-top: 7rem; }
+  .contact-grid { gap: 2rem; }
+}
+
+@media (max-width: 480px) {
+  .page-header { padding-top: 5.5rem; }
+  .contact-grid { gap: 1.5rem; }
+}
+
 .info-group { margin-bottom: 4rem; }
 .info-group h3 { margin-bottom: 2rem; color: var(--primary); font-size: 1.5rem; }
+
+@media (max-width: 768px) {
+  .info-group { margin-bottom: 2rem; }
+  .info-group h3 { margin-bottom: 1rem; font-size: 1.15rem; }
+}
 
 .info-item {
   display: flex;
@@ -183,8 +231,21 @@ const handleSubmit = () => {
   top: 100px;
 }
 
+@media (max-width: 768px) {
+  .form-card { padding: 1.75rem; border-radius: 1.5rem; position: static; }
+}
+
+@media (max-width: 480px) {
+  .form-card { padding: 1.25rem; border-radius: 1.25rem; }
+}
+
 .form-card h2 { margin-bottom: 0.5rem; color: var(--primary); }
 .form-card p { color: var(--gray); margin-bottom: 2.5rem; }
+
+@media (max-width: 768px) {
+  .form-card h2 { font-size: 1.25rem; }
+  .form-card p { font-size: 0.85rem; margin-bottom: 1.5rem; }
+}
 
 .form-group { margin-bottom: 1.5rem; }
 .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; }
@@ -195,6 +256,12 @@ const handleSubmit = () => {
   border: 1px solid #ddd;
   background: #f8fafc;
   outline: none;
+}
+
+@media (max-width: 768px) {
+  .form-group { margin-bottom: 1rem; }
+  .form-group label { font-size: 0.75rem; margin-bottom: 0.35rem; }
+  .form-group input { padding: 0.75rem; border-radius: 0.75rem; font-size: 0.85rem; }
 }
 
 .form-group input:focus { border-color: var(--primary-light); }
@@ -247,5 +314,20 @@ const handleSubmit = () => {
 
 @media (max-width: 992px) {
   .contact-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .info-item { gap: 1rem; margin-bottom: 1rem; }
+  .info-item .label { font-size: 0.75rem; }
+  .info-item p { font-size: 0.85rem; }
+  .team-card { padding: 1rem; margin-bottom: 0.75rem; }
+  .team-info .name { font-size: 0.9rem; }
+  .team-info .role { font-size: 0.8rem; }
+  .team-info .phone { font-size: 0.85rem; }
+  .req-item { font-size: 0.8rem; }
+  .btn-whatsapp { padding: 0.75rem; font-size: 0.85rem; }
+  .form-divider { margin: 1.25rem 0; font-size: 0.7rem; }
+  .success-msg { padding: 1.5rem 0; }
+  .check-icon { width: 48px; height: 48px; font-size: 1.5rem; }
 }
 </style>
