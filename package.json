@@ -9,8 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@vuepic/vue-datepicker": "^12.1.0",
     "@vueuse/motion": "^2.0.0",
     "csv-parse": "^6.2.1",
+    "date-fns": "^4.2.1",
     "docx": "^8.5.0",
     "file-saver": "^2.0.5",
     "html2pdf.js": "^0.14.0",

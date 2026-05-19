@@ -12,7 +12,7 @@
         <router-link to="/about" @click="isMobileMenuOpen = false">О нас</router-link>
         <router-link to="/contacts" @click="isMobileMenuOpen = false">Контакты</router-link>
         
-        <button class="cart-trigger" @click="cartStore.openModal">
+        <button class="cart-trigger" @click="() => { cartStore.openModal(); isMobileMenuOpen = false; }">
           <ShoppingCart />
           <span v-if="cartStore.totalItems > 0" class="badge">{{ cartStore.totalItems }}</span>
         </button>
@@ -28,6 +28,7 @@
       </button>
     </div>
   </nav>
+  <div v-if="isMobileMenuOpen" class="mobile-menu-overlay" @click="isMobileMenuOpen = false"></div>
 </template>
 
 <script setup>
@@ -153,20 +154,23 @@ nav.scrolled {
     border: none;
     color: var(--white);
     cursor: pointer;
+    z-index: 1001;
   }
 
   .nav-links {
     position: fixed;
     top: 0;
     right: -100%;
-    width: 100%;
+    width: 280px;
     height: 100vh;
     background: var(--primary);
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
+    padding: 6rem 2rem 2rem 2rem;
     transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 999;
-    gap: 2.5rem;
+    gap: 1.25rem;
+    box-shadow: -5px 0 25px rgba(0, 0, 0, 0.3);
   }
 
   .nav-links.active {
@@ -174,24 +178,39 @@ nav.scrolled {
   }
 
   .nav-links a {
-    font-size: 1.5rem;
+    font-size: 1.1rem;
     color: var(--white);
-    opacity: 1;
+    opacity: 0.9;
     display: block;
     width: 100%;
-    text-align: center;
-    padding: 0.5rem;
+    text-align: left;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .cart-trigger {
     margin: 1rem 0;
-    transform: scale(1.3);
+    transform: scale(1.1);
+    align-self: flex-start;
   }
 
   .nav-cta {
-    width: 80%;
+    width: 100%;
     text-align: center;
-    padding: 1.25rem;
+    padding: 0.75rem;
+    font-size: 1rem;
+    margin-top: 1rem;
   }
+}
+
+.mobile-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 998;
 }
 </style>

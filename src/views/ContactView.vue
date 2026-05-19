@@ -134,17 +134,17 @@ const requisites = {
 const handleSubmit = async () => {
   isSubmitting.value = true
   try {
-    const response = await fetch('https://formspree.io/f/xkoyakek', {
+    const formDataPayload = new FormData()
+    formDataPayload.append("access_key", "a4c51ae1-a7d6-4ac4-9d54-3183cb69f4f5")
+    formDataPayload.append("subject", `Новая заявка от ${formData.restaurant}`)
+    formDataPayload.append("from_name", "GASTROMIR")
+    formDataPayload.append("Ресторан", formData.restaurant)
+    formDataPayload.append("Имя", formData.name)
+    formDataPayload.append("Телефон", formData.phone)
+
+    const response = await fetch('https://api.web3forms.com/submit', {
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        Ресторан: formData.restaurant,
-        Имя: formData.name,
-        Телефон: formData.phone
-      })
+      body: formDataPayload
     })
 
     if (response.ok) {

@@ -47,6 +47,21 @@
               <input type="text" v-model="orderData.address" placeholder="Например: Кунаева 29/1, 3 этаж" required />
             </div>
             <div class="form-group">
+              <label>Дата доставки (ДД.ММ.ГГГГ)</label>
+              <input 
+                type="text" 
+                :value="orderData.deliveryDate" 
+                @input="onDateInput" 
+                placeholder="Например: 19.05.2026" 
+                maxLength="10"
+                required 
+                :class="{ 'input-error': orderData.deliveryDate && !isDateValid }"
+              />
+              <span v-if="orderData.deliveryDate && !isDateValid" class="error-message">
+                Введите корректную дату (не в прошлом) в формате ДД.ММ.ГГГГ
+              </span>
+            </div>
+            <div class="form-group">
               <label>Способ оплаты</label>
               <div class="payment-methods-grid">
                 <div 
@@ -81,7 +96,7 @@
               <button 
                 class="btn btn-primary btn-block" 
                 @click="sendToEmail" 
-                :disabled="!orderData.customerName || !orderData.phone || isSendingEmail"
+                :disabled="!orderData.customerName || !orderData.phone || isSendingEmail || !isDateValid"
               >
                 {{ isSendingEmail ? 'Отправка...' : 'Отправить заказ' }}
               </button>
@@ -89,7 +104,7 @@
               <button 
                 class="btn btn-whatsapp btn-block" 
                 @click="sendToWhatsApp" 
-                :disabled="!orderData.customerName || !orderData.phone"
+                :disabled="!orderData.customerName || !orderData.phone || !isDateValid"
               >
                 Отправить в WhatsApp
               </button>
@@ -97,7 +112,7 @@
               <button 
                 class="btn btn-secondary btn-block" 
                 @click="generatePDFInvoice" 
-                :disabled="!orderData.customerName || !orderData.address || !orderData.phone || isGeneratingPDF"
+                :disabled="!orderData.customerName || !orderData.address || !orderData.phone || isGeneratingPDF || !isDateValid"
               >
                 {{ isGeneratingPDF ? 'Генерация PDF...' : 'Скачать накладную (PDF)' }}
               </button>
@@ -116,8 +131,13 @@
 
   <div class="pdf-offscreen-container">
     <div ref="pdfTemplateRef" class="pdf-invoice">
+      <div class="invoice-logo-container">
+        <img src="@/assets/logo.png" alt="GASTROMIR Logo" class="invoice-logo" />
+        <h2 class="invoice-title">НАКЛАДНАЯ</h2>
+      </div>
       <div class="invoice-header">
-        <p><strong>Дата:</strong> {{ invoiceDate }} г.</p>
+        <p><strong>Дата заказа:</strong> {{ invoiceDate }} г.</p>
+        <p><strong>Дата доставки:</strong> {{ orderData.deliveryDate }} г.</p>
         <p><strong>Поставщик:</strong> ИП Сатубалдина З.А. (БИН/ИИН: 540725400961)</p>
         <p><strong>Покупатель:</strong> {{ orderData.customerName }}</p>
         <p><strong>Адрес:</strong> {{ orderData.address }}</p>
@@ -203,6 +223,7 @@
 import { reactive, ref, computed } from 'vue'
 import { X, Trash2, ShoppingCart, Check } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
+import { parse, isValid, isBefore, startOfDay, format } from 'date-fns'
 
 const cartStore = useCartStore()
 
@@ -217,11 +238,40 @@ const paymentMethods = [
   { id: 'deferred', name: 'Отсрочка платежа' }
 ]
 
+const todayStr = format(new Date(), 'dd.MM.yyyy')
+
 const orderData = reactive({
   customerName: '',
   address: '',
   phone: '',
-  paymentMethod: 'Наличный расчет'
+  paymentMethod: 'Наличный расчет',
+  deliveryDate: todayStr
+})
+
+const onDateInput = (event) => {
+  let value = event.target.value.replace(/\D/g, '')
+  if (value.length > 8) value = value.slice(0, 8)
+  
+  let formatted = ''
+  if (value.length > 0) {
+    formatted += value.slice(0, 2)
+  }
+  if (value.length > 2) {
+    formatted += '.' + value.slice(2, 4)
+  }
+  if (value.length > 4) {
+    formatted += '.' + value.slice(4, 8)
+  }
+  orderData.deliveryDate = formatted
+}
+
+const isDateValid = computed(() => {
+  const dateStr = orderData.deliveryDate
+  if (!dateStr || dateStr.length !== 10) return false
+  const parsed = parse(dateStr, 'dd.MM.yyyy', new Date())
+  if (!isValid(parsed)) return false
+  const today = startOfDay(new Date())
+  return !isBefore(parsed, today)
 })
 
 const invoiceDate = computed(() => {
@@ -257,7 +307,7 @@ const formatPrice = (price) => {
 const sendToWhatsApp = () => {
   const itemsText = cartStore.items.map(item => `- ${item.name}: ${item.quantity} ${item.unit} x ${formatPrice(item.price)} тг`).join('\n')
   const totalText = `Итого: ${formatPrice(cartStore.totalPrice)} тг`
-  const message = `👋 *Новый заказ в GASTROMIR!*\n\n*Ресторан:* ${orderData.customerName}\n*Телефон:* ${orderData.phone}\n*Адрес:* ${orderData.address}\n*Способ оплаты:* ${orderData.paymentMethod}\n\n*Заказ:*\n${itemsText}\n\n*${totalText}*`
+  const message = `👋 *Новый заказ в GASTROMIR!*\n\n*Ресторан:* ${orderData.customerName}\n*Телефон:* ${orderData.phone}\n*Адрес:* ${orderData.address}\n*Способ оплаты:* ${orderData.paymentMethod}\n*Дата доставки:* ${orderData.deliveryDate}\n\n*Заказ:*\n${itemsText}\n\n*${totalText}*`
   
   const encodedMessage = encodeURIComponent(message)
   window.open(`https://wa.me/77015141404?text=${encodedMessage}`, '_blank')
@@ -289,23 +339,23 @@ const sendToEmail = async () => {
     ? '\n\nПРИМЕЧАНИЕ: Цены на свежую продукцию (овощи, фрукты, зелень, салаты) являются плавающими и зависят от сезонности, качества и ежедневных поставок.'
     : ''
 
-  const message = `===============================\nНАКЛАДНАЯ\n===============================\n\nПоставщик: ИП Сатубалдина З.А.\nБИН/ИИН: 540725400961\nТелефон: +7 701 514 14 04\n\nПолучатель: ${orderData.customerName}\nТелефон: ${orderData.phone}\nАдрес: ${orderData.address}\nСпособ оплаты: ${orderData.paymentMethod}\n\nДата: ${date}\nВремя: ${time}\n\n--------------------------------\nТОВАР\n--------------------------------\n${itemsList}\n\n--------------------------------\nИТОГО: ${formatPrice(cartStore.totalPrice)} тг\nК ОПЛАТЕ: ${formatPrice(cartStore.totalPrice)} тг\n\n================================\nСпасибо за заказ!\nGASTRO MIR\n================================${weightNote}${freshNote}`
+  const message = `===============================\nНАКЛАДНАЯ\n===============================\n\nПоставщик: ИП Сатубалдина З.А.\nБИН/ИИН: 540725400961\nТелефон: +7 701 514 14 04\n\nПолучатель: ${orderData.customerName}\nТелефон: ${orderData.phone}\nАдрес: ${orderData.address}\nСпособ оплаты: ${orderData.paymentMethod}\nДата доставки: ${orderData.deliveryDate}\n\nДата заказа: ${date}\nВремя заказа: ${time}\n\n--------------------------------\nТОВАР\n--------------------------------\n${itemsList}\n\n--------------------------------\nИТОГО: ${formatPrice(cartStore.totalPrice)} тг\nК ОПЛАТЕ: ${formatPrice(cartStore.totalPrice)} тг\n\n================================\nСпасибо за заказ!\nGASTRO MIR\n================================${weightNote}${freshNote}`
 
   try {
-    const response = await fetch('https://formspree.io/f/xkoyakek', {
+    const formDataPayload = new FormData()
+    formDataPayload.append("access_key", "a4c51ae1-a7d6-4ac4-9d54-3183cb69f4f5")
+    formDataPayload.append("subject", `Новый заказ от ${orderData.customerName}`)
+    formDataPayload.append("from_name", "GASTROMIR")
+    formDataPayload.append("Ресторан", orderData.customerName)
+    formDataPayload.append("Телефон", orderData.phone)
+    formDataPayload.append("Адрес", orderData.address)
+    formDataPayload.append("Способ оплаты", orderData.paymentMethod)
+    formDataPayload.append("Дата доставки", orderData.deliveryDate)
+    formDataPayload.append("Накладная", message)
+
+    const response = await fetch('https://api.web3forms.com/submit', {
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        _subject: `Новый заказ от ${orderData.customerName}`,
-        Ресторан: orderData.customerName,
-        Телефон: orderData.phone,
-        Адрес: orderData.address,
-        'Способ оплаты': orderData.paymentMethod,
-        Накладная: message
-      })
+      body: formDataPayload
     })
 
     if (response.ok) {
@@ -315,6 +365,7 @@ const sendToEmail = async () => {
       orderData.phone = ''
       orderData.address = ''
       orderData.paymentMethod = 'Наличный расчет'
+      orderData.deliveryDate = todayStr
       showSuccessToast()
     } else {
       alert('Ошибка при отправке. Попробуйте ещё раз.')
@@ -783,5 +834,38 @@ const generatePDFInvoice = async () => {
     grid-template-columns: 1fr;
     gap: 0.5rem;
   }
+}
+
+.input-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1) !important;
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.invoice-logo-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #000;
+  padding-bottom: 1rem;
+}
+
+.invoice-logo {
+  height: 50px;
+  width: auto;
+}
+
+.invoice-title {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #000;
+  margin: 0;
 }
 </style>
