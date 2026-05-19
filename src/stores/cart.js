@@ -28,6 +28,11 @@ export const useCartStore = defineStore('cart', () => {
     return items.value.some(item => item.unit === 'кг')
   })
 
+  const hasFreshItems = computed(() => {
+    const freshCategories = ['Овощи', 'Зелень', 'Салаты', 'Фрукты']
+    return items.value.some(item => freshCategories.includes(item.category))
+  })
+
   const addItem = (product) => {
     const existing = items.value.find(i => i.id === product.id)
     if (existing) {
@@ -73,6 +78,7 @@ export const useCartStore = defineStore('cart', () => {
     totalItems,
     totalPrice,
     hasWeightItems,
+    hasFreshItems,
     addItem,
     updateQuantity,
     removeItem,

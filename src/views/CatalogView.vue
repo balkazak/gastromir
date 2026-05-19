@@ -43,6 +43,17 @@
 
           <!-- Products Grid -->
           <main class="products-main" ref="productsRef">
+            <div 
+              v-if="isFreshProduceVisible && filteredProducts.length > 0" 
+              class="fresh-produce-note"
+              v-motion-slide-visible-top
+            >
+              <div class="fresh-produce-icon">
+                <Info :size="20" />
+              </div>
+              <p>Цены на свежую продукцию (овощи, фрукты, зелень, салаты) являются плавающими и зависят от сезонности, качества и ежедневных поставок.</p>
+            </div>
+
             <div class="products-grid" v-if="filteredProducts.length > 0">
               <div 
                 class="product-card" 
@@ -109,7 +120,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { Search, ShoppingCart, Check, PackageX } from 'lucide-vue-next'
+import { Search, ShoppingCart, Check, PackageX, Info } from 'lucide-vue-next'
 import productsData from '@/data/products.json'
 import { useCartStore } from '@/stores/cart'
 
@@ -129,6 +140,14 @@ const filteredProducts = computed(() => {
 
 const uniqueCategories = computed(() => {
   return [...new Set(productsData.map(p => p.category))]
+})
+
+const isFreshProduceVisible = computed(() => {
+  const freshCategories = ['Овощи', 'Зелень', 'Салаты', 'Фрукты']
+  if (freshCategories.includes(activeCategory.value)) {
+    return true
+  }
+  return filteredProducts.value.some(p => freshCategories.includes(p.category))
 })
 
 const setActiveCategory = (cat) => {
@@ -452,5 +471,54 @@ const isItemInCart = (id) => {
     gap: 1rem;
   }
   .cart-info { gap: 0.5rem; }
+}
+
+.fresh-produce-note {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(251, 191, 36, 0.08) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 1.25rem 1.5rem;
+  border-radius: 1.25rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.03);
+  backdrop-filter: blur(10px);
+  transition: var(--transition);
+}
+
+.fresh-produce-note p {
+  color: #c27803;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  font-weight: 500;
+  margin: 0;
+}
+
+.fresh-produce-icon {
+  color: var(--secondary);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 158, 11, 0.1);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+}
+
+@media (max-width: 768px) {
+  .fresh-produce-note {
+    padding: 1rem;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  .fresh-produce-note p {
+    font-size: 0.85rem;
+  }
+  .fresh-produce-icon {
+    width: 32px;
+    height: 32px;
+  }
 }
 </style>

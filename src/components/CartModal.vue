@@ -46,11 +46,31 @@
               <label>Адрес доставки</label>
               <input type="text" v-model="orderData.address" placeholder="Например: Кунаева 29/1, 3 этаж" required />
             </div>
+            <div class="form-group">
+              <label>Способ оплаты</label>
+              <div class="payment-methods-grid">
+                <div 
+                  v-for="method in paymentMethods" 
+                  :key="method.id" 
+                  class="payment-method-card"
+                  :class="{ active: orderData.paymentMethod === method.name }"
+                  @click="orderData.paymentMethod = method.name"
+                >
+                  <span class="checkbox-indicator">
+                    <Check v-if="orderData.paymentMethod === method.name" :size="12" />
+                  </span>
+                  <span class="method-name">{{ method.name }}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="modal-footer">
             <p v-if="cartStore.hasWeightItems" class="weight-disclaimer">
               ⚖️ Для весовых товаров итоговая стоимость зависит от фактического веса и рассчитывается после сборки заказа.
+            </p>
+            <p v-if="cartStore.hasFreshItems" class="fresh-disclaimer">
+              🥬 Цены на свежую продукцию (овощи, фрукты, зелень, салаты) являются плавающими и зависят от сезонности, качества и ежедневных поставок.
             </p>
             <div class="total-row">
               <span>Итого к оплате:</span>
@@ -58,6 +78,14 @@
             </div>
             
             <div class="footer-actions">
+              <button 
+                class="btn btn-primary btn-block" 
+                @click="sendToEmail" 
+                :disabled="!orderData.customerName || !orderData.phone || isSendingEmail"
+              >
+                {{ isSendingEmail ? 'Отправка...' : 'Отправить заказ' }}
+              </button>
+
               <button 
                 class="btn btn-whatsapp btn-block" 
                 @click="sendToWhatsApp" 
@@ -68,18 +96,10 @@
               
               <button 
                 class="btn btn-secondary btn-block" 
-                @click="generateInvoice" 
-                :disabled="!orderData.customerName || !orderData.address || !orderData.phone"
+                @click="generatePDFInvoice" 
+                :disabled="!orderData.customerName || !orderData.address || !orderData.phone || isGeneratingPDF"
               >
-                Скачать накладную (Word)
-              </button>
-              
-              <button 
-                class="btn btn-outline-dark btn-block" 
-                @click="sendToEmail" 
-                :disabled="!orderData.customerName || !orderData.phone || isSendingEmail"
-              >
-                {{ isSendingEmail ? 'Отправка...' : 'Отправить на Email' }}
+                {{ isGeneratingPDF ? 'Генерация PDF...' : 'Скачать накладную (PDF)' }}
               </button>
             </div>
           </div>
@@ -93,22 +113,141 @@
       </div>
     </div>
   </Transition>
+
+  <div class="pdf-offscreen-container">
+    <div ref="pdfTemplateRef" class="pdf-invoice">
+      <div class="invoice-header">
+        <p><strong>Дата:</strong> {{ invoiceDate }} г.</p>
+        <p><strong>Поставщик:</strong> ИП Сатубалдина З.А. (БИН/ИИН: 540725400961)</p>
+        <p><strong>Покупатель:</strong> {{ orderData.customerName }}</p>
+        <p><strong>Адрес:</strong> {{ orderData.address }}</p>
+        <p><strong>Способ оплаты:</strong> {{ orderData.paymentMethod }}</p>
+      </div>
+
+      <div v-if="mainItems.length > 0" class="invoice-section">
+        <table class="invoice-table">
+          <thead>
+            <tr>
+              <th style="width: 5%">№</th>
+              <th style="width: 60%">Наименование</th>
+              <th style="width: 10%">Кол-во</th>
+              <th style="width: 10%">цена</th>
+              <th style="width: 15%">Сумма</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in mainItems" :key="item.id">
+              <td style="text-align: center;">{{ index + 1 }}</td>
+              <td>{{ item.name }}</td>
+              <td style="text-align: center;">{{ item.quantity }} {{ item.unit }}</td>
+              <td style="text-align: right;">{{ formatPrice(item.price) }}</td>
+              <td style="text-align: right;">{{ formatPrice(item.price * item.quantity) }}</td>
+            </tr>
+            <tr class="table-total-row">
+              <td colspan="2"><strong>Итого:</strong></td>
+              <td></td>
+              <td></td>
+              <td style="text-align: right;"><strong>{{ formatPrice(mainItemsTotal) }}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="barItems.length > 0" class="invoice-section" style="margin-top: 1.5rem;">
+        <h3 class="section-title">Бар:</h3>
+        <table class="invoice-table">
+          <thead>
+            <tr>
+              <th style="width: 5%">№</th>
+              <th style="width: 60%">Наименование</th>
+              <th style="width: 10%">Кол-во</th>
+              <th style="width: 10%">цена</th>
+              <th style="width: 15%">Сумма</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in barItems" :key="item.id">
+              <td style="text-align: center;">{{ index + 1 }}</td>
+              <td>{{ item.name }}</td>
+              <td style="text-align: center;">{{ item.quantity }} {{ item.unit }}</td>
+              <td style="text-align: right;">{{ formatPrice(item.price) }}</td>
+              <td style="text-align: right;">{{ formatPrice(item.price * item.quantity) }}</td>
+            </tr>
+            <tr class="table-total-row">
+              <td colspan="2"><strong>Итого:</strong></td>
+              <td></td>
+              <td></td>
+              <td style="text-align: right;"><strong>{{ formatPrice(barItemsTotal) }}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="invoice-grand-total">
+        <table class="grand-total-table">
+          <tbody>
+            <tr>
+              <td style="width: 65%;"><strong>Общая сумма к оплате:</strong></td>
+              <td style="width: 10%;"></td>
+              <td style="width: 10%;"></td>
+              <td style="width: 15%; text-align: right;"><strong>{{ formatPrice(cartStore.totalPrice) }}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { reactive, ref, computed } from 'vue'
-import { X, Trash2, ShoppingCart } from 'lucide-vue-next'
+import { X, Trash2, ShoppingCart, Check } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, WidthType, BorderStyle, ImageRun } from 'docx'
-import { saveAs } from 'file-saver'
-import logoUrl from '@/assets/logo.png'
 
 const cartStore = useCartStore()
+
+const pdfTemplateRef = ref(null)
+const isGeneratingPDF = ref(false)
+
+const paymentMethods = [
+  { id: 'cash', name: 'Наличный расчет' },
+  { id: 'transfer', name: 'Перевод Kaspi' },
+  { id: 'qr', name: 'Kaspi QR' },
+  { id: 'invoice', name: 'Счет на оплату' },
+  { id: 'deferred', name: 'Отсрочка платежа' }
+]
 
 const orderData = reactive({
   customerName: '',
   address: '',
-  phone: ''
+  phone: '',
+  paymentMethod: 'Наличный расчет'
+})
+
+const invoiceDate = computed(() => {
+  const d = new Date()
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const year = d.getFullYear()
+  return `${day}.${month}.${year}`
+})
+
+const barItems = computed(() => {
+  const barCategories = ['Чай-кофе', 'Сиропы', 'Орехи']
+  return cartStore.items.filter(item => barCategories.includes(item.category))
+})
+
+const mainItems = computed(() => {
+  const barCategories = ['Чай-кофе', 'Сиропы', 'Орехи']
+  return cartStore.items.filter(item => !barCategories.includes(item.category))
+})
+
+const mainItemsTotal = computed(() => {
+  return mainItems.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+})
+
+const barItemsTotal = computed(() => {
+  return barItems.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
 })
 
 const formatPrice = (price) => {
@@ -118,7 +257,7 @@ const formatPrice = (price) => {
 const sendToWhatsApp = () => {
   const itemsText = cartStore.items.map(item => `- ${item.name}: ${item.quantity} ${item.unit} x ${formatPrice(item.price)} тг`).join('\n')
   const totalText = `Итого: ${formatPrice(cartStore.totalPrice)} тг`
-  const message = `👋 *Новый заказ в GASTROMIR!*\n\n*Ресторан:* ${orderData.customerName}\n*Телефон:* ${orderData.phone}\n*Адрес:* ${orderData.address}\n\n*Заказ:*\n${itemsText}\n\n*${totalText}*`
+  const message = `👋 *Новый заказ в GASTROMIR!*\n\n*Ресторан:* ${orderData.customerName}\n*Телефон:* ${orderData.phone}\n*Адрес:* ${orderData.address}\n*Способ оплаты:* ${orderData.paymentMethod}\n\n*Заказ:*\n${itemsText}\n\n*${totalText}*`
   
   const encodedMessage = encodeURIComponent(message)
   window.open(`https://wa.me/77015141404?text=${encodedMessage}`, '_blank')
@@ -146,7 +285,11 @@ const sendToEmail = async () => {
     ? '\n\nПРИМЕЧАНИЕ: Для весовых товаров итоговая стоимость зависит от фактического веса и рассчитывается после сборки заказа.'
     : ''
 
-  const message = `===============================\nНАКЛАДНАЯ\n===============================\n\nПоставщик: ИП Сатубалдина З.А.\nБИН/ИИН: 540725400961\nТелефон: +7 701 514 14 04\n\nПолучатель: ${orderData.customerName}\nТелефон: ${orderData.phone}\nАдрес: ${orderData.address}\n\nДата: ${date}\nВремя: ${time}\n\n--------------------------------\nТОВАР\n--------------------------------\n${itemsList}\n\n--------------------------------\nИТОГО: ${formatPrice(cartStore.totalPrice)} тг\nК ОПЛАТЕ: ${formatPrice(cartStore.totalPrice)} тг\n\n================================\nСпасибо за заказ!\nGASTRO MIR\n================================${weightNote}`
+  const freshNote = cartStore.hasFreshItems
+    ? '\n\nПРИМЕЧАНИЕ: Цены на свежую продукцию (овощи, фрукты, зелень, салаты) являются плавающими и зависят от сезонности, качества и ежедневных поставок.'
+    : ''
+
+  const message = `===============================\nНАКЛАДНАЯ\n===============================\n\nПоставщик: ИП Сатубалдина З.А.\nБИН/ИИН: 540725400961\nТелефон: +7 701 514 14 04\n\nПолучатель: ${orderData.customerName}\nТелефон: ${orderData.phone}\nАдрес: ${orderData.address}\nСпособ оплаты: ${orderData.paymentMethod}\n\nДата: ${date}\nВремя: ${time}\n\n--------------------------------\nТОВАР\n--------------------------------\n${itemsList}\n\n--------------------------------\nИТОГО: ${formatPrice(cartStore.totalPrice)} тг\nК ОПЛАТЕ: ${formatPrice(cartStore.totalPrice)} тг\n\n================================\nСпасибо за заказ!\nGASTRO MIR\n================================${weightNote}${freshNote}`
 
   try {
     const response = await fetch('https://formspree.io/f/xkoyakek', {
@@ -160,6 +303,7 @@ const sendToEmail = async () => {
         Ресторан: orderData.customerName,
         Телефон: orderData.phone,
         Адрес: orderData.address,
+        'Способ оплаты': orderData.paymentMethod,
         Накладная: message
       })
     })
@@ -170,6 +314,7 @@ const sendToEmail = async () => {
       orderData.customerName = ''
       orderData.phone = ''
       orderData.address = ''
+      orderData.paymentMethod = 'Наличный расчет'
       showSuccessToast()
     } else {
       alert('Ошибка при отправке. Попробуйте ещё раз.')
@@ -182,112 +327,32 @@ const sendToEmail = async () => {
   }
 }
 
-const buildDocxBlob = async () => {
-  const date = new Date().toLocaleDateString('ru-RU')
-  const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+const generatePDFInvoice = async () => {
+  if (!pdfTemplateRef.value) return
+  isGeneratingPDF.value = true
 
-  let imageBuffer = null
   try {
-    const response = await fetch(logoUrl)
-    if (response.ok) {
-      const blob = await response.blob()
-      imageBuffer = new Uint8Array(await blob.arrayBuffer())
+    const html2pdf = (await import('html2pdf.js')).default
+    const orderNum = `УД-${new Date().getTime().toString().slice(-6)}-01`
+    const element = pdfTemplateRef.value
+
+    const options = {
+      margin: [0.5, 0.5, 0.5, 0.5],
+      filename: `Накладная_${orderNum}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
     }
-  } catch (e) {
-    console.error('Could not load logo', e)
+
+    await html2pdf()
+      .from(element)
+      .set(options)
+      .save()
+  } catch (err) {
+    console.error('Error generating PDF:', err)
+  } finally {
+    isGeneratingPDF.value = false
   }
-
-  const createText = (text, bold = false, size = 22) => new TextRun({ text, bold, size })
-  const createLine = (text, bold = false, size = 22) => new Paragraph({ children: [createText(text, bold, size)] })
-  const createCentered = (text, bold = false, size = 22) => new Paragraph({ children: [createText(text, bold, size)], alignment: AlignmentType.CENTER })
-
-  const headerLogo = imageBuffer ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new ImageRun({ data: imageBuffer, transformation: { width: 250, height: 100 } })] })] : []
-
-  const tableHeaderRow = new TableRow({
-    children: [
-      new TableCell({ children: [createLine('№', true)], width: { size: 10, type: WidthType.PERCENTAGE } }),
-      new TableCell({ children: [createLine('Наименование', true)], width: { size: 45, type: WidthType.PERCENTAGE } }),
-      new TableCell({ children: [createLine('Кол-во', true)], width: { size: 15, type: WidthType.PERCENTAGE } }),
-      new TableCell({ children: [createLine('Цена', true)], width: { size: 15, type: WidthType.PERCENTAGE } }),
-      new TableCell({ children: [createLine('Сумма', true)], width: { size: 15, type: WidthType.PERCENTAGE } }),
-    ]
-  })
-
-  const tableRows = cartStore.items.map((item, index) => new TableRow({
-    children: [
-      new TableCell({ children: [createLine(`${index + 1}.`)] }),
-      new TableCell({ children: [createLine(item.name)] }),
-      new TableCell({ children: [createLine(`${item.quantity} ${item.unit}`)] }),
-      new TableCell({ children: [createLine(formatPrice(item.price))] }),
-      new TableCell({ children: [createLine(formatPrice(item.quantity * item.price))] }),
-    ]
-  }))
-
-  const doc = new Document({
-    sections: [{ properties: {}, children: [
-      ...headerLogo,
-      createCentered('==============================='),
-      createCentered('НАКЛАДНАЯ', true, 28),
-      createCentered('==============================='),
-      new Paragraph({ spacing: { after: 200 } }),
-      createLine('Поставщик: ИП Сатубалдина З.А.'),
-      createLine('БИН/ИИН: 540725400961'),
-      createLine('Телефон: +7 701 514 14 04'),
-      new Paragraph({ spacing: { after: 200 } }),
-      createLine(`Получатель: ${orderData.customerName}`),
-      createLine(`Телефон: ${orderData.phone}`),
-      new Paragraph({ spacing: { after: 200 } }),
-      createLine(`Дата: ${date}`),
-      createLine(`Время: ${time}`),
-      new Paragraph({ spacing: { after: 200 } }),
-      createCentered('--------------------------------'),
-      createCentered('ТОВАР', true),
-      createCentered('--------------------------------'),
-      new Paragraph({ spacing: { after: 200 } }),
-      new Table({ rows: [tableHeaderRow, ...tableRows], width: { size: 100, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.SINGLE, size: 1, color: '000000' }, bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' }, left: { style: BorderStyle.SINGLE, size: 1, color: '000000' }, right: { style: BorderStyle.SINGLE, size: 1, color: '000000' }, insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: '000000' }, insideVertical: { style: BorderStyle.SINGLE, size: 1, color: '000000' } } }),
-      new Paragraph({ spacing: { after: 200 } }),
-      createCentered('--------------------------------'),
-      createLine(`ИТОГО: ${formatPrice(cartStore.totalPrice)} тг`, true),
-      createLine('Скидка: 0 тг'),
-      createLine(`К ОПЛАТЕ: ${formatPrice(cartStore.totalPrice)} тг`, true, 24),
-      new Paragraph({ spacing: { after: 200 } }),
-      createCentered('--------------------------------'),
-      createCentered('СПОСОБ ОПЛАТЫ', true),
-      createCentered('--------------------------------'),
-      createLine('☐ Наличный расчет'), createLine('☐ Перевод Kaspi'), createLine('☐ Kaspi QR'), createLine('☐ Счет на оплату'), createLine('☐ Отсрочка платежа'),
-      new Paragraph({ spacing: { after: 200 } }),
-      createLine('Kaspi: ____________________'),
-      new Paragraph({ spacing: { after: 200 } }),
-      createLine('Счет на оплату №: _________'), createLine('Договор №: ________________'), createLine('Банк: _____________________'),
-      new Paragraph({ spacing: { after: 200 } }),
-      createLine('Статус оплаты:'), createLine('☐ Оплачено'), createLine('☐ Частично оплачено'), createLine('☐ Ожидает оплаты'),
-      new Paragraph({ spacing: { after: 200 } }),
-      createCentered('--------------------------------'),
-      createCentered('ИНФОРМАЦИЯ ДОСТАВКИ', true),
-      createCentered('--------------------------------'),
-      createLine('Курьер: ___________________'),
-      createLine(`Адрес: ${orderData.address}`),
-      createLine('Комментарий: ______________'),
-      new Paragraph({ spacing: { after: 200 } }),
-      createCentered('==============================='),
-      createCentered('Спасибо за заказ!', true, 24),
-      createCentered('GASTRO MIR', true, 28),
-      createCentered('==============================='),
-      new Paragraph({ spacing: { after: 200 } }),
-      ...(cartStore.hasWeightItems ? [
-        new Paragraph({ children: [new TextRun({ text: 'ПРИМЕЧАНИЕ:', bold: true })] }),
-        new Paragraph({ children: [new TextRun({ text: 'Для весовых товаров итоговая стоимость зависит от фактического веса и рассчитывается после сборки заказа.', italics: true })] }),
-      ] : []),
-    ]}],
-  })
-
-  return Packer.toBlob(doc)
-}
-
-const generateInvoice = async () => {
-  const orderNum = `УД-${new Date().getTime().toString().slice(-6)}-01`
-  const blob = await buildDocxBlob()
-  saveAs(blob, `Накладная_${orderNum}.docx`)
 }
 </script>
 
@@ -435,6 +500,16 @@ const generateInvoice = async () => {
   line-height: 1.4;
 }
 
+.fresh-disclaimer {
+  font-size: 0.8rem;
+  color: var(--secondary-dark);
+  background: #FEF3C7;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1rem;
+  line-height: 1.4;
+}
+
 .order-form h3 {
   font-size: 1.25rem;
   margin-bottom: 1.5rem;
@@ -545,14 +620,14 @@ const generateInvoice = async () => {
 @media (max-width: 600px) {
   .modal-overlay { padding: 0; }
   .modal-content { 
-    max-height: 100vh; 
+    max-height: 100dvh; 
     border-radius: 0; 
-    height: 100%;
+    height: 100dvh;
   }
   .modal-body { padding: 1.25rem; }
   .cart-item { gap: 1rem; }
   .order-form { padding: 1.5rem; border-radius: 1.5rem; }
-  .modal-footer { padding: 1.25rem; }
+  .modal-footer { padding: 1.25rem; padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)); }
   .total-row { font-size: 1.1rem; }
 }
 
@@ -576,5 +651,137 @@ const generateInvoice = async () => {
 @keyframes slideUp {
   from { opacity: 0; transform: translateX(-50%) translateY(20px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.payment-methods-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.payment-method-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid #ddd;
+  background: var(--white);
+  cursor: pointer;
+  transition: var(--transition);
+  user-select: none;
+}
+
+.payment-method-card:hover {
+  border-color: var(--secondary);
+  background: rgba(245, 158, 11, 0.02);
+}
+
+.payment-method-card.active {
+  border-color: var(--secondary);
+  background: rgba(245, 158, 11, 0.05);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.checkbox-indicator {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--white);
+  transition: var(--transition);
+}
+
+.payment-method-card.active .checkbox-indicator {
+  border-color: var(--secondary);
+  background: var(--secondary);
+  color: var(--white);
+}
+
+.method-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.pdf-offscreen-container {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 790px;
+}
+
+.pdf-invoice {
+  font-family: 'Arial', sans-serif;
+  color: #000;
+  background: #fff;
+  padding: 2.5rem;
+}
+
+.invoice-header {
+  margin-bottom: 2rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.invoice-header p {
+  margin: 0.25rem 0;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin: 1.5rem 0 0.5rem 0;
+  text-align: left;
+}
+
+.invoice-table, .grand-total-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.5rem;
+}
+
+.invoice-table th, .invoice-table td,
+.grand-total-table td {
+  border: 1px solid #000;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.invoice-table th {
+  font-weight: bold;
+  background-color: #fff;
+  text-align: center;
+}
+
+.invoice-table td {
+  text-align: left;
+}
+
+.table-total-row td {
+  border-top: 1.5px solid #000;
+}
+
+.invoice-grand-total {
+  margin-top: 1.5rem;
+}
+
+.grand-total-table td {
+  border: 1px solid #000;
+  padding: 0.6rem;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  .payment-methods-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
 }
 </style>
