@@ -137,7 +137,7 @@
         <p><strong>Дата заказа:</strong> {{ invoiceDate }} г.</p>
         <p><strong>Дата доставки:</strong> {{ orderData.deliveryDate }} г.</p>
         <p><strong>Время доставки:</strong> {{ orderData.deliveryTime }}</p>
-        <p><strong>Поставщик:</strong> ИП Сатубалдина З.А. (БИН/ИИН: 540725400961)</p>
+        <p><strong>Поставщик:</strong> GASTROMIR ИП ИБРАЕВ (БИН/ИИН: 820727351424)</p>
         <p><strong>Покупатель:</strong> {{ orderData.customerName }}</p>
         <p><strong>Адрес:</strong> {{ orderData.address }}</p>
         <p><strong>Способ оплаты:</strong> {{ orderData.paymentMethod }}</p>
