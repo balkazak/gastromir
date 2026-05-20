@@ -1,0 +1,12 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  
+  # No rewrite for actual files
+  RewriteCond %{REQUEST_FILENAME} !-f
+  # No rewrite for actual directories
+  RewriteCond %{REQUEST_FILENAME} !-d
+  
+  # Rewrite all other requests to index.html
+  RewriteRule ^ index.html [QSA,L]
+</IfModule>

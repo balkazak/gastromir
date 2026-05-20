@@ -62,21 +62,19 @@
               </span>
             </div>
             <div class="form-group">
+              <label>Выберите время доставки:</label>
+              <select v-model="orderData.deliveryTime" class="form-select">
+                <option value="До 14:00">До 14:00</option>
+                <option value="До 18:00">До 18:00</option>
+              </select>
+            </div>
+            <div class="form-group">
               <label>Способ оплаты</label>
-              <div class="payment-methods-grid">
-                <div 
-                  v-for="method in paymentMethods" 
-                  :key="method.id" 
-                  class="payment-method-card"
-                  :class="{ active: orderData.paymentMethod === method.name }"
-                  @click="orderData.paymentMethod = method.name"
-                >
-                  <span class="checkbox-indicator">
-                    <Check v-if="orderData.paymentMethod === method.name" :size="12" />
-                  </span>
-                  <span class="method-name">{{ method.name }}</span>
-                </div>
-              </div>
+              <select v-model="orderData.paymentMethod" class="form-select">
+                <option v-for="method in paymentMethods" :key="method.id" :value="method.name">
+                  {{ method.name }}
+                </option>
+              </select>
             </div>
           </div>
 
@@ -138,6 +136,7 @@
       <div class="invoice-header">
         <p><strong>Дата заказа:</strong> {{ invoiceDate }} г.</p>
         <p><strong>Дата доставки:</strong> {{ orderData.deliveryDate }} г.</p>
+        <p><strong>Время доставки:</strong> {{ orderData.deliveryTime }}</p>
         <p><strong>Поставщик:</strong> ИП Сатубалдина З.А. (БИН/ИИН: 540725400961)</p>
         <p><strong>Покупатель:</strong> {{ orderData.customerName }}</p>
         <p><strong>Адрес:</strong> {{ orderData.address }}</p>
@@ -245,7 +244,8 @@ const orderData = reactive({
   address: '',
   phone: '',
   paymentMethod: 'Наличный расчет',
-  deliveryDate: todayStr
+  deliveryDate: todayStr,
+  deliveryTime: 'До 14:00'
 })
 
 const onDateInput = (event) => {
@@ -307,7 +307,7 @@ const formatPrice = (price) => {
 const sendToWhatsApp = () => {
   const itemsText = cartStore.items.map(item => `- ${item.name}: ${item.quantity} ${item.unit} x ${formatPrice(item.price)} тг`).join('\n')
   const totalText = `Итого: ${formatPrice(cartStore.totalPrice)} тг`
-  const message = `👋 *Новый заказ в GASTROMIR!*\n\n*Ресторан:* ${orderData.customerName}\n*Телефон:* ${orderData.phone}\n*Адрес:* ${orderData.address}\n*Способ оплаты:* ${orderData.paymentMethod}\n*Дата доставки:* ${orderData.deliveryDate}\n\n*Заказ:*\n${itemsText}\n\n*${totalText}*`
+  const message = `👋 *Новый заказ в GASTROMIR!*\n\n*Ресторан:* ${orderData.customerName}\n*Телефон:* ${orderData.phone}\n*Адрес:* ${orderData.address}\n*Способ оплаты:* ${orderData.paymentMethod}\n*Дата доставки:* ${orderData.deliveryDate}\n*Время доставки:* ${orderData.deliveryTime}\n\n*Заказ:*\n${itemsText}\n\n*${totalText}*`
   
   const encodedMessage = encodeURIComponent(message)
   window.open(`https://wa.me/77015141404?text=${encodedMessage}`, '_blank')
@@ -339,7 +339,7 @@ const sendToEmail = async () => {
     ? '\n\nПРИМЕЧАНИЕ: Цены на свежую продукцию (овощи, фрукты, зелень, салаты) являются плавающими и зависят от сезонности, качества и ежедневных поставок.'
     : ''
 
-  const message = `===============================\nНАКЛАДНАЯ\n===============================\n\nПоставщик: ИП Сатубалдина З.А.\nБИН/ИИН: 540725400961\nТелефон: +7 701 514 14 04\n\nПолучатель: ${orderData.customerName}\nТелефон: ${orderData.phone}\nАдрес: ${orderData.address}\nСпособ оплаты: ${orderData.paymentMethod}\nДата доставки: ${orderData.deliveryDate}\n\nДата заказа: ${date}\nВремя заказа: ${time}\n\n--------------------------------\nТОВАР\n--------------------------------\n${itemsList}\n\n--------------------------------\nИТОГО: ${formatPrice(cartStore.totalPrice)} тг\nК ОПЛАТЕ: ${formatPrice(cartStore.totalPrice)} тг\n\n================================\nСпасибо за заказ!\nGASTRO MIR\n================================${weightNote}${freshNote}`
+  const message = `===============================\nНАКЛАДНАЯ\n===============================\n\nПоставщик: GASTROMIR ИП ИБРАЕВ\nБИН/ИИН: 820727351424\nТелефон: +7 701 514 14 04\n\nПолучатель: ${orderData.customerName}\nТелефон: ${orderData.phone}\nАдрес: ${orderData.address}\nСпособ оплаты: ${orderData.paymentMethod}\nДата доставки: ${orderData.deliveryDate}\nВремя доставки: ${orderData.deliveryTime}\n\nДата заказа: ${date}\nВремя заказа: ${time}\n\n--------------------------------\nТОВАР\n--------------------------------\n${itemsList}\n\n--------------------------------\nИТОГО: ${formatPrice(cartStore.totalPrice)} тг\nК ОПЛАТЕ: ${formatPrice(cartStore.totalPrice)} тг\n\n================================\nСпасибо за заказ!\nGASTRO MIR\n================================${weightNote}${freshNote}`
 
   try {
     const formDataPayload = new FormData()
@@ -351,6 +351,7 @@ const sendToEmail = async () => {
     formDataPayload.append("Адрес", orderData.address)
     formDataPayload.append("Способ оплаты", orderData.paymentMethod)
     formDataPayload.append("Дата доставки", orderData.deliveryDate)
+    formDataPayload.append("Время доставки", orderData.deliveryTime)
     formDataPayload.append("Накладная", message)
 
     const response = await fetch('https://api.web3forms.com/submit', {
@@ -366,6 +367,7 @@ const sendToEmail = async () => {
       orderData.address = ''
       orderData.paymentMethod = 'Наличный расчет'
       orderData.deliveryDate = todayStr
+      orderData.deliveryTime = 'До 14:00'
       showSuccessToast()
     } else {
       alert('Ошибка при отправке. Попробуйте ещё раз.')
@@ -757,6 +759,41 @@ const generatePDFInvoice = async () => {
 .method-name {
   font-size: 0.85rem;
   font-weight: 600;
+  color: var(--primary);
+}
+
+.form-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-family: inherit;
+  background-color: var(--white);
+  color: var(--primary);
+  cursor: pointer;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.5rem;
+}
+
+.form-select:hover {
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
+.form-select option {
+  padding: 0.5rem;
+  background-color: var(--white);
   color: var(--primary);
 }
 
