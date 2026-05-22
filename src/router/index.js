@@ -28,6 +28,11 @@ const router = createRouter({
       path: '/contacts',
       name: 'contacts',
       component: () => import('../views/ContactView.vue')
+    },
+    {
+      path: '/social-mission',
+      name: 'social-mission',
+      component: () => import('../views/SocialMissionView.vue')
     }
   ],
   scrollBehavior() {

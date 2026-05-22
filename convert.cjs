@@ -100,5 +100,14 @@ try {
   console.error("Error parsing price_fruits.csv:", e);
 }
 
-fs.writeFileSync('src/data/products.json', JSON.stringify(newProducts, null, 2));
+const discountedProducts = newProducts.map(p => {
+  const isFresh = ['Овощи', 'Зелень', 'Фрукты', 'Салаты'].includes(p.category);
+  const factor = isFresh ? 0.9 : 0.85;
+  return {
+    ...p,
+    price: Math.round(p.price * factor * 100) / 100
+  };
+});
+
+fs.writeFileSync('src/data/products.json', JSON.stringify(discountedProducts, null, 2));
 console.log('Done! Total products generated:', newProducts.length);

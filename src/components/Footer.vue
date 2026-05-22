@@ -5,6 +5,13 @@
         <div class="footer-brand">
           <div class="logo">GASTRO<span class="orange">MIR</span></div>
           <p>Мы не просто поставляем продукты. Мы упрощаем работу ресторана.</p>
+          <router-link to="/social-mission" class="social-program">
+            <img src="@/assets/social_logo.png" alt="Мейірім тәрелкесі" class="social-logo" />
+            <div class="social-info">
+              <span class="social-tag">Участник социальной программы</span>
+              <span class="social-name">«Мейірім тәрелкесі»</span>
+            </div>
+          </router-link>
           <div class="socials">
             <!-- Add social icons here if needed -->
           </div>
@@ -16,6 +23,7 @@
           <router-link to="/catalog">Каталог</router-link>
           <router-link to="/process">Как мы работаем</router-link>
           <router-link to="/about">О нас</router-link>
+          <router-link to="/social-mission">Мейірім Тарелкесі</router-link>
         </div>
 
         <div class="footer-contact">
@@ -106,6 +114,56 @@ h4 {
   text-align: center;
   color: var(--gray);
   font-size: 0.85rem;
+}
+
+.social-program {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  max-width: 320px;
+  transition: all 0.3s ease;
+}
+
+.social-program:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.social-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #ffffff;
+  padding: 2px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.social-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.social-tag {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--secondary, #ff8c00);
+  font-weight: 700;
+}
+
+.social-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--white);
 }
 
 @media (max-width: 992px) {

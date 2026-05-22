@@ -10,6 +10,7 @@
         <router-link to="/catalog" @click="isMobileMenuOpen = false">Каталог</router-link>
         <router-link to="/process" @click="isMobileMenuOpen = false">Как это работает</router-link>
         <router-link to="/about" @click="isMobileMenuOpen = false">О нас</router-link>
+        <router-link to="/social-mission" @click="isMobileMenuOpen = false">Мейірім Тарелкесі</router-link>
         <router-link to="/contacts" @click="isMobileMenuOpen = false">Контакты</router-link>
         
         <button class="cart-trigger" @click="() => { cartStore.openModal(); isMobileMenuOpen = false; }">
