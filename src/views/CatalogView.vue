@@ -43,62 +43,73 @@
 
           <!-- Products Grid -->
           <main class="products-main" ref="productsRef">
-            <div 
-              v-if="isFreshProduceVisible && filteredProducts.length > 0" 
-              class="fresh-produce-note"
-              v-motion-slide-visible-top
-            >
-              <div class="fresh-produce-icon">
-                <Info :size="20" />
-              </div>
-              <p>Цены на свежую продукцию (овощи, фрукты, зелень, салаты) являются плавающими и зависят от сезонности, качества и ежедневных поставок.</p>
+            <div v-if="loading" class="loading-state">
+              <span class="loader"></span>
+              <p>Загрузка каталога товаров...</p>
             </div>
 
-            <div class="products-grid" v-if="filteredProducts.length > 0">
+            <template v-else>
               <div 
-                class="product-card" 
-                v-for="product in filteredProducts" 
-                :key="product.id"
-                v-motion-slide-visible-bottom
+                v-if="isFreshProduceVisible && filteredProducts.length > 0" 
+                class="fresh-produce-note"
+                v-motion-slide-visible-top
               >
-                <div class="product-info">
-                  <div class="product-header">
-                    <span class="product-badge">{{ product.category }}</span>
-                    <h4>{{ product.name }}</h4>
-                  </div>
-                  <p class="manufacturer">{{ product.manufacturer }}</p>
-                  <div class="product-footer">
-                    <div class="price-box">
-                      <span class="price">{{ formatPrice(product.price) }} ₸</span>
-                      <span class="unit">/ {{ product.unit }}</span>
+                <div class="fresh-produce-icon">
+                  <Info :size="20" />
+                </div>
+                <p>Цены на свежую продукцию (овощи, фрукты, зелень, салаты) являются плавающими и зависят от сезонности, качества и ежедневных поставок.</p>
+              </div>
+
+              <div class="products-grid" v-if="displayedProducts.length > 0">
+                <div 
+                  class="product-card" 
+                  v-for="product in displayedProducts" 
+                  :key="product.id"
+                  v-motion-slide-visible-bottom
+                >
+                  <div class="product-info">
+                    <div class="product-header">
+                      <span class="product-badge">{{ product.category }}</span>
+                      <h4>{{ product.name }}</h4>
                     </div>
-                    <div class="cart-actions">
-                      <div class="quantity-selector">
-                        <button @click="decrementQty(product.id)">-</button>
-                        <span>{{ getItemQty(product.id) }}</span>
-                        <button @click="incrementQty(product.id)">+</button>
+                    <p class="manufacturer">{{ product.manufacturer }}</p>
+                    <div class="product-footer">
+                      <div class="price-box">
+                        <span class="price">{{ formatPrice(product.price) }} ₸</span>
+                        <span class="unit">/ {{ product.unit }}</span>
                       </div>
-                      <button 
-                        class="btn-add" 
-                        @click="addToCart(product)"
-                        :class="{ 'in-cart': isItemInCart(product.id) }"
-                      >
-                        <ShoppingCart v-if="!isItemInCart(product.id)" :size="18" />
-                        <Check v-else :size="18" />
-                      </button>
+                      <div class="cart-actions">
+                        <div class="quantity-selector">
+                          <button @click="decrementQty(product.id)">-</button>
+                          <span>{{ getItemQty(product.id) }}</span>
+                          <button @click="incrementQty(product.id)">+</button>
+                        </div>
+                        <button 
+                          class="btn-add" 
+                          @click="addToCart(product)"
+                          :class="{ 'in-cart': isItemInCart(product.id) }"
+                        >
+                          <ShoppingCart v-if="!isItemInCart(product.id)" :size="18" />
+                          <Check v-else :size="18" />
+                        </button>
+                      </div>
                     </div>
+                    <p v-if="product.unit === 'кг'" class="weight-note">
+                      ⚖️ Весовой товар — итоговая стоимость зависит от фактического веса
+                    </p>
                   </div>
-                  <p v-if="product.unit === 'кг'" class="weight-note">
-                    ⚖️ Весовой товар — итоговая стоимость зависит от фактического веса
-                  </p>
                 </div>
               </div>
-            </div>
-            <div class="no-results" v-else>
-              <PackageX :size="64" />
-              <h3>Ничего не найдено</h3>
-              <p>Попробуйте изменить параметры поиска</p>
-            </div>
+              
+              <!-- Scroll Sentinel for Infinite Scroll -->
+              <div ref="scrollSentinel" class="scroll-sentinel"></div>
+
+              <div class="no-results" v-if="displayedProducts.length === 0">
+                <PackageX :size="64" />
+                <h3>Ничего не найдено</h3>
+                <p>Попробуйте изменить параметры поиска</p>
+              </div>
+            </template>
           </main>
         </div>
       </div>
@@ -119,7 +130,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { Search, ShoppingCart, Check, PackageX, Info } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
 
@@ -130,6 +141,11 @@ const productsRef = ref(null)
 
 const products = ref([])
 const loading = ref(true)
+
+// Infinite Scroll State
+const scrollSentinel = ref(null)
+const displayedLimit = ref(40)
+let sentinelObserver = null
 
 const fetchProducts = async () => {
   try {
@@ -142,11 +158,51 @@ const fetchProducts = async () => {
     console.error('Failed to fetch products:', err)
   } finally {
     loading.value = false
+    nextTick(() => {
+      setupSentinelObserver()
+    })
   }
 }
 
+const setupSentinelObserver = () => {
+  if (sentinelObserver) sentinelObserver.disconnect()
+
+  sentinelObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) {
+      if (displayedLimit.value < filteredProducts.value.length) {
+        displayedLimit.value += 40
+      }
+    }
+  }, {
+    rootMargin: '250px' // Smooth preloading
+  })
+
+  if (scrollSentinel.value) {
+    sentinelObserver.observe(scrollSentinel.value)
+  }
+}
+
+const resetLimit = () => {
+  displayedLimit.value = 40
+  nextTick(() => {
+    if (scrollSentinel.value && sentinelObserver) {
+      sentinelObserver.unobserve(scrollSentinel.value)
+      sentinelObserver.observe(scrollSentinel.value)
+    }
+  })
+}
+
+// Reset displayed limits when search query or active category changes
+watch([searchQuery, activeCategory], () => {
+  resetLimit()
+})
+
 onMounted(() => {
   fetchProducts()
+})
+
+onUnmounted(() => {
+  if (sentinelObserver) sentinelObserver.disconnect()
 })
 
 const filteredProducts = computed(() => {
@@ -156,6 +212,10 @@ const filteredProducts = computed(() => {
     const matchesCategory = activeCategory.value === 'all' || p.category === activeCategory.value
     return matchesSearch && matchesCategory
   })
+})
+
+const displayedProducts = computed(() => {
+  return filteredProducts.value.slice(0, displayedLimit.value)
 })
 
 const uniqueCategories = computed(() => {
@@ -540,5 +600,31 @@ const isItemInCart = (id) => {
     width: 32px;
     height: 32px;
   }
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 0;
+  color: var(--gray);
+}
+
+.loader {
+  width: 48px;
+  height: 48px;
+  border: 5px solid rgba(255, 255, 255, 0.1);
+  border-bottom-color: var(--secondary);
+  border-radius: 50%;
+  display: inline-block;
+  box-sizing: border-box;
+  animation: rotation 1s linear infinite;
+  margin-bottom: 1.5rem;
+}
+
+@keyframes rotation {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>

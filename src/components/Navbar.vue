@@ -6,18 +6,12 @@
       </router-link>
 
       <div class="nav-links" :class="{ 'active': isMobileMenuOpen }">
-        <router-link to="/" @click="isMobileMenuOpen = false">Главная</router-link>
         <router-link to="/catalog" @click="isMobileMenuOpen = false">Каталог</router-link>
         <router-link to="/process" @click="isMobileMenuOpen = false">Как это работает</router-link>
         <router-link to="/about" @click="isMobileMenuOpen = false">О нас</router-link>
-        <router-link to="/social-mission" @click="isMobileMenuOpen = false">Мейірім Тарелкесі</router-link>
+        <router-link to="/social-mission" @click="isMobileMenuOpen = false">Соц инициатива <br> «Мейірім Тарелкесі»</router-link>
         <router-link to="/contacts" @click="isMobileMenuOpen = false">Контакты</router-link>
         
-        <button class="cart-trigger" @click="() => { cartStore.openModal(); isMobileMenuOpen = false; }">
-          <ShoppingCart />
-          <span v-if="cartStore.totalItems > 0" class="badge">{{ cartStore.totalItems }}</span>
-        </button>
-
         <template v-if="authStore.isAuthenticated">
           <div class="user-profile-menu">
             <router-link v-if="authStore.user.role === 'admin'" to="/admin" class="admin-link" @click="isMobileMenuOpen = false">
@@ -127,6 +121,7 @@ nav.scrolled {
   color: var(--white);
   font-size: 0.95rem;
   opacity: 0.8;
+  text-align: center;
 }
 
 .nav-links a:hover {
@@ -206,7 +201,7 @@ nav.scrolled {
     right: 0;
   }
 
-  .nav-links a {
+  .nav-links a:not(.btn) {
     font-size: 1.1rem;
     color: var(--white);
     opacity: 0.9;
@@ -228,7 +223,13 @@ nav.scrolled {
     text-align: center;
     padding: 0.75rem;
     font-size: 1rem;
-    margin-top: 1rem;
+    margin-top: 0.5rem;
+    box-sizing: border-box;
+  }
+  
+  .login-btn {
+    margin-right: 0 !important;
+    margin-bottom: 0.5rem;
   }
 }
 

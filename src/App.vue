@@ -1,6 +1,6 @@
 <template>
   <div class="app-wrapper">
-    <Navbar />
+    <Navbar v-if="route.name !== 'register' && route.name !== 'login'" />
     
     <main>
       <router-view v-slot="{ Component }">
@@ -10,11 +10,12 @@
       </router-view>
     </main>
 
-    <Footer />
+    <Footer v-if="route.name !== 'register' && route.name !== 'login'" />
     <CartModal />
     
     <!-- Floating WhatsApp Button -->
     <a 
+      v-if="route.name !== 'register' && route.name !== 'login'"
       href="https://wa.me/77015141404?text=Здравствуйте!%20Хочу%20подключить%20ресторан%20к%20GASTROMIR." 
       class="whatsapp-float"
       target="_blank"
@@ -31,8 +32,10 @@ import Footer from './components/Footer.vue'
 import CartModal from './components/CartModal.vue'
 import { ShoppingCart } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
+import { useRoute } from 'vue-router'
 
 const cartStore = useCartStore()
+const route = useRoute()
 </script>
 
 <style>

@@ -8,8 +8,8 @@
           <router-link to="/social-mission" class="social-program">
             <img src="@/assets/social_logo.png" alt="Мейірім тәрелкесі" class="social-logo" />
             <div class="social-info">
-              <span class="social-tag">Участник социальной программы</span>
-              <span class="social-name">«Мейірім тәрелкесі»</span>
+              <span class="social-tag">Участник</span>
+              <span class="social-name">Социальная инициатива «Мейірім Тарелкесі»</span>
             </div>
           </router-link>
           
@@ -31,7 +31,7 @@
           <router-link to="/catalog">Каталог</router-link>
           <router-link to="/process">Как мы работаем</router-link>
           <router-link to="/about">О нас</router-link>
-          <router-link to="/social-mission">Мейірім Тарелкесі</router-link>
+          <router-link to="/social-mission">Социальная инициатива «Мейірім Тарелкесі»</router-link>
         </div>
 
         <div class="footer-contact">

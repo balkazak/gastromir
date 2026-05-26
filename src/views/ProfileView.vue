@@ -115,14 +115,14 @@
               </thead>
               <tbody>
                 <tr v-for="item in activeInvoice.items" :key="item.id">
-                  <td>{{ item.name }}</td>
-                  <td style="text-align: center;">{{ item.quantity }} {{ item.unit }}</td>
-                  <td style="text-align: right;">{{ formatPrice(item.price) }} ₸</td>
-                  <td style="text-align: right;">{{ formatPrice(item.price * item.quantity) }} ₸</td>
+                  <td data-label="Товар">{{ item.name }}</td>
+                  <td data-label="Кол-во" style="text-align: center;">{{ item.quantity }} {{ item.unit }}</td>
+                  <td data-label="Цена" style="text-align: right;">{{ formatPrice(item.price) }} ₸</td>
+                  <td data-label="Сумма" style="text-align: right;">{{ formatPrice(item.price * item.quantity) }} ₸</td>
                 </tr>
                 <tr class="modal-total-row">
-                  <td colspan="3"><strong>Итого к оплате:</strong></td>
-                  <td style="text-align: right;"><strong>{{ formatPrice(activeInvoice.total_price) }} ₸</strong></td>
+                  <td colspan="3" class="total-label-cell"><strong>Итого к оплате:</strong></td>
+                  <td style="text-align: right;" class="total-amount-cell"><strong>{{ formatPrice(activeInvoice.total_price) }} ₸</strong></td>
                 </tr>
               </tbody>
             </table>
@@ -617,7 +617,54 @@ const repeatOrder = (order) => {
   .user-meta h1 { font-size: 1.8rem; }
   .limit-info h2 { font-size: 2rem; }
   .orders-grid { grid-template-columns: 1fr; }
-  .details-modal { max-height: 95vh; border-radius: 16px; }
+  .details-modal { max-height: 95vh; border-radius: 16px; width: 100%; }
   .details-modal-body { padding: 1.25rem; }
+
+  /* Responsive table inside invoice details modal */
+  .modal-invoice-table, 
+  .modal-invoice-table thead, 
+  .modal-invoice-table tbody, 
+  .modal-invoice-table tr, 
+  .modal-invoice-table td {
+    display: block;
+  }
+  .modal-invoice-table thead {
+    display: none;
+  }
+  .modal-invoice-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.75rem;
+    background: #f8fafc;
+  }
+  .modal-invoice-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 0.5rem 0.25rem;
+    text-align: right;
+  }
+  .modal-invoice-table td:last-child {
+    border-bottom: none;
+  }
+  .modal-invoice-table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--gray);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+  .modal-total-row td.total-label-cell {
+    display: flex;
+    justify-content: space-between;
+  }
+  .modal-total-row td.total-amount-cell {
+    display: flex;
+    justify-content: flex-end;
+    font-size: 1.2rem;
+    color: var(--secondary-dark);
+  }
 }
 </style>

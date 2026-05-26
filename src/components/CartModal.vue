@@ -32,7 +32,7 @@
             </div>
           </div>
 
-          <div class="order-form">
+          <div class="order-form" v-if="authStore.isAuthenticated">
             <h3>Детали заказа</h3>
             <div class="form-group">
               <label>Название ресторана / Клиент</label>
@@ -98,11 +98,11 @@
               ⚠️ Сумма заказа ({{ formatPrice(cartStore.totalPrice) }} ₸) превышает ваш лимит ({{ formatPrice(authStore.user?.order_limit) }} ₸). Уберите товары или обратитесь к администратору.
             </div>
             
-            <div class="footer-actions">
+            <div class="footer-actions" v-if="authStore.isAuthenticated">
               <button 
                 class="btn btn-primary btn-block" 
                 @click="sendToEmail" 
-                :disabled="!authStore.isAuthenticated || isOverLimit || !orderData.customerName || !orderData.phone || isSendingEmail || !isDateValid"
+                :disabled="isOverLimit || !orderData.customerName || !orderData.phone || isSendingEmail || !isDateValid"
               >
                 {{ isSendingEmail ? 'Отправка...' : 'Отправить заказ' }}
               </button>
@@ -110,7 +110,7 @@
               <button 
                 class="btn btn-whatsapp btn-block" 
                 @click="sendToWhatsApp" 
-                :disabled="!authStore.isAuthenticated || isOverLimit || !orderData.customerName || !orderData.phone || !isDateValid"
+                :disabled="isOverLimit || !orderData.customerName || !orderData.phone || !isDateValid"
               >
                 Отправить в WhatsApp
               </button>
@@ -454,6 +454,11 @@ const sendToEmail = async () => {
 }
 
 const generatePDFInvoice = async () => {
+  if (!authStore.isAuthenticated) {
+    cartStore.closeModal()
+    router.push('/login')
+    return
+  }
   if (!pdfTemplateRef.value) return
   isGeneratingPDF.value = true
 

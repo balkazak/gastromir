@@ -1,113 +1,138 @@
 <template>
   <div class="social-mission-page">
+    <!-- Hero Section -->
     <section class="mission-hero">
       <div class="container hero-content">
-        <div class="program-badge">
+        <div class="program-badge" v-motion-pop>
           <Heart class="icon-heart" />
-          <span>Социальная программа «Мейірім Тарелкесі»</span>
+          <span>Социальная инициатива «Мейірім Тарелкесі»</span>
         </div>
-        <h1>Одно блюдо — одна надежда</h1>
-        <p class="slogan-kaz">«Бір тағам — Бір үміт»</p>
-        <p class="hero-desc">
-          Платформа GASTROMIR объединяет бизнес и общество. Делая закупки у нас, каждый ресторан автоматически участвует в системной благотворительности и помогает кормить нуждающихся в тепле и поддержке.
+        <h1 v-motion-slide-visible-once-bottom>Мейірім Тарелкесі</h1>
+        <p class="hero-desc" v-motion-slide-visible-once-bottom>
+          При поддержке акимата, партнёров и волонтёров проект <br>
+          «Мейірім Тарелкесі» направлен на организацию горячего питания для людей, нуждающихся в помощи.
         </p>
-        <div class="hero-stats">
-          <div class="stat-card">
-            <span class="num">1%</span>
-            <span class="label">дохода платформы направляется на помощь</span>
-          </div>
-          <div class="stat-card">
-            <span class="num">100%</span>
-            <span class="label">системность и прозрачность программы</span>
-          </div>
-        </div>
       </div>
     </section>
 
-    <section class="how-it-works section-padding">
+    <!-- Main Content Grid -->
+    <section class="mission-details section-padding">
       <div class="container">
-        <div class="section-header center">
-          <h2>Как работает программа?</h2>
-          <p>Простая и прозрачная цепочка добрых дел</p>
-        </div>
-
-        <div class="steps-grid">
-          <div class="step-card">
-            <div class="step-num">01</div>
-            <h3>Закупка продуктов</h3>
-            <p>Рестораны заказывают необходимые продукты через платформу GASTROMIR.</p>
+        <!-- Directions of Help Card -->
+        <div class="directions-card" v-motion-slide-visible-once-bottom>
+          <h2>Направления ресурсов</h2>
+          <p class="subtitle">Часть средств и ресурсов партнёров GASTROMIR направляется на:</p>
+          <div class="directions-grid">
+            <div class="direction-item">
+              <span class="icon-bullet">🔥</span>
+              <p>приготовление горячей еды</p>
+            </div>
+            <div class="direction-item">
+              <span class="icon-bullet">📦</span>
+              <p>продуктовые наборы</p>
+            </div>
+            <div class="direction-item">
+              <span class="icon-bullet">🍲</span>
+              <p>социальные обеды</p>
+            </div>
+            <div class="direction-item">
+              <span class="icon-bullet">🤝</span>
+              <p>адресную помощь</p>
+            </div>
           </div>
-          <div class="step-card">
-            <div class="step-num">02</div>
-            <h3>Отчисление средств</h3>
-            <p>GASTROMIR направляет фиксированный процент от своего оборота в благотворительный фонд программы «Мейірім Тарелкесі».</p>
-          </div>
-          <div class="step-card">
-            <div class="step-num">03</div>
-            <h3>Горячее питание</h3>
-            <p>На собранные ресурсы организуется приготовление качественной горячей еды и сбор продуктовых наборов.</p>
-          </div>
-          <div class="step-card">
-            <div class="step-num">04</div>
-            <h3>Адресная доставка</h3>
-            <p>Волонтёры и социальные службы при поддержке акимата доставляют помощь нуждающимся семьям по официальным спискам.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="partner-benefits section-padding bg-dark">
-      <div class="container">
-        <div class="section-header center light">
-          <h2>Почему ресторанам выгодно участвовать?</h2>
-          <p>Социальная ценность — это новая экономика доверия и устойчивости вашего бизнеса</p>
-        </div>
-
-        <div class="benefits-grid">
-          <div class="benefit-card">
-            <TrendingUp class="benefit-icon" />
-            <h3>Финансовая стабильность</h3>
-            <p>Централизованный закуп продуктов снижает себестоимость, минимизирует списания и оптимизирует операционные расходы.</p>
-          </div>
-          <div class="benefit-card">
-            <Users2 class="benefit-icon" />
-            <h3>Доверие и лояльность гостей</h3>
-            <p>Современные гости выбирают ответственные бренды со смыслом. Ваше участие формирует сильное комьюнити и лояльность.</p>
-          </div>
-          <div class="benefit-card">
-            <Award class="benefit-icon" />
-            <h3>Сильный PR и репутация</h3>
-            <p>Участие в значимых проектах дает позитивный общественный имидж, интересные инфоповоды и медийную ценность.</p>
-          </div>
-          <div class="benefit-card">
-            <Landmark class="benefit-icon" />
-            <h3>Поддержка локальных брендов</h3>
-            <p>Программа создает мост с фермерами и местными брендами Казахстана, укрепляя экономику.</p>
-          </div>
-          <div class="benefit-card">
-            <Sprout class="benefit-icon" />
-            <h3>Переход к ESG-модели</h3>
-            <p>Инвесторы и общество все больше ценят социальную ответственность. Gastromir помогает соответствовать мировым бизнес-стандартам.</p>
-          </div>
-          <div class="benefit-card">
-            <Recycle class="benefit-icon" />
-            <h3>Культура осознанности</h3>
-            <p>Совместная логистика и борьба с пищевыми отходами развивают культуру разумного потребления.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="cta-mission section-padding">
-      <div class="container">
-        <div class="cta-box">
-          <Heart class="cta-heart-big" />
-          <h2>Давайте создавать добрые изменения вместе</h2>
-          <p>
-            Подключаясь к экосистеме GASTROMIR, ваш ресторан не просто переходит на новый уровень эффективности снабжения. Вы дарите надежду и тепло тем, кто в этом нуждается.
+          <p class="delivery-note">
+            💡 <strong>Примечание:</strong> Доставка питания осуществляется совместно с волонтёрами и социальными службами по заранее сформированным спискам нуждающихся семей и людей.
           </p>
+        </div>
+
+        <!-- How System Works Section -->
+        <div class="system-section">
+          <div class="section-header center">
+            <h2>Как работает система</h2>
+            <p>Уникальная экосистема объединения усилий</p>
+          </div>
+
+          <div class="system-grid">
+            <!-- 1. Restaurants -->
+            <div class="system-card" v-motion-slide-visible-once-bottom>
+              <div class="card-title-row">
+                <Store class="system-icon orange" />
+                <h3>Рестораны-партнёры</h3>
+              </div>
+              <p class="card-desc">Участвуют в социальной программе через:</p>
+              <ul class="bullet-list">
+                <li>1% от прибыли</li>
+                <li>приготовление горячих обедов</li>
+                <li>участие в благотворительных днях и акциях</li>
+              </ul>
+            </div>
+
+            <!-- 2. Guests -->
+            <div class="system-card" v-motion-slide-visible-once-bottom>
+              <div class="card-title-row">
+                <Users class="system-icon blue" />
+                <h3>Гости заведений</h3>
+              </div>
+              <p class="card-desc">Могут поддержать проект:</p>
+              <ul class="bullet-list">
+                <li>через QR-пожертвования</li>
+                <li>участвуя в социальных акциях</li>
+                <li>посещая рестораны-партнёры</li>
+              </ul>
+              <div class="special-note">Каждый визит становится вкладом в доброе дело.</div>
+            </div>
+
+            <!-- 3. Volunteers -->
+            <div class="system-card" v-motion-slide-visible-once-bottom>
+              <div class="card-title-row">
+                <HeartHandshake class="system-icon red" />
+                <h3>Волонтёры и социальные службы</h3>
+              </div>
+              <p class="card-desc">Организуют:</p>
+              <ul class="bullet-list">
+                <li>доставку еды</li>
+                <li>помощь нуждающимся</li>
+                <li>распределение продуктовой поддержки</li>
+              </ul>
+            </div>
+
+            <!-- 4. Akimat -->
+            <div class="system-card" v-motion-slide-visible-once-bottom>
+              <div class="card-title-row">
+                <Landmark class="system-icon gold" />
+                <h3>Поддержка акимата</h3>
+              </div>
+              <p class="card-desc">Проект способствует:</p>
+              <ul class="bullet-list">
+                <li>социальной поддержке населения</li>
+                <li>развитию волонтёрского движения</li>
+                <li>укреплению сотрудничества бизнеса и государства</li>
+                <li>развитию социального предпринимательства в Казахстане</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Idea Section -->
+    <section class="main-idea section-padding">
+      <div class="container">
+        <div class="idea-box" v-motion-slide-visible-once-bottom>
+          <div class="idea-icon">💡</div>
+          <h2>Главная идея</h2>
+          <div class="idea-content">
+            <p class="primary-idea">
+              Мы хотим создать систему, где ресторанный бизнес становится частью заботы о людях.
+            </p>
+            <div class="divider"></div>
+            <p class="secondary-idea">
+              Когда человек посещает ресторан-партнёр GASTROMIR — он не просто ужинает.<br>
+              <strong>Он помогает накормить тех, кто нуждается в поддержке и тепле.</strong>
+            </p>
+          </div>
           <div class="cta-actions">
-            <router-link to="/contacts" class="btn btn-secondary">Подключить ресторан</router-link>
+            <router-link to="/register" class="btn btn-secondary">Подключить ресторан</router-link>
             <router-link to="/catalog" class="btn btn-outline">Смотреть каталог</router-link>
           </div>
         </div>
@@ -117,22 +142,22 @@
 </template>
 
 <script setup>
-import { Heart, TrendingUp, Users2, Award, Landmark, Sprout, Recycle } from 'lucide-vue-next'
+import { Heart, Store, Users, HeartHandshake, Landmark } from 'lucide-vue-next'
 </script>
 
 <style scoped>
 .social-mission-page {
-  background-color: var(--white);
-  color: var(--dark);
+  background-color: var(--light);
+  color: var(--primary);
+  min-height: 100vh;
 }
 
 .mission-hero {
-  padding: 12rem 0 8rem;
-  background: linear-gradient(135deg, #091e2b 0%, #004b49 100%);
+  padding: 12rem 0 7rem;
+  background: linear-gradient(135deg, #0B1221 0%, #1E293B 100%);
   color: var(--white);
   text-align: center;
   position: relative;
-  overflow: hidden;
 }
 
 .program-badge {
@@ -140,7 +165,7 @@ import { Heart, TrendingUp, Users2, Award, Landmark, Sprout, Recycle } from 'luc
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1.25rem;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 99px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -155,197 +180,256 @@ import { Heart, TrendingUp, Users2, Award, Landmark, Sprout, Recycle } from 'luc
   animation: pulse 2s infinite;
 }
 
-h1 {
-  font-size: 3.8rem;
+.mission-hero h1 {
+  font-size: 3.5rem;
   font-weight: 800;
-  margin-bottom: 0.5rem;
-  line-height: 1.2;
-}
-
-.slogan-kaz {
-  font-size: 1.8rem;
-  color: var(--secondary, #ff8c00);
-  font-weight: 700;
-  font-style: italic;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  background: var(--gradient-orange);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .hero-desc {
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   max-width: 800px;
-  margin: 0 auto 3.5rem;
+  margin: 0 auto;
   opacity: 0.9;
   line-height: 1.6;
 }
 
-.hero-stats {
+/* Directions Card Styling */
+.directions-card {
+  background: var(--white);
+  border-radius: 24px;
+  padding: 3rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+  margin-bottom: 5rem;
+  border: 1px solid #f1f5f9;
+}
+
+.directions-card h2 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: var(--primary);
+}
+
+.directions-card .subtitle {
+  color: var(--gray);
+  font-size: 1.1rem;
+  margin-bottom: 2.5rem;
+}
+
+.directions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.direction-item {
   display: flex;
-  justify-content: center;
-  gap: 3rem;
-  flex-wrap: wrap;
-}
-
-.stat-card {
-  background: rgba(255, 255, 255, 0.04);
-  padding: 1.5rem 2rem;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: #f8fafc;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  min-width: 250px;
-  backdrop-filter: blur(5px);
-  transition: transform 0.3s ease;
+  border: 1px solid #e2e8f0;
+  transition: var(--transition);
 }
 
-.stat-card:hover {
-  transform: translateY(-5px);
-  background: rgba(255, 255, 255, 0.06);
+.direction-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+  border-color: var(--secondary);
 }
 
-.stat-card .num {
-  display: block;
-  font-size: 2.5rem;
-  font-weight: 800;
-  color: var(--secondary, #ff8c00);
+.icon-bullet {
+  font-size: 1.5rem;
+}
+
+.direction-item p {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--primary);
+  margin: 0;
+}
+
+.delivery-note {
+  background: #FEF3C7;
+  color: var(--secondary-dark);
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  margin: 0;
+  line-height: 1.5;
+  border-left: 4px solid var(--secondary);
+}
+
+/* How System Works Section */
+.system-section {
+  margin-top: 2rem;
+}
+
+.center {
+  text-align: center;
+}
+
+.section-header h2 {
+  font-size: 2.2rem;
   margin-bottom: 0.5rem;
 }
 
-.stat-card .label {
-  font-size: 0.9rem;
-  opacity: 0.8;
+.section-header p {
+  color: var(--gray);
+  font-size: 1.1rem;
+  margin-bottom: 3.5rem;
 }
 
-.steps-grid {
+.system-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 2rem;
-  margin-top: 4rem;
 }
 
-.step-card {
-  background: #f8fafc;
-  padding: 2.5rem 2rem;
-  border-radius: 20px;
-  border: 1px solid #e2e8f0;
-  position: relative;
-  transition: all 0.3s ease;
-}
-
-.step-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05);
+.system-card {
   background: var(--white);
-  border-color: var(--primary-light, #38bdf8);
-}
-
-.step-num {
-  font-size: 2.5rem;
-  font-weight: 800;
-  color: rgba(37, 99, 235, 0.15);
-  margin-bottom: 1rem;
-}
-
-.step-card h3 {
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
-  color: var(--primary, #0B1221);
-}
-
-.step-card p {
-  color: #64748b;
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-.bg-dark {
-  background: #0b1221;
-  color: var(--white);
-}
-
-.section-header.light h2 {
-  color: var(--white);
-}
-
-.section-header.light p {
-  color: #94a3b8;
-}
-
-.benefits-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  margin-top: 4rem;
-}
-
-.benefit-card {
-  background: rgba(255, 255, 255, 0.02);
   padding: 2.5rem;
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  border: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  transition: var(--transition);
 }
 
-.benefit-card:hover {
+.system-card:hover {
   transform: translateY(-5px);
-  background: rgba(255, 255, 255, 0.04);
-  border-color: var(--secondary, #ff8c00);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.06);
+  border-color: var(--secondary);
 }
 
-.benefit-icon {
-  width: 36px;
-  height: 36px;
-  color: var(--secondary, #ff8c00);
+.card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
-.benefit-card h3 {
-  font-size: 1.3rem;
-  margin-bottom: 1rem;
-  color: var(--white);
+.system-icon {
+  width: 28px;
+  height: 28px;
 }
 
-.benefit-card p {
-  color: #94a3b8;
+.system-icon.orange { color: #f59e0b; }
+.system-icon.blue { color: #2563eb; }
+.system-icon.red { color: #ef4444; }
+.system-icon.gold { color: #d97706; }
+
+.system-card h3 {
+  font-size: 1.25rem;
+  color: var(--primary);
+  margin: 0;
+}
+
+.card-desc {
   font-size: 0.95rem;
-  line-height: 1.6;
+  color: var(--gray);
+  margin-bottom: 1rem;
+  font-weight: 500;
 }
 
-.cta-mission {
+.bullet-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.bullet-list li {
+  position: relative;
+  padding-left: 1.5rem;
+  font-size: 0.95rem;
+  color: var(--primary);
+  line-height: 1.4;
+}
+
+.bullet-list li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: var(--secondary);
+  font-weight: bold;
+}
+
+.special-note {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--secondary-dark);
+  font-weight: 600;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 1.5rem;
+}
+
+/* Main Idea Section Styles */
+.main-idea {
   background: #f8fafc;
 }
 
-.cta-box {
-  background: linear-gradient(135deg, #0b1221 0%, #1e293b 100%);
+.idea-box {
+  background: linear-gradient(135deg, #0B1221 0%, #1E293B 100%);
   border-radius: 32px;
   padding: 5rem 3rem;
   color: var(--white);
   text-align: center;
-  max-width: 1000px;
+  max-width: 900px;
   margin: 0 auto;
   position: relative;
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.cta-heart-big {
-  width: 64px;
-  height: 64px;
-  color: #ff5e62;
-  fill: #ff5e62;
-  margin-bottom: 2rem;
-  animation: pulse 2s infinite;
-}
-
-.cta-box h2 {
-  font-size: 2.5rem;
+.idea-icon {
+  font-size: 3rem;
   margin-bottom: 1.5rem;
+}
+
+.idea-box h2 {
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
   color: var(--white);
 }
 
-.cta-box p {
-  font-size: 1.15rem;
+.idea-content {
   max-width: 700px;
-  margin: 0 auto 3rem;
+  margin: 0 auto 3.5rem;
+  line-height: 1.8;
+}
+
+.primary-idea {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 1.5rem;
+}
+
+.divider {
+  height: 2px;
+  background: var(--gradient-orange);
+  width: 100px;
+  margin: 1.5rem auto;
+}
+
+.secondary-idea {
+  font-size: 1.15rem;
   color: #cbd5e1;
-  line-height: 1.6;
+}
+
+.secondary-idea strong {
+  color: var(--secondary);
 }
 
 .cta-actions {
@@ -358,9 +442,10 @@ h1 {
 .btn-outline {
   border: 2px solid var(--white);
   color: var(--white);
-  padding: 0.65rem 1.5rem;
-  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
   font-weight: 600;
+  transition: var(--transition);
 }
 
 .btn-outline:hover {
@@ -370,36 +455,20 @@ h1 {
 
 @keyframes pulse {
   0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  50% { transform: scale(1.08); }
   100% { transform: scale(1); }
 }
 
 @media (max-width: 768px) {
-  h1 {
-    font-size: 2.2rem;
-  }
-  .slogan-kaz {
-    font-size: 1.3rem;
-    margin-bottom: 1.5rem;
-  }
-  .hero-desc {
-    font-size: 1rem;
-    margin-bottom: 2.5rem;
-  }
-  .hero-stats {
-    gap: 1rem;
-  }
-  .stat-card {
-    min-width: 100%;
-  }
-  .cta-box {
-    padding: 3rem 1.5rem;
-  }
-  .cta-box h2 {
-    font-size: 1.6rem;
-  }
-  .cta-box p {
-    font-size: 1rem;
-  }
+  .mission-hero { padding: 9rem 0 5rem; }
+  .mission-hero h1 { font-size: 2.2rem; }
+  .hero-desc { font-size: 1.05rem; }
+  .directions-card { padding: 2rem 1.5rem; }
+  .directions-card h2 { font-size: 1.6rem; }
+  .section-header h2 { font-size: 1.7rem; }
+  .idea-box { padding: 3.5rem 1.5rem; }
+  .idea-box h2 { font-size: 1.8rem; }
+  .primary-idea { font-size: 1.15rem; }
+  .secondary-idea { font-size: 1rem; }
 }
 </style>

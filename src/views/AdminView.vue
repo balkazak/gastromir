@@ -58,10 +58,10 @@
               </thead>
               <tbody>
                 <tr v-for="res in restaurants" :key="res.id">
-                  <td class="font-bold">{{ res.name }}</td>
-                  <td>{{ res.email }}</td>
-                  <td>{{ formatDate(res.created_at) }}</td>
-                  <td>
+                  <td data-label="Ресторан" class="font-bold">{{ res.name }}</td>
+                  <td data-label="Email">{{ res.email }}</td>
+                  <td data-label="Регистрация">{{ formatDate(res.created_at) }}</td>
+                  <td data-label="Лимит на заказ">
                     <div class="limit-edit-wrapper">
                       <input 
                         type="number" 
@@ -74,7 +74,7 @@
                       </button>
                     </div>
                   </td>
-                  <td style="text-align: right;">
+                  <td data-label="Действия" style="text-align: right;">
                     <button @click="deleteRestaurant(res.id, res.name)" class="btn-delete" title="Удалить ресторан">
                       <Trash2 :size="18" />
                     </button>
@@ -85,7 +85,7 @@
           </div>
         </div>
 
-        <!-- Tab 2: Products Full Catalog Editor with Advanced Filters & Pagination -->
+        <!-- Tab 2: Products Full Catalog Editor with Advanced Filters & Infinite Scroll -->
         <div v-if="activeTab === 'products'" class="tab-pane animate-fade">
           <div class="price-header-row">
             <div class="card-header">
@@ -100,19 +100,19 @@
                 <input 
                   type="text" 
                   v-model="productSearch" 
-                  @input="resetPage"
+                  @input="resetLimit"
                   placeholder="Поиск по названию..." 
                 />
               </div>
 
               <!-- Filter Category -->
-              <select v-model="filterCategory" @change="resetPage" class="admin-select-filter">
+              <select v-model="filterCategory" @change="resetLimit" class="admin-select-filter">
                 <option value="all">Все категории</option>
                 <option v-for="cat in uniqueCategories" :key="cat" :value="cat">{{ cat }}</option>
               </select>
 
               <!-- Filter Manufacturer -->
-              <select v-model="filterManufacturer" @change="resetPage" class="admin-select-filter">
+              <select v-model="filterManufacturer" @change="resetLimit" class="admin-select-filter">
                 <option value="all">Все производители</option>
                 <option v-for="man in uniqueManufacturers" :key="man" :value="man">{{ man }}</option>
               </select>
@@ -130,41 +130,51 @@
                 <thead>
                   <tr>
                     <th @click="toggleSort('name')" class="sortable-header">
-                      Наименование <ArrowUpDown :size="14" />
+                      <div class="header-content">
+                        Наименование <ArrowUpDown :size="14" />
+                      </div>
                     </th>
                     <th @click="toggleSort('category')" class="sortable-header">
-                      Категория <ArrowUpDown :size="14" />
+                      <div class="header-content">
+                        Категория <ArrowUpDown :size="14" />
+                      </div>
                     </th>
                     <th @click="toggleSort('manufacturer')" class="sortable-header">
-                      Производитель <ArrowUpDown :size="14" />
+                      <div class="header-content">
+                        Производитель <ArrowUpDown :size="14" />
+                      </div>
                     </th>
                     <th style="width: 100px;">Ед. изм.</th>
                     <th @click="toggleSort('price')" class="sortable-header" style="width: 160px;">
-                      Цена (₸) <ArrowUpDown :size="14" />
+                      <div class="header-content">
+                        Цена (₸) <ArrowUpDown :size="14" />
+                      </div>
                     </th>
                     <th style="text-align: right; width: 140px;">Действия</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="prod in paginatedProducts" :key="prod.id">
+                  <tr v-for="prod in displayedProducts" :key="prod.id">
                     <!-- Inline Editing State -->
                     <template v-if="editingProductId === prod.id">
-                      <td>
+                      <td data-label="Наименование">
                         <input type="text" v-model="editProductForm.name" class="inline-edit-input" />
                       </td>
-                      <td>
-                        <input type="text" v-model="editProductForm.category" class="inline-edit-input" />
+                      <td data-label="Категория">
+                        <select v-model="editProductForm.category" class="inline-edit-select">
+                          <option v-for="cat in uniqueCategories" :key="cat" :value="cat">{{ cat }}</option>
+                        </select>
                       </td>
-                      <td>
+                      <td data-label="Производитель">
                         <input type="text" v-model="editProductForm.manufacturer" class="inline-edit-input" />
                       </td>
-                      <td>
+                      <td data-label="Ед. изм.">
                         <input type="text" v-model="editProductForm.unit" class="inline-edit-input" style="width: 70px;" />
                       </td>
-                      <td>
+                      <td data-label="Цена (₸)">
                         <input type="number" step="0.01" v-model.number="editProductForm.price" class="inline-edit-input" />
                       </td>
-                      <td style="text-align: right;">
+                      <td data-label="Действия" style="text-align: right;">
                         <div class="edit-actions-row">
                           <button @click="saveProductEdit(prod.id)" class="btn-action-save" title="Сохранить изменения">
                             <Check :size="16" />
@@ -178,12 +188,12 @@
 
                     <!-- Normal State -->
                     <template v-else>
-                      <td>{{ prod.name }}</td>
-                      <td><span class="category-pill">{{ prod.category }}</span></td>
-                      <td>{{ prod.manufacturer }}</td>
-                      <td>{{ prod.unit }}</td>
-                      <td class="font-bold">{{ formatPrice(prod.price) }} ₸</td>
-                      <td style="text-align: right;">
+                      <td data-label="Наименование">{{ prod.name }}</td>
+                      <td data-label="Категория"><span class="category-pill">{{ prod.category }}</span></td>
+                      <td data-label="Производитель">{{ prod.manufacturer }}</td>
+                      <td data-label="Ед. изм.">{{ prod.unit }}</td>
+                      <td data-label="Цена (₸)" class="font-bold">{{ formatPrice(prod.price) }} ₸</td>
+                      <td data-label="Действия" style="text-align: right;">
                         <button @click="startProductEdit(prod)" class="btn-edit-row">
                           <Edit3 :size="18" /> Изменить
                         </button>
@@ -194,23 +204,15 @@
               </table>
             </div>
 
-            <!-- Pagination Controls -->
-            <div class="pagination-container" v-if="totalPages > 1">
-              <button 
-                class="btn btn-outline-pagination" 
-                :disabled="currentPage === 1" 
-                @click="currentPage--"
-              >
-                Назад
-              </button>
-              <span class="pagination-info">Страница {{ currentPage }} из {{ totalPages }} (всего товаров: {{ filteredProducts.length }})</span>
-              <button 
-                class="btn btn-outline-pagination" 
-                :disabled="currentPage === totalPages" 
-                @click="currentPage++"
-              >
-                Вперед
-              </button>
+            <!-- Scroll Sentinel (Infinite Scroll Loader) -->
+            <div ref="scrollSentinel" class="scroll-sentinel">
+              <div v-if="displayedLimit < filteredProducts.length" class="sentinel-loader">
+                <span class="loader-dots"></span>
+                <p>Загрузка товаров...</p>
+              </div>
+              <div v-else class="sentinel-end">
+                🏁 Показаны все товары (всего: {{ filteredProducts.length }})
+              </div>
             </div>
           </div>
         </div>
@@ -257,13 +259,13 @@
               </thead>
               <tbody>
                 <tr v-for="order in filteredOrders" :key="order.id">
-                  <td class="font-bold">№{{ order.id }}</td>
-                  <td>{{ order.restaurant_name }}</td>
-                  <td>{{ order.restaurant_email }}</td>
-                  <td>{{ formatDate(order.created_at) }}</td>
-                  <td>{{ order.items.length }} поз.</td>
-                  <td class="invoice-price-col">{{ formatPrice(order.total_price) }} ₸</td>
-                  <td style="text-align: right;">
+                  <td data-label="Накладная" class="font-bold">№{{ order.id }}</td>
+                  <td data-label="Ресторан">{{ order.restaurant_name }}</td>
+                  <td data-label="Email">{{ order.restaurant_email }}</td>
+                  <td data-label="Дата заказа">{{ formatDate(order.created_at) }}</td>
+                  <td data-label="Товаров">{{ order.items.length }} поз.</td>
+                  <td data-label="Сумма" class="invoice-price-col">{{ formatPrice(order.total_price) }} ₸</td>
+                  <td data-label="Детали" style="text-align: right;">
                     <button @click="showInvoiceDetails(order)" class="btn-inspect" title="Просмотреть">
                       <Eye :size="18" />
                     </button>
@@ -301,14 +303,14 @@
               </thead>
               <tbody>
                 <tr v-for="item in activeInvoice.items" :key="item.id">
-                  <td>{{ item.name }}</td>
-                  <td style="text-align: center;">{{ item.quantity }} {{ item.unit }}</td>
-                  <td style="text-align: right;">{{ formatPrice(item.price) }} ₸</td>
-                  <td style="text-align: right;">{{ formatPrice(item.price * item.quantity) }} ₸</td>
+                  <td data-label="Товар">{{ item.name }}</td>
+                  <td data-label="Кол-во" style="text-align: center;">{{ item.quantity }} {{ item.unit }}</td>
+                  <td data-label="Цена" style="text-align: right;">{{ formatPrice(item.price) }} ₸</td>
+                  <td data-label="Сумма" style="text-align: right;">{{ formatPrice(item.price * item.quantity) }} ₸</td>
                 </tr>
                 <tr class="modal-total-row">
-                  <td colspan="3"><strong>Общая сумма:</strong></td>
-                  <td style="text-align: right;"><strong>{{ formatPrice(activeInvoice.total_price) }} ₸</strong></td>
+                  <td colspan="3" class="total-label-cell"><strong>Общая сумма:</strong></td>
+                  <td style="text-align: right;" class="total-amount-cell"><strong>{{ formatPrice(activeInvoice.total_price) }} ₸</strong></td>
                 </tr>
               </tbody>
             </table>
@@ -320,7 +322,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { ShieldCheck, Users, DollarSign, Calendar, Eye, Trash2, Check, Search, ClipboardList, X, Edit3, ArrowUpDown } from 'lucide-vue-next'
 
@@ -343,9 +345,10 @@ const activeInvoice = ref(null)
 const sortField = ref('name')
 const sortOrder = ref('asc') // 'asc' or 'desc'
 
-// Pagination State
-const currentPage = ref(1)
-const itemsPerPage = 30
+// Infinite Scroll State
+const scrollSentinel = ref(null)
+const displayedLimit = ref(40)
+let sentinelObserver = null
 
 // Inline Editing Product State
 const editingProductId = ref(null)
@@ -396,6 +399,9 @@ const fetchProducts = async () => {
     console.error('Failed to load products:', err)
   } finally {
     loadingProducts.value = false
+    nextTick(() => {
+      setupSentinelObserver()
+    })
   }
 }
 
@@ -417,10 +423,59 @@ const fetchOrders = async () => {
   }
 }
 
+// Infinite Scroll intersection trigger
+const setupSentinelObserver = () => {
+  if (sentinelObserver) sentinelObserver.disconnect()
+
+  sentinelObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) {
+      if (displayedLimit.value < filteredProducts.value.length) {
+        displayedLimit.value += 40
+      }
+    }
+  }, {
+    rootMargin: '150px' // Preload next products slightly early
+  })
+
+  if (scrollSentinel.value) {
+    sentinelObserver.observe(scrollSentinel.value)
+  }
+}
+
+// Reset displayed count whenever filtering or sorting changes
+const resetLimit = () => {
+  displayedLimit.value = 40
+  // Re-observe after viewport updates
+  nextTick(() => {
+    if (scrollSentinel.value && sentinelObserver) {
+      sentinelObserver.unobserve(scrollSentinel.value)
+      sentinelObserver.observe(scrollSentinel.value)
+    }
+  })
+}
+
+// Observe tab change to trigger sentinel setup
+watch(activeTab, (newTab) => {
+  if (newTab === 'products') {
+    nextTick(() => {
+      setupSentinelObserver()
+    })
+  }
+})
+
+// Reset on searches and filters
+watch([productSearch, filterCategory, filterManufacturer, sortField, sortOrder], () => {
+  resetLimit()
+})
+
 onMounted(() => {
   fetchRestaurants()
   fetchProducts()
   fetchOrders()
+})
+
+onUnmounted(() => {
+  if (sentinelObserver) sentinelObserver.disconnect()
 })
 
 // Unique Lists for Dropdown Filters
@@ -431,11 +486,6 @@ const uniqueCategories = computed(() => {
 const uniqueManufacturers = computed(() => {
   return [...new Set(products.value.map(p => p.manufacturer))].sort()
 })
-
-// Reset Page on Filter Change
-const resetPage = () => {
-  currentPage.value = 1
-}
 
 // Multi-variable sorting & filtering
 const filteredProducts = computed(() => {
@@ -475,14 +525,9 @@ const filteredProducts = computed(() => {
   return list
 })
 
-// Pagination
-const totalPages = computed(() => {
-  return Math.ceil(filteredProducts.value.length / itemsPerPage)
-})
-
-const paginatedProducts = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  return filteredProducts.value.slice(start, start + itemsPerPage)
+// Slice catalog matching dynamic scroll state
+const displayedProducts = computed(() => {
+  return filteredProducts.value.slice(0, displayedLimit.value)
 })
 
 // Toggle column sorting
@@ -493,7 +538,6 @@ const toggleSort = (field) => {
     sortField.value = field
     sortOrder.value = 'asc'
   }
-  resetPage()
 }
 
 // Inline editing functions
@@ -756,13 +800,17 @@ const showInvoiceDetails = (order) => {
 .sortable-header {
   cursor: pointer;
   transition: color 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .sortable-header:hover {
   color: var(--secondary-dark);
+}
+
+.header-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
 }
 
 .admin-table td {
@@ -900,7 +948,7 @@ const showInvoiceDetails = (order) => {
 }
 
 /* Inline Edit Controls */
-.inline-edit-input {
+.inline-edit-input, .inline-edit-select {
   width: 100%;
   padding: 0.5rem;
   border-radius: 6px;
@@ -911,7 +959,14 @@ const showInvoiceDetails = (order) => {
   background: rgba(245, 158, 11, 0.02);
 }
 
-.inline-edit-input:focus {
+.inline-edit-select {
+  appearance: none;
+  cursor: pointer;
+  background: rgba(245, 158, 11, 0.02) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E") no-repeat right 0.5rem center;
+  padding-right: 1.75rem;
+}
+
+.inline-edit-input:focus, .inline-edit-select:focus {
   background: white;
   box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
 }
@@ -971,38 +1026,64 @@ const showInvoiceDetails = (order) => {
   border-color: var(--secondary);
 }
 
-/* Pagination Styling */
-.pagination-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 2rem;
-  margin-top: 2rem;
-}
-
-.btn-outline-pagination {
-  border: 1px solid #cbd5e1;
-  padding: 0.5rem 1.25rem;
-  border-radius: 8px;
+/* Infinite Scroll Sentinel Styling */
+.scroll-sentinel {
+  padding: 3rem 0;
+  text-align: center;
   font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.btn-outline-pagination:hover:not(:disabled) {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
-}
-
-.btn-outline-pagination:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.pagination-info {
-  font-size: 0.9rem;
   color: var(--gray);
-  font-weight: 600;
+}
+
+.sentinel-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.loader-dots {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: block;
+  margin: 0 auto;
+  position: relative;
+  color: var(--secondary);
+  box-sizing: border-box;
+  animation: shadowPulse 2s linear infinite;
+}
+
+@keyframes shadowPulse {
+  0% {
+    box-shadow: -24px 0 var(--secondary), -8px 0 rgba(245, 158, 11, 0.2), 8px 0 rgba(245, 158, 11, 0.2), 24px 0 rgba(245, 158, 11, 0.2);
+  }
+  16.666% {
+    box-shadow: -24px 0 rgba(245, 158, 11, 0.2), -8px 0 var(--secondary), 8px 0 rgba(245, 158, 11, 0.2), 24px 0 rgba(245, 158, 11, 0.2);
+  }
+  33.333% {
+    box-shadow: -24px 0 rgba(245, 158, 11, 0.2), -8px 0 rgba(245, 158, 11, 0.2), 8px 0 var(--secondary), 24px 0 rgba(245, 158, 11, 0.2);
+  }
+  50.000% {
+    box-shadow: -24px 0 rgba(245, 158, 11, 0.2), -8px 0 rgba(245, 158, 11, 0.2), 8px 0 rgba(245, 158, 11, 0.2), 24px 0 var(--secondary);
+  }
+  66.666% {
+    box-shadow: -24px 0 rgba(245, 158, 11, 0.2), -8px 0 rgba(245, 158, 11, 0.2), 8px 0 var(--secondary), 24px 0 rgba(245, 158, 11, 0.2);
+  }
+  83.333% {
+    box-shadow: -24px 0 rgba(245, 158, 11, 0.2), -8px 0 var(--secondary), 8px 0 rgba(245, 158, 11, 0.2), 24px 0 rgba(245, 158, 11, 0.2);
+  }
+  100% {
+    box-shadow: -24px 0 var(--secondary), -8px 0 rgba(245, 158, 11, 0.2), 8px 0 rgba(245, 158, 11, 0.2), 24px 0 rgba(245, 158, 11, 0.2);
+  }
+}
+
+.sentinel-end {
+  font-size: 0.95rem;
+  color: var(--gray);
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+  display: inline-block;
 }
 
 .month-filter-group {
@@ -1175,5 +1256,119 @@ const showInvoiceDetails = (order) => {
   .price-header-row, .invoice-header-row { flex-direction: column; align-items: flex-start; }
   .search-filters-box { width: 100%; flex-direction: column; align-items: stretch; }
   .admin-search-bar { width: 100%; }
+
+  /* Mobile responsive layout for all tables */
+  .admin-table, 
+  .admin-table thead, 
+  .admin-table tbody, 
+  .admin-table tr, 
+  .admin-table td {
+    display: block;
+  }
+
+  .admin-table thead {
+    display: none; /* Hide default layout headers */
+  }
+
+  .admin-table tr {
+    margin-bottom: 1.5rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+  }
+
+  .admin-table tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .admin-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 0.75rem 0.5rem;
+    text-align: right;
+  }
+
+  .admin-table td:last-child {
+    border-bottom: none;
+  }
+
+  .admin-table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--gray);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    text-align: left;
+  }
+
+  .limit-edit-wrapper {
+    max-width: 100%;
+    width: 60%;
+    justify-content: flex-end;
+  }
+
+  .edit-actions-row {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .modal-invoice-table, 
+  .modal-invoice-table thead, 
+  .modal-invoice-table tbody, 
+  .modal-invoice-table tr, 
+  .modal-invoice-table td {
+    display: block;
+  }
+  .modal-invoice-table thead {
+    display: none;
+  }
+  .modal-invoice-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.75rem;
+    background: #f8fafc;
+  }
+  .modal-invoice-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 0.5rem 0.25rem;
+    text-align: right;
+  }
+  .modal-invoice-table td:last-child {
+    border-bottom: none;
+  }
+  .modal-invoice-table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--gray);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+  .modal-total-row td.total-label-cell {
+    display: flex;
+    justify-content: space-between;
+  }
+  .modal-total-row td.total-amount-cell {
+    display: flex;
+    justify-content: flex-end;
+    font-size: 1.2rem;
+    color: var(--secondary-dark);
+  }
+
+  .details-modal {
+    max-height: 95vh;
+    border-radius: 16px;
+    width: 100%;
+  }
+  .details-modal-body {
+    padding: 1.25rem;
+  }
 }
 </style>

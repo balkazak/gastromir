@@ -158,7 +158,7 @@ const handleLogin = async () => {
 .input-icon {
   position: absolute;
   left: 1.25rem;
-  color: var(--gray);
+  color: #94a3b8;
   width: 20px;
   height: 20px;
 }
@@ -166,19 +166,24 @@ const handleLogin = async () => {
 .input-wrapper input {
   width: 100%;
   padding: 0.85rem 1.25rem 0.85rem 3.25rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--white);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 14px;
-  color: var(--white);
+  color: var(--primary);
   font-size: 1rem;
   transition: var(--transition);
 }
 
+.input-wrapper input::placeholder {
+  color: #94a3b8;
+}
+
 .input-wrapper input:focus {
   border-color: var(--secondary);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--white);
   outline: none;
   box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+  color: var(--primary);
 }
 
 .auth-btn {
