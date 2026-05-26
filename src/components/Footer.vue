@@ -12,6 +12,14 @@
               <span class="social-name">«Мейірім тәрелкесі»</span>
             </div>
           </router-link>
+          
+          <div class="social-program akimat-partner-card">
+            <img src="@/assets/akimat.png" alt="Акимат города Астана" class="social-logo akimat-badge" />
+            <div class="social-info">
+              <span class="social-tag">Официальный партнер</span>
+              <span class="social-name">Акимат города Астана</span>
+            </div>
+          </div>
           <div class="socials">
             <!-- Add social icons here if needed -->
           </div>
@@ -114,6 +122,16 @@ h4 {
   text-align: center;
   color: var(--gray);
   font-size: 0.85rem;
+}
+
+.akimat-partner-card {
+  margin-top: 1rem !important;
+  cursor: default;
+}
+
+.akimat-badge {
+  background: #ffffff;
+  padding: 4px;
 }
 
 .social-program {

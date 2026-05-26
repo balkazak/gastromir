@@ -85,20 +85,37 @@
           </div>
         </div>
 
-        <!-- Tab 2: Products Price Catalog -->
+        <!-- Tab 2: Products Full Catalog Editor with Advanced Filters & Pagination -->
         <div v-if="activeTab === 'products'" class="tab-pane animate-fade">
           <div class="price-header-row">
             <div class="card-header">
-              <h2>Цены на продукцию</h2>
-              <p>Изменяйте цены на товары каталога. Изменения применятся мгновенно.</p>
+              <h2>Редактор каталога товаров</h2>
+              <p>Вы можете изменять любые характеристики товаров. Изменения сохраняются в базе данных.</p>
             </div>
-            <div class="admin-search-bar">
-              <Search class="search-icon" :size="18" />
-              <input 
-                type="text" 
-                v-model="productSearch" 
-                placeholder="Поиск товара для изменения цены..." 
-              />
+            
+            <div class="search-filters-box">
+              <!-- Search Name -->
+              <div class="admin-search-bar">
+                <Search class="search-icon" :size="18" />
+                <input 
+                  type="text" 
+                  v-model="productSearch" 
+                  @input="resetPage"
+                  placeholder="Поиск по названию..." 
+                />
+              </div>
+
+              <!-- Filter Category -->
+              <select v-model="filterCategory" @change="resetPage" class="admin-select-filter">
+                <option value="all">Все категории</option>
+                <option v-for="cat in uniqueCategories" :key="cat" :value="cat">{{ cat }}</option>
+              </select>
+
+              <!-- Filter Manufacturer -->
+              <select v-model="filterManufacturer" @change="resetPage" class="admin-select-filter">
+                <option value="all">Все производители</option>
+                <option v-for="man in uniqueManufacturers" :key="man" :value="man">{{ man }}</option>
+              </select>
             </div>
           </div>
 
@@ -107,41 +124,93 @@
             <p>Загрузка каталога товаров...</p>
           </div>
 
-          <div v-else class="table-responsive">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Наименование</th>
-                  <th>Категория</th>
-                  <th>Производитель</th>
-                  <th>Ед. изм.</th>
-                  <th style="width: 220px;">Текущая цена (₸)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="prod in filteredProducts.slice(0, 100)" :key="prod.id">
-                  <td>{{ prod.name }}</td>
-                  <td><span class="category-pill">{{ prod.category }}</span></td>
-                  <td>{{ prod.manufacturer }}</td>
-                  <td>{{ prod.unit }}</td>
-                  <td>
-                    <div class="limit-edit-wrapper">
-                      <input 
-                        type="number" 
-                        step="0.01" 
-                        v-model.number="prod.price" 
-                        class="limit-input"
-                      />
-                      <button @click="updateProductPrice(prod.id, prod.price)" class="btn-save-limit" title="Сохранить цену">
-                        <Check :size="16" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-if="filteredProducts.length > 100" class="more-warning">
-              Показаны первые 100 товаров. Используйте поиск сверху, чтобы найти конкретный товар.
+          <div v-else>
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th @click="toggleSort('name')" class="sortable-header">
+                      Наименование <ArrowUpDown :size="14" />
+                    </th>
+                    <th @click="toggleSort('category')" class="sortable-header">
+                      Категория <ArrowUpDown :size="14" />
+                    </th>
+                    <th @click="toggleSort('manufacturer')" class="sortable-header">
+                      Производитель <ArrowUpDown :size="14" />
+                    </th>
+                    <th style="width: 100px;">Ед. изм.</th>
+                    <th @click="toggleSort('price')" class="sortable-header" style="width: 160px;">
+                      Цена (₸) <ArrowUpDown :size="14" />
+                    </th>
+                    <th style="text-align: right; width: 140px;">Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="prod in paginatedProducts" :key="prod.id">
+                    <!-- Inline Editing State -->
+                    <template v-if="editingProductId === prod.id">
+                      <td>
+                        <input type="text" v-model="editProductForm.name" class="inline-edit-input" />
+                      </td>
+                      <td>
+                        <input type="text" v-model="editProductForm.category" class="inline-edit-input" />
+                      </td>
+                      <td>
+                        <input type="text" v-model="editProductForm.manufacturer" class="inline-edit-input" />
+                      </td>
+                      <td>
+                        <input type="text" v-model="editProductForm.unit" class="inline-edit-input" style="width: 70px;" />
+                      </td>
+                      <td>
+                        <input type="number" step="0.01" v-model.number="editProductForm.price" class="inline-edit-input" />
+                      </td>
+                      <td style="text-align: right;">
+                        <div class="edit-actions-row">
+                          <button @click="saveProductEdit(prod.id)" class="btn-action-save" title="Сохранить изменения">
+                            <Check :size="16" />
+                          </button>
+                          <button @click="cancelProductEdit" class="btn-action-cancel" title="Отмена">
+                            <X :size="16" />
+                          </button>
+                        </div>
+                      </td>
+                    </template>
+
+                    <!-- Normal State -->
+                    <template v-else>
+                      <td>{{ prod.name }}</td>
+                      <td><span class="category-pill">{{ prod.category }}</span></td>
+                      <td>{{ prod.manufacturer }}</td>
+                      <td>{{ prod.unit }}</td>
+                      <td class="font-bold">{{ formatPrice(prod.price) }} ₸</td>
+                      <td style="text-align: right;">
+                        <button @click="startProductEdit(prod)" class="btn-edit-row">
+                          <Edit3 :size="18" /> Изменить
+                        </button>
+                      </td>
+                    </template>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="pagination-container" v-if="totalPages > 1">
+              <button 
+                class="btn btn-outline-pagination" 
+                :disabled="currentPage === 1" 
+                @click="currentPage--"
+              >
+                Назад
+              </button>
+              <span class="pagination-info">Страница {{ currentPage }} из {{ totalPages }} (всего товаров: {{ filteredProducts.length }})</span>
+              <button 
+                class="btn btn-outline-pagination" 
+                :disabled="currentPage === totalPages" 
+                @click="currentPage++"
+              >
+                Вперед
+              </button>
             </div>
           </div>
         </div>
@@ -251,9 +320,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { ShieldCheck, Users, DollarSign, Calendar, Eye, Trash2, Check, Search, ClipboardList, X } from 'lucide-vue-next'
+import { ShieldCheck, Users, DollarSign, Calendar, Eye, Trash2, Check, Search, ClipboardList, X, Edit3, ArrowUpDown } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 
@@ -265,8 +334,28 @@ const tabs = [
 
 const activeTab = ref('restaurants')
 const productSearch = ref('')
+const filterCategory = ref('all')
+const filterManufacturer = ref('all')
 const selectedMonth = ref('all')
 const activeInvoice = ref(null)
+
+// Sorting State
+const sortField = ref('name')
+const sortOrder = ref('asc') // 'asc' or 'desc'
+
+// Pagination State
+const currentPage = ref(1)
+const itemsPerPage = 30
+
+// Inline Editing Product State
+const editingProductId = ref(null)
+const editProductForm = reactive({
+  name: '',
+  price: 0,
+  category: '',
+  unit: '',
+  manufacturer: ''
+})
 
 // Loaders & State Refs
 const restaurants = ref([])
@@ -334,14 +423,120 @@ onMounted(() => {
   fetchOrders()
 })
 
-const filteredProducts = computed(() => {
-  if (!productSearch.value) return products.value
-  const query = productSearch.value.toLowerCase()
-  return products.value.filter(p => 
-    p.name.toLowerCase().includes(query) || 
-    p.category.toLowerCase().includes(query)
-  )
+// Unique Lists for Dropdown Filters
+const uniqueCategories = computed(() => {
+  return [...new Set(products.value.map(p => p.category))].sort()
 })
+
+const uniqueManufacturers = computed(() => {
+  return [...new Set(products.value.map(p => p.manufacturer))].sort()
+})
+
+// Reset Page on Filter Change
+const resetPage = () => {
+  currentPage.value = 1
+}
+
+// Multi-variable sorting & filtering
+const filteredProducts = computed(() => {
+  let list = products.value
+
+  // Search by name
+  if (productSearch.value) {
+    const q = productSearch.value.toLowerCase()
+    list = list.filter(p => p.name.toLowerCase().includes(q))
+  }
+
+  // Filter by category
+  if (filterCategory.value !== 'all') {
+    list = list.filter(p => p.category === filterCategory.value)
+  }
+
+  // Filter by manufacturer
+  if (filterManufacturer.value !== 'all') {
+    list = list.filter(p => p.manufacturer === filterManufacturer.value)
+  }
+
+  // Sort list
+  list = [...list].sort((a, b) => {
+    let fieldA = a[sortField.value]
+    let fieldB = b[sortField.value]
+
+    if (typeof fieldA === 'string') {
+      fieldA = fieldA.toLowerCase()
+      fieldB = fieldB.toLowerCase()
+    }
+
+    if (fieldA < fieldB) return sortOrder.value === 'asc' ? -1 : 1
+    if (fieldA > fieldB) return sortOrder.value === 'asc' ? 1 : -1
+    return 0
+  })
+
+  return list
+})
+
+// Pagination
+const totalPages = computed(() => {
+  return Math.ceil(filteredProducts.value.length / itemsPerPage)
+})
+
+const paginatedProducts = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  return filteredProducts.value.slice(start, start + itemsPerPage)
+})
+
+// Toggle column sorting
+const toggleSort = (field) => {
+  if (sortField.value === field) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortField.value = field
+    sortOrder.value = 'asc'
+  }
+  resetPage()
+}
+
+// Inline editing functions
+const startProductEdit = (product) => {
+  editingProductId.value = product.id
+  editProductForm.name = product.name
+  editProductForm.price = product.price
+  editProductForm.category = product.category
+  editProductForm.unit = product.unit
+  editProductForm.manufacturer = product.manufacturer
+}
+
+const cancelProductEdit = () => {
+  editingProductId.value = null
+}
+
+const saveProductEdit = async (prodId) => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/products/${prodId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify(editProductForm)
+    })
+    const data = await response.json()
+    if (response.ok) {
+      // Find and update item locally
+      const idx = products.value.findIndex(p => p.id === prodId)
+      if (idx !== -1) {
+        products.value[idx] = { ...data.product }
+      }
+      editingProductId.value = null
+      alert('Товар успешно обновлен!')
+    } else {
+      alert(data.message || 'Ошибка обновления')
+    }
+  } catch (err) {
+    console.error(err)
+    alert('Не удалось сохранить изменения')
+  }
+}
 
 const uniqueInvoiceMonths = computed(() => {
   const months = new Set()
@@ -405,33 +600,6 @@ const deleteRestaurant = async (userId, name) => {
   } catch (err) {
     console.error(err)
     alert('Не удалось удалить ресторан')
-  }
-}
-
-const updateProductPrice = async (prodId, price) => {
-  try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/products/${prodId}/price`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify({ price })
-    })
-    const data = await response.json()
-    if (response.ok) {
-      // Find and update local list price
-      const idx = products.value.findIndex(p => p.id === prodId)
-      if (idx !== -1) {
-        products.value[idx].price = price
-      }
-      alert('Цена товара успешно обновлена!')
-    } else {
-      alert(data.message || 'Ошибка')
-    }
-  } catch (err) {
-    console.error(err)
-    alert('Не удалось обновить цену товара')
   }
 }
 
@@ -582,6 +750,19 @@ const showInvoiceDetails = (order) => {
   color: var(--gray);
   text-transform: uppercase;
   border-bottom: 1px solid #e2e8f0;
+  user-select: none;
+}
+
+.sortable-header {
+  cursor: pointer;
+  transition: color 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sortable-header:hover {
+  color: var(--secondary-dark);
 }
 
 .admin-table td {
@@ -662,7 +843,7 @@ const showInvoiceDetails = (order) => {
   transform: scale(1.1);
 }
 
-/* Price Catalog styling */
+/* Search Filters Box styling */
 .price-header-row, .invoice-header-row {
   display: flex;
   justify-content: space-between;
@@ -672,18 +853,25 @@ const showInvoiceDetails = (order) => {
   gap: 1.5rem;
 }
 
+.search-filters-box {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .admin-search-bar {
   position: relative;
-  width: 320px;
+  width: 250px;
 }
 
 .admin-search-bar input {
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.75rem;
-  border-radius: 12px;
+  padding: 0.6rem 1rem 0.6rem 2.5rem;
+  border-radius: 10px;
   border: 1px solid #cbd5e1;
   outline: none;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 .admin-search-bar input:focus {
@@ -693,20 +881,128 @@ const showInvoiceDetails = (order) => {
 
 .admin-search-bar .search-icon {
   position: absolute;
-  left: 1rem;
+  left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
   color: var(--gray);
 }
 
-.more-warning {
-  padding: 1.25rem 1.5rem;
-  background: #f8fafc;
+.admin-select-filter {
+  padding: 0.6rem 1.75rem 0.6rem 1rem;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  font-weight: 600;
+  font-size: 0.9rem;
+  background-color: white;
+  appearance: none;
+  cursor: pointer;
+  background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E") no-repeat right 0.75rem center;
+}
+
+/* Inline Edit Controls */
+.inline-edit-input {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--secondary);
+  font-size: 0.9rem;
+  outline: none;
+  color: var(--primary);
+  background: rgba(245, 158, 11, 0.02);
+}
+
+.inline-edit-input:focus {
+  background: white;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
+.edit-actions-row {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.btn-action-save {
+  background: #22c55e;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-action-save:hover {
+  background: #16a34a;
+}
+
+.btn-action-cancel {
+  background: #ef4444;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-action-cancel:hover {
+  background: #dc2626;
+}
+
+.btn-edit-row {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--secondary-dark);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-weight: 600;
   font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-edit-row:hover {
+  background: var(--secondary);
+  color: white;
+  border-color: var(--secondary);
+}
+
+/* Pagination Styling */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.btn-outline-pagination {
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.btn-outline-pagination:hover:not(:disabled) {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.btn-outline-pagination:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  font-size: 0.9rem;
   color: var(--gray);
-  text-align: center;
-  font-style: italic;
-  border-top: 1px solid #e2e8f0;
+  font-weight: 600;
 }
 
 .month-filter-group {
@@ -877,6 +1173,7 @@ const showInvoiceDetails = (order) => {
   .admin-tabs { width: 100%; flex-direction: column; }
   .tab-btn { justify-content: center; }
   .price-header-row, .invoice-header-row { flex-direction: column; align-items: flex-start; }
+  .search-filters-box { width: 100%; flex-direction: column; align-items: stretch; }
   .admin-search-bar { width: 100%; }
 }
 </style>

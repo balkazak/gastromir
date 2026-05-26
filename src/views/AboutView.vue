@@ -7,6 +7,33 @@
       </div>
     </section>
 
+    <!-- Mission Statement Section -->
+    <section class="project-vision section-padding bg-dark text-white">
+      <div class="container">
+        <div class="vision-card" v-motion-slide-visible-once-bottom>
+          <h2 class="text-white">Главная идея проекта</h2>
+          <p class="subtitle">GASTROMIR — когда еда становится частью большой идеи</p>
+          <div class="vision-text">
+            <p class="highlight">
+              GASTROMIR — это платформа, где <strong>бизнес, гости, рестораны, фермеры</strong> и <strong>социальные инициативы</strong> объединяются в одну экосистему.
+            </p>
+            <div class="vision-steps">
+              <p>Когда человек посещает ресторан-партнёр — он не просто оплачивает ужин. Он помогает:</p>
+              <ul class="vision-list">
+                <li><span>—</span> накормить людей</li>
+                <li><span>—</span> поддержать local бизнес</li>
+                <li><span>—</span> развивать экономику</li>
+                <li><span>—</span> создавать добрые изменения в обществе</li>
+              </ul>
+            </div>
+            <p class="vision-footer">
+              GASTROMIR — когда еда становится частью большой идеи.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Values Section -->
     <section class="values section-padding bg-white">
       <div class="container">
@@ -141,6 +168,119 @@ const problems = [
 .bg-white { background: var(--white); }
 .bg-dark { background: var(--dark); }
 .text-white { color: var(--white); }
+
+/* Project vision card styling */
+.project-vision {
+  background: radial-gradient(circle at 10% 20%, var(--primary-light) 0%, var(--primary) 90%);
+}
+
+.vision-card {
+  max-width: 800px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 2rem;
+  padding: 3.5rem;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+.vision-card h2 {
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.vision-card .subtitle {
+  color: var(--secondary);
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 2.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.vision-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  text-align: left;
+}
+
+.highlight {
+  font-size: 1.25rem;
+  line-height: 1.6;
+  color: #f1f5f9;
+}
+
+.highlight strong {
+  color: var(--white);
+  border-bottom: 2px solid var(--secondary);
+}
+
+.vision-steps {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 2rem;
+  border-radius: 1.25rem;
+}
+
+.vision-steps p {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--white);
+  margin-bottom: 1.25rem;
+}
+
+.vision-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.vision-list li {
+  font-size: 1.05rem;
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.vision-list li span {
+  color: var(--secondary);
+  font-weight: 800;
+}
+
+.vision-footer {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--white);
+  text-align: center;
+  margin-top: 1rem;
+  font-style: italic;
+  position: relative;
+}
+
+.vision-footer::before {
+  content: '';
+  display: block;
+  width: 50px;
+  height: 2px;
+  background: var(--secondary);
+  margin: 0 auto 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .vision-card { padding: 2rem 1.5rem; }
+  .vision-card h2 { font-size: 1.6rem; }
+  .vision-card .subtitle { font-size: 0.9rem; margin-bottom: 1.5rem; }
+  .highlight { font-size: 1.05rem; }
+  .vision-steps { padding: 1.25rem; }
+  .vision-steps p { font-size: 0.95rem; margin-bottom: 0.75rem; }
+  .vision-list li { font-size: 0.9rem; }
+  .vision-footer { font-size: 1.1rem; }
+}
 
 .values-grid {
   display: grid;
