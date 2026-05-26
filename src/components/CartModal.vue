@@ -874,6 +874,7 @@ const generatePDFInvoice = async () => {
   position: absolute;
   left: -9999px;
   top: -9999px;
+  width: 790px;
 }
 
 /* Warnings in checkout */
@@ -905,11 +906,6 @@ const generatePDFInvoice = async () => {
   line-height: 1.4;
   text-align: center;
   font-weight: 500;
-}
-  position: absolute;
-  left: -9999px;
-  top: -9999px;
-  width: 790px;
 }
 
 .pdf-invoice {
