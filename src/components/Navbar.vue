@@ -18,9 +18,28 @@
           <span v-if="cartStore.totalItems > 0" class="badge">{{ cartStore.totalItems }}</span>
         </button>
 
-        <router-link to="/contacts" class="btn btn-primary nav-cta" @click="isMobileMenuOpen = false">
-          Подключиться
-        </router-link>
+        <template v-if="authStore.isAuthenticated">
+          <div class="user-profile-menu">
+            <router-link v-if="authStore.user.role === 'admin'" to="/admin" class="admin-link" @click="isMobileMenuOpen = false">
+              Админ панель
+            </router-link>
+            <router-link v-else to="/profile" class="user-name" @click="isMobileMenuOpen = false">
+              <User class="user-icon" />
+              {{ authStore.user.name }}
+            </router-link>
+            <button @click="handleLogout" class="btn-logout" title="Выйти">
+              <LogOut class="logout-icon" />
+            </button>
+          </div>
+        </template>
+        <template v-else>
+          <router-link to="/login" class="btn btn-secondary nav-cta login-btn" @click="isMobileMenuOpen = false">
+            Войти
+          </router-link>
+          <router-link to="/register" class="btn btn-primary nav-cta" @click="isMobileMenuOpen = false">
+            Подключиться
+          </router-link>
+        </template>
       </div>
 
       <button class="mobile-toggle" @click="isMobileMenuOpen = !isMobileMenuOpen">
@@ -34,10 +53,19 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Menu, X, ShoppingCart } from 'lucide-vue-next'
+import { Menu, X, ShoppingCart, User, LogOut } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
+import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 
 const cartStore = useCartStore()
+const authStore = useAuthStore()
+const router = useRouter()
+
+const handleLogout = () => {
+  authStore.logout()
+  router.push('/login')
+}
 const isScrolled = ref(false)
 const isMobileMenuOpen = ref(false)
 
@@ -213,5 +241,73 @@ nav.scrolled {
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
   z-index: 998;
+}
+
+/* User profile styling in navbar */
+.user-profile-menu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-link {
+  color: var(--secondary);
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+}
+
+.admin-link:hover {
+  filter: brightness(1.2);
+}
+
+.user-name {
+  color: var(--white);
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--secondary);
+}
+
+.btn-logout {
+  color: var(--gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+}
+
+.btn-logout:hover {
+  color: #ef4444;
+  transform: scale(1.1);
+}
+
+.logout-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.login-btn {
+  margin-right: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .user-profile-menu {
+    width: 100%;
+    margin-top: 1rem;
+    justify-content: space-between;
+  }
 }
 </style>

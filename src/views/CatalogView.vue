@@ -121,7 +121,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Search, ShoppingCart, Check, PackageX, Info } from 'lucide-vue-next'
-import productsData from '@/data/products.json'
 import { useCartStore } from '@/stores/cart'
 
 const cartStore = useCartStore()
@@ -129,8 +128,29 @@ const searchQuery = ref('')
 const activeCategory = ref('all')
 const productsRef = ref(null)
 
+const products = ref([])
+const loading = ref(true)
+
+const fetchProducts = async () => {
+  try {
+    loading.value = true
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/products`)
+    if (response.ok) {
+      products.value = await response.json()
+    }
+  } catch (err) {
+    console.error('Failed to fetch products:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchProducts()
+})
+
 const filteredProducts = computed(() => {
-  return productsData.filter(p => {
+  return products.value.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
                         p.category.toLowerCase().includes(searchQuery.value.toLowerCase())
     const matchesCategory = activeCategory.value === 'all' || p.category === activeCategory.value
@@ -139,7 +159,7 @@ const filteredProducts = computed(() => {
 })
 
 const uniqueCategories = computed(() => {
-  return [...new Set(productsData.map(p => p.category))]
+  return [...new Set(products.value.map(p => p.category))]
 })
 
 const isFreshProduceVisible = computed(() => {
@@ -171,7 +191,7 @@ const formatPrice = (price) => {
 // Store Bridge
 const addToCart = (product) => cartStore.addItem(product)
 const incrementQty = (id) => {
-  const product = productsData.find(p => p.id === id)
+  const product = products.value.find(p => p.id === id)
   if (product) cartStore.addItem(product)
 }
 const decrementQty = (id) => cartStore.updateQuantity(id, -1)

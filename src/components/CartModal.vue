@@ -90,11 +90,19 @@
               <strong>{{ formatPrice(cartStore.totalPrice) }} ₸</strong>
             </div>
             
+            <div v-if="!authStore.isAuthenticated" class="auth-warning-box">
+              🔑 Пожалуйста, <router-link to="/login" @click="cartStore.closeModal"><b>войдите в систему</b></router-link> или <router-link to="/register" @click="cartStore.closeModal"><b>зарегистрируйтесь</b></router-link>, чтобы отправлять заказы и просматривать накладные.
+            </div>
+            
+            <div v-else-if="isOverLimit" class="limit-warning-box">
+              ⚠️ Сумма заказа ({{ formatPrice(cartStore.totalPrice) }} ₸) превышает ваш лимит ({{ formatPrice(authStore.user?.order_limit) }} ₸). Уберите товары или обратитесь к администратору.
+            </div>
+            
             <div class="footer-actions">
               <button 
                 class="btn btn-primary btn-block" 
                 @click="sendToEmail" 
-                :disabled="!orderData.customerName || !orderData.phone || isSendingEmail || !isDateValid"
+                :disabled="!authStore.isAuthenticated || isOverLimit || !orderData.customerName || !orderData.phone || isSendingEmail || !isDateValid"
               >
                 {{ isSendingEmail ? 'Отправка...' : 'Отправить заказ' }}
               </button>
@@ -102,7 +110,7 @@
               <button 
                 class="btn btn-whatsapp btn-block" 
                 @click="sendToWhatsApp" 
-                :disabled="!orderData.customerName || !orderData.phone || !isDateValid"
+                :disabled="!authStore.isAuthenticated || isOverLimit || !orderData.customerName || !orderData.phone || !isDateValid"
               >
                 Отправить в WhatsApp
               </button>
@@ -219,12 +227,16 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed } from 'vue'
+import { reactive, ref, computed, watch } from 'vue'
 import { X, Trash2, ShoppingCart, Check } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
+import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 import { parse, isValid, isBefore, startOfDay, format } from 'date-fns'
 
 const cartStore = useCartStore()
+const authStore = useAuthStore()
+const router = useRouter()
 
 const pdfTemplateRef = ref(null)
 const isGeneratingPDF = ref(false)
@@ -240,12 +252,26 @@ const paymentMethods = [
 const todayStr = format(new Date(), 'dd.MM.yyyy')
 
 const orderData = reactive({
-  customerName: '',
+  customerName: authStore.user?.name || '',
   address: '',
   phone: '',
   paymentMethod: 'Наличный расчет',
   deliveryDate: todayStr,
   deliveryTime: 'До 14:00'
+})
+
+// Keep prefilled customerName up-to-date
+watch(() => authStore.user, (newUser) => {
+  if (newUser && !orderData.customerName) {
+    orderData.customerName = newUser.name
+  }
+}, { immediate: true })
+
+const isOverLimit = computed(() => {
+  if (!authStore.isAuthenticated) return false
+  if (authStore.user?.role === 'admin') return false
+  const limit = authStore.user?.order_limit || 500000.00
+  return cartStore.totalPrice > limit
 })
 
 const onDateInput = (event) => {
@@ -304,13 +330,49 @@ const formatPrice = (price) => {
   return new Intl.NumberFormat('ru-RU').format(price)
 }
 
-const sendToWhatsApp = () => {
+const placeOrderInDatabase = async () => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        items: cartStore.items,
+        totalPrice: cartStore.totalPrice
+      })
+    })
+    const data = await response.json()
+    if (!response.ok) {
+      throw new Error(data.message || 'Ошибка сохранения заказа в бэкенд')
+    }
+    return true
+  } catch (err) {
+    console.error(err)
+    alert(err.message || 'Ошибка подключения к серверу')
+    return false
+  }
+}
+
+const sendToWhatsApp = async () => {
+  if (!authStore.isAuthenticated) {
+    cartStore.closeModal()
+    router.push('/login')
+    return
+  }
+  const saved = await placeOrderInDatabase()
+  if (!saved) return
+
   const itemsText = cartStore.items.map(item => `- ${item.name}: ${item.quantity} ${item.unit} x ${formatPrice(item.price)} тг`).join('\n')
   const totalText = `Итого: ${formatPrice(cartStore.totalPrice)} тг`
   const message = `👋 *Новый заказ в GASTROMIR!*\n\n*Ресторан:* ${orderData.customerName}\n*Телефон:* ${orderData.phone}\n*Адрес:* ${orderData.address}\n*Способ оплаты:* ${orderData.paymentMethod}\n*Дата доставки:* ${orderData.deliveryDate}\n*Время доставки:* ${orderData.deliveryTime}\n\n*Заказ:*\n${itemsText}\n\n*${totalText}*`
   
   const encodedMessage = encodeURIComponent(message)
   window.open(`https://wa.me/77015141404?text=${encodedMessage}`, '_blank')
+
+  cartStore.clearCart()
+  cartStore.closeModal()
 }
 
 const isSendingEmail = ref(false)
@@ -322,7 +384,18 @@ const showSuccessToast = () => {
 }
 
 const sendToEmail = async () => {
+  if (!authStore.isAuthenticated) {
+    cartStore.closeModal()
+    router.push('/login')
+    return
+  }
+
   isSendingEmail.value = true
+  const saved = await placeOrderInDatabase()
+  if (!saved) {
+    isSendingEmail.value = false
+    return
+  }
 
   const date = new Date().toLocaleDateString('ru-RU')
   const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
@@ -362,7 +435,7 @@ const sendToEmail = async () => {
     if (response.ok) {
       cartStore.clearCart()
       cartStore.closeModal()
-      orderData.customerName = ''
+      orderData.customerName = authStore.user?.name || ''
       orderData.phone = ''
       orderData.address = ''
       orderData.paymentMethod = 'Наличный расчет'
@@ -798,6 +871,41 @@ const generatePDFInvoice = async () => {
 }
 
 .pdf-offscreen-container {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+}
+
+/* Warnings in checkout */
+.auth-warning-box {
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  color: var(--accent);
+  padding: 1rem;
+  border-radius: 1rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.auth-warning-box a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.limit-warning-box {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  padding: 1rem;
+  border-radius: 1rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  text-align: center;
+  font-weight: 500;
+}
   position: absolute;
   left: -9999px;
   top: -9999px;
