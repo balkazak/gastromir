@@ -21,14 +21,14 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // Register
-  const register = async (name, email, password, phone, address) => {
+  const register = async (name, email, password, phone, address, bin_iin, bank, kbe, bic, account_number) => {
     loading.value = true
     error.value = null
     try {
       const response = await fetch(`${apiUrl}/api/auth/register`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ name, email, password, phone, address })
+        body: JSON.stringify({ name, email, password, phone, address, bin_iin, bank, kbe, bic, account_number })
       })
 
       const data = await response.json()
@@ -112,15 +112,15 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('gastromir_token')
   }
 
-  // Update Profile (Phone, Address, Password)
-  const updateProfile = async (phone, address, password) => {
+  // Update Profile (Phone, Address, Password, BIN, Bank, KBe, BIC, Account)
+  const updateProfile = async (phone, address, password, bin_iin, bank, kbe, bic, account_number) => {
     loading.value = true
     error.value = null
     try {
       const response = await fetch(`${apiUrl}/api/auth/profile`, {
         method: 'PUT',
         headers: getHeaders(),
-        body: JSON.stringify({ phone, address, password })
+        body: JSON.stringify({ phone, address, password, bin_iin, bank, kbe, bic, account_number })
       })
 
       const data = await response.json()

@@ -30,6 +30,47 @@
                 <p>{{ authStore.user?.address || 'Не указан' }}</p>
               </div>
             </div>
+            <!-- BIN / IIN -->
+            <div class="details-row" style="margin-top: 1rem;">
+              <FileText :size="20" class="details-icon" />
+              <div>
+                <h4>БИН (ИИН):</h4>
+                <p>{{ authStore.user?.bin_iin || 'Не указан' }}</p>
+              </div>
+            </div>
+            <!-- Bank -->
+            <div class="details-row" style="margin-top: 1rem;">
+              <Landmark :size="20" class="details-icon" />
+              <div>
+                <h4>Банк:</h4>
+                <p>{{ authStore.user?.bank || 'Не указан' }}</p>
+              </div>
+            </div>
+            <!-- KBe & BIC -->
+            <div style="display: flex; gap: 1.5rem; margin-top: 1rem;">
+              <div class="details-row" style="flex: 1;">
+                <Hash :size="20" class="details-icon" />
+                <div>
+                  <h4>КБе:</h4>
+                  <p>{{ authStore.user?.kbe || 'Не указан' }}</p>
+                </div>
+              </div>
+              <div class="details-row" style="flex: 1;">
+                <Globe :size="20" class="details-icon" />
+                <div>
+                  <h4>БИК:</h4>
+                  <p>{{ authStore.user?.bic || 'Не указан' }}</p>
+                </div>
+              </div>
+            </div>
+            <!-- Account Number -->
+            <div class="details-row" style="margin-top: 1rem;">
+              <CreditCard :size="20" class="details-icon" />
+              <div>
+                <h4>Номер счета:</h4>
+                <p>{{ authStore.user?.account_number || 'Не указан' }}</p>
+              </div>
+            </div>
             <button @click="openEditModal" class="btn btn-secondary btn-edit-profile" style="margin-top: 1.5rem; width: 100%;">
               <Edit3 :size="16" /> Редактировать профиль
             </button>
@@ -138,8 +179,11 @@
               </tbody>
             </table>
           </div>
-          <div class="details-modal-footer">
-            <button @click="repeatOrder(activeInvoice)" class="btn btn-secondary btn-block">
+          <div class="details-modal-footer" style="display: flex; gap: 1rem; flex-direction: column;">
+            <button @click="generatePDFInvoice(activeInvoice)" class="btn btn-primary btn-block" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;" :disabled="isGeneratingPDF">
+              <FileText :size="18" /> {{ isGeneratingPDF ? 'Генерация PDF...' : 'Скачать накладную (PDF)' }}
+            </button>
+            <button @click="repeatOrder(activeInvoice)" class="btn btn-secondary btn-block" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0;">
               <RotateCcw :size="18" /> Повторить этот заказ полностью
             </button>
           </div>
@@ -170,7 +214,7 @@
                   type="tel" 
                   :value="editForm.phone" 
                   @input="onPhoneInput" 
-                  placeholder="+7 (701) 514 14 04" 
+                  placeholder="+7 (700) 000 00 00" 
                   maxlength="18"
                   required 
                   style="width: 100%; padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid #ddd; outline: none; font-size: 1rem; color: var(--primary);"
@@ -181,8 +225,64 @@
                 <label style="display: block; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.85rem;">Адрес доставки</label>
                 <input 
                   type="text" 
-                  v-model="editForm.address" 
-                  placeholder="Кунаева 29/1, 3 этаж" 
+                  @input="editForm.address = $event.target.value"
+                  :value="editForm.address"
+                  placeholder="ул. Абая 52, офис 4" 
+                  required 
+                  style="width: 100%; padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid #ddd; outline: none; font-size: 1rem; color: var(--primary);"
+                />
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.85rem;">БИН (ИИН) ресторана</label>
+                <input 
+                  type="text" 
+                  v-model="editForm.bin_iin" 
+                  placeholder="123456789012" 
+                  required 
+                  style="width: 100%; padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid #ddd; outline: none; font-size: 1rem; color: var(--primary);"
+                />
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.85rem;">Наименование банка</label>
+                <input 
+                  type="text" 
+                  v-model="editForm.bank" 
+                  placeholder="АО &quot;Kaspi Bank&quot;" 
+                  required 
+                  style="width: 100%; padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid #ddd; outline: none; font-size: 1rem; color: var(--primary);"
+                />
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.85rem;">КБе</label>
+                <input 
+                  type="text" 
+                  v-model="editForm.kbe" 
+                  placeholder="17" 
+                  required 
+                  style="width: 100%; padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid #ddd; outline: none; font-size: 1rem; color: var(--primary);"
+                />
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.85rem;">БИК</label>
+                <input 
+                  type="text" 
+                  v-model="editForm.bic" 
+                  placeholder="CASPKZKA" 
+                  required 
+                  style="width: 100%; padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid #ddd; outline: none; font-size: 1rem; color: var(--primary);"
+                />
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.85rem;">Номер счета</label>
+                <input 
+                  type="text" 
+                  v-model="editForm.account_number" 
+                  placeholder="KZ000000000000000000" 
                   required 
                   style="width: 100%; padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid #ddd; outline: none; font-size: 1rem; color: var(--primary);"
                 />
@@ -217,15 +317,294 @@
         </div>
       </div>
     </Transition>
+  <!-- Hidden print template for Form 3-2 PDF Waybill -->
+  <div class="pdf-offscreen-container" v-if="activeInvoice">
+    <div ref="pdfTemplateRef" class="pdf-invoice-f32">
+      <!-- Appendix Header -->
+      <div class="f32-appendix">
+        Приложение 26<br />
+        к приказу Министра финансов<br />
+        Республики Казахстан<br />
+        от 20 декабря 2012 года № 562<br /><br />
+        <strong>Форма 3-2</strong>
+      </div>
+
+      <!-- Sender Organization Header -->
+      <table class="f32-org-header">
+        <tr>
+          <td style="width: 25%; font-size: 8px;">Организация (индивидуальный предприниматель)</td>
+          <td class="f32-underline-cell" style="width: 50%; font-size: 10px;">ИП ИБРАЕВ "GASTROMIR"</td>
+          <td style="width: 5%;"></td>
+          <td style="width: 20%; text-align: right; vertical-align: top;">
+            <table class="f32-iin-bin-table">
+              <tr>
+                <td style="background-color: #f3f4f6; font-size: 7px; font-weight: bold; border: 1px solid #000; padding: 1px 4px;">ИИН/БИН</td>
+              </tr>
+              <tr>
+                <td style="border: 1px solid #000; padding: 2px 4px; font-weight: bold; font-size: 9px;">820727351424</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Document Metadata Centered Table -->
+      <div class="f32-doc-meta-container">
+        <table class="f32-doc-meta-table">
+          <thead>
+            <tr>
+              <th style="border: 1px solid #000; padding: 4px 10px; background-color: #f3f4f6; font-weight: bold; font-size: 8px;">Номер документа</th>
+              <th style="border: 1px solid #000; padding: 4px 10px; background-color: #f3f4f6; font-weight: bold; font-size: 8px;">Дата составления</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="border: 1px solid #000; padding: 4px 10px; text-align: center; font-weight: bold; font-size: 9px;">{{ getRestaurantPrefix(authStore.user?.name) }}-{{ String(getRestaurantOrderNumber(activeInvoice)).padStart(2, '0') }}</td>
+              <td style="border: 1px solid #000; padding: 4px 10px; text-align: center; font-size: 9px;">{{ formatDateOnly(activeInvoice.created_at) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Primary Centered Title -->
+      <div class="f32-title" style="margin-bottom: 5px;">НАКЛАДНАЯ НА ОТПУСК ЗАПАСОВ НА СТОРОНУ</div>
+
+      <!-- Supplier vs Buyer Bank & Legal Account Details Table -->
+      <table class="f32-bank-details-table" style="width: 100%; border-collapse: collapse; margin-bottom: 12px; border: 1px solid #000;">
+        <tr>
+          <!-- GASTROMIR (Supplier) Details -->
+          <td style="width: 50%; border: 1px solid #000; padding: 5px; font-size: 8px; vertical-align: top; text-align: left; line-height: 1.3;">
+            <div style="font-weight: bold; font-size: 8.5px; margin-bottom: 3px; border-bottom: 1px solid #000; padding-bottom: 1px; color: #000;">ПОСТАВЩИК (ОТПРАВИТЕЛЬ):</div>
+            <div><strong>ИП ИБРАЕВ "GASTROMIR"</strong></div>
+            <div><strong>БИН (ИИН):</strong> 820727351424</div>
+            <div><strong>Банк:</strong> АО "Kaspi Bank"</div>
+            <div><strong>БИК:</strong> CASPKZKA &nbsp;&nbsp;&nbsp;&nbsp; <strong>КБе:</strong> 17</div>
+            <div><strong>Номер счета (ИИК):</strong> KZ91722S000047745678</div>
+            <div><strong>Адрес:</strong> г. Алматы</div>
+          </td>
+          
+          <!-- Restaurant (Buyer) Details -->
+          <td style="width: 50%; border: 1px solid #000; padding: 5px; font-size: 8px; vertical-align: top; text-align: left; line-height: 1.3;">
+            <div style="font-weight: bold; font-size: 8.5px; margin-bottom: 3px; border-bottom: 1px solid #000; padding-bottom: 1px; color: #000;">ПОКУПАТЕЛЬ (ПОЛУЧАТЕЛЬ):</div>
+            <div><strong>Компания:</strong> {{ authStore.user?.name || '-' }}</div>
+            <div><strong>БИН (ИИН):</strong> {{ authStore.user?.bin_iin || '-' }}</div>
+            <div><strong>Банк:</strong> {{ authStore.user?.bank || '-' }}</div>
+            <div><strong>БИК:</strong> {{ authStore.user?.bic || '-' }} &nbsp;&nbsp;&nbsp;&nbsp; <strong>КБе:</strong> {{ authStore.user?.kbe || '-' }}</div>
+            <div><strong>Номер счета (ИИК):</strong> {{ authStore.user?.account_number || '-' }}</div>
+            <div><strong>Адрес:</strong> {{ authStore.user?.address || '-' }}</div>
+          </td>
+        </tr>
+      </table>
+
+      <!-- Secondary Meta Table (Sender / Recipient / Transport) -->
+      <table class="f32-parties-table">
+        <thead>
+          <tr>
+            <th style="border: 1px solid #000; padding: 4px 6px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 8px; width: 20%;">Организация (индивидуальный предприниматель) - отправитель</th>
+            <th style="border: 1px solid #000; padding: 4px 6px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 8px; width: 25%;">Организация (индивидуальный предприниматель) - получатель</th>
+            <th style="border: 1px solid #000; padding: 4px 6px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 8px; width: 15%;">Ответственный за поставку (Ф.И.О.)</th>
+            <th style="border: 1px solid #000; padding: 4px 6px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 8px; width: 15%;">Транспортная организация</th>
+            <th style="border: 1px solid #000; padding: 4px 6px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 8px; width: 25%;">Товарно-транспортная накладная (номер, дата)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px;">ИП ИБРАЕВ "GASTROMIR", БИН 820727351424, г. Алматы</td>
+            <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px;">{{ authStore.user?.name }}, ИИН/БИН {{ authStore.user?.bin_iin || '—' }}, {{ authStore.user?.address }}</td>
+            <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">Ибраев Б. А.</td>
+            <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">GASTROMIR Логистика</td>
+            <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">{{ getRestaurantPrefix(authStore.user?.name) }}-{{ String(getRestaurantOrderNumber(activeInvoice)).padStart(2, '0') }}, {{ formatDateOnly(activeInvoice.created_at) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Dynamic Items Grid Table -->
+      <table class="f32-items-table">
+        <thead>
+          <tr>
+            <th rowspan="2" style="border: 1px solid #000; padding: 4px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 3%;">Номер по порядку</th>
+            <th rowspan="2" style="border: 1px solid #000; padding: 4px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 35%;">Наименование, характеристика</th>
+            <th rowspan="2" style="border: 1px solid #000; padding: 4px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 10%;">Номенклатурный номер</th>
+            <th rowspan="2" style="border: 1px solid #000; padding: 4px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 8%;">Единица измерения</th>
+            <th colspan="2" style="border: 1px solid #000; padding: 2px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 14%;">Количество</th>
+            <th rowspan="2" style="border: 1px solid #000; padding: 4px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 10%;">Цена за единицу, в KZT</th>
+            <th rowspan="2" style="border: 1px solid #000; padding: 4px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 10%;">Сумма с НДС, в KZT</th>
+            <th rowspan="2" style="border: 1px solid #000; padding: 4px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 10%;">Сумма НДС, в KZT</th>
+          </tr>
+          <tr>
+            <th style="border: 1px solid #000; padding: 2px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 6.5px;">подлежит отпуску</th>
+            <th style="border: 1px solid #000; padding: 2px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 6.5px;">отпущено</th>
+          </tr>
+          <tr class="f32-col-nums">
+            <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">1</td>
+            <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">2</td>
+            <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">3</td>
+            <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">4</td>
+            <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">5</td>
+            <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">6</td>
+            <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">7</td>
+            <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">8</td>
+            <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">9</td>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, index) in activeInvoice.items" :key="item.id">
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ index + 1 }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: left;">{{ item.name }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">GM-{{ String(item.id).slice(-4).padStart(4, '0') }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ item.unit }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ item.quantity }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ item.quantity }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(item.price) }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(item.price * item.quantity) }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(calculateVAT(item.price * item.quantity)) }}</td>
+          </tr>
+          <tr class="f32-total-row">
+            <td colspan="4" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Итого</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ getInvoiceQty(activeInvoice) }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ getInvoiceQty(activeInvoice) }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; background-color: #f9fafb;"></td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(activeInvoice.total_price) }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(calculateVAT(activeInvoice.total_price)) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Quantity and Prices in Russian Words -->
+      <div class="f32-words-section">
+        <div class="f32-words-line" style="font-size: 8px; margin-bottom: 2px;">
+          Всего отпущено количество запасов (прописью):
+          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 250px;">{{ capitalizeFirst(numberToWordsRu(getInvoiceQty(activeInvoice))) }}</span>
+        </div>
+        <div class="f32-words-line" style="font-size: 8px;">
+          на сумму (прописью), в KZT:
+          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 350px;">{{ capitalizeFirst(numberToWordsRu(activeInvoice.total_price)) }} тенге 00 тиын</span>
+        </div>
+      </div>
+
+      <!-- Signature Blocks Grid -->
+      <table class="f32-signatures-table" style="width: 100%; margin-top: 15px; border-collapse: collapse; border: none;">
+        <tr>
+          <!-- Left Signatures -->
+          <td style="width: 48%; border: none; padding: 0; vertical-align: top;">
+            <table style="width: 100%; border-collapse: collapse; border: none;">
+              <tr>
+                <td style="border: none; font-size: 8px; width: 80px; padding: 3px 0;">Отпуск разрешил</td>
+                <td style="border: none; padding: 3px 0;">
+                  <table style="width: 100%; border-collapse: collapse; border: none;">
+                    <tr>
+                      <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 30%; text-align: center; padding: 0; line-height: 1;">Директор</td>
+                      <td style="border: none; width: 5%; padding: 0;"></td>
+                      <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 25%; padding: 0; position: relative; text-align: center;">
+                        <img :src="signatureImg" style="position: absolute; left: 50%; transform: translateX(-50%); top: -35px; width: 70px; height: auto; pointer-events: none;" />
+                      </td>
+                      <td style="border: none; width: 5%; padding: 0;"></td>
+                      <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 35%; text-align: center; padding: 0; line-height: 1;">Ибраев Б. А.</td>
+                    </tr>
+                    <tr>
+                      <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">должность</td>
+                      <td style="border: none; padding: 0;"></td>
+                      <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">подпись</td>
+                      <td style="border: none; padding: 0;"></td>
+                      <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">расшифровка подписи</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td style="border: none; font-size: 8px; padding: 10px 0 3px 0;">Главный бухгалтер</td>
+                <td style="border: none; padding: 10px 0 3px 0;">
+                  <table style="width: 100%; border-collapse: collapse; border: none;">
+                    <tr>
+                      <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 40%; padding: 0;"></td>
+                      <td style="border: none; width: 10%; padding: 0;"></td>
+                      <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 50%; text-align: center; padding: 0; line-height: 1;"></td>
+                    </tr>
+                    <tr>
+                      <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">подпись</td>
+                      <td style="border: none; padding: 0;"></td>
+                      <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">расшифровка подписи</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td style="border: none; font-size: 8px; padding: 10px 0 3px 0; font-weight: bold; position: relative;">
+                  М.П.
+                  <img :src="printImg" style="position: absolute; left: 10px; top: 20px; width: 95px; height: 95px; opacity: 0.85; pointer-events: none;" />
+                </td>
+                <td style="border: none; padding: 10px 0 3px 0;"></td>
+              </tr>
+              <tr>
+                <td style="border: none; font-size: 8px; padding: 10px 0 3px 0;">Отпустил</td>
+                <td style="border: none; padding: 10px 0 3px 0;">
+                  <table style="width: 100%; border-collapse: collapse; border: none;">
+                    <tr>
+                      <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 40%; padding: 0; position: relative; text-align: center; height: 16px;">
+                        <img :src="signatureImg" style="position: absolute; left: 50%; transform: translateX(-50%); top: -35px; width: 70px; height: auto; pointer-events: none;" />
+                      </td>
+                      <td style="border: none; width: 10%; padding: 0;"></td>
+                      <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 50%; text-align: center; padding: 0; line-height: 1;">Ибраев Б. А.</td>
+                    </tr>
+                    <tr>
+                      <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">подпись</td>
+                      <td style="border: none; padding: 0;"></td>
+                      <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">расшифровка подписи</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+
+          <!-- Spacer -->
+          <td style="width: 4%; border: none; padding: 0;"></td>
+
+          <!-- Right Signatures -->
+          <td style="width: 48%; border: none; padding: 0; vertical-align: top;">
+            <table style="width: 100%; border-collapse: collapse; border: none;">
+              <tr>
+                <td style="border: none; font-size: 8px; width: 80px; padding: 3px 0;">По доверенности</td>
+                <td style="border: none; padding: 3px 0; border-bottom: 1px solid #000; font-size: 8px; height: 12px;"></td>
+              </tr>
+              <tr>
+                <td style="border: none; font-size: 8px; padding: 10px 0 3px 0;">выданной</td>
+                <td style="border: none; padding: 10px 0 3px 0; border-bottom: 1px solid #000; font-size: 8px; height: 12px;"></td>
+              </tr>
+              <tr>
+                <td style="border: none; font-size: 8px; padding: 25px 0 3px 0;">Запасы получил</td>
+                <td style="border: none; padding: 25px 0 3px 0;">
+                  <table style="width: 100%; border-collapse: collapse; border: none;">
+                    <tr>
+                      <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 40%; padding: 0;"></td>
+                      <td style="border: none; width: 10%; padding: 0;"></td>
+                      <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 50%; text-align: center; padding: 0; line-height: 1;">{{ authStore.user?.name }}</td>
+                    </tr>
+                    <tr>
+                      <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">подпись</td>
+                      <td style="border: none; padding: 0;"></td>
+                      <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">расшифровка подписи</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import printImg from '@/assets/docs/print.png'
+import signatureImg from '@/assets/docs/signature.png'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
-import { User, Calendar, Eye, RotateCcw, ClipboardList, X, Phone, MapPin, Edit3 } from 'lucide-vue-next'
+import { User, Calendar, Eye, RotateCcw, ClipboardList, X, Phone, MapPin, Edit3, FileText, Landmark, Hash, Globe, CreditCard } from 'lucide-vue-next'
 import { formatPhone } from '@/utils/format'
 
 const authStore = useAuthStore()
@@ -235,11 +614,161 @@ const orders = ref([])
 const loading = ref(true)
 const activeInvoice = ref(null)
 
+const pdfTemplateRef = ref(null)
+const isGeneratingPDF = ref(false)
+
+const getRestaurantPrefix = (name) => {
+  if (!name) return 'ГМ'
+  const clean = name.replace(/["'«»“”„“]/g, '').trim()
+  const words = clean.split(/[\s\-]+/)
+  let prefix = words.map(w => w.charAt(0).toUpperCase()).join('')
+  if (prefix.length < 2) {
+    prefix = clean.slice(0, 3).toUpperCase()
+  }
+  return prefix
+}
+
+const getRestaurantOrderNumber = (order) => {
+  if (!order || !orders.value.length) return 1
+  const sorted = [...orders.value].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  const index = sorted.findIndex(o => o.id === order.id)
+  return index !== -1 ? index + 1 : 1
+}
+
+const numberToWordsRu = (n) => {
+  if (n === 0) return 'ноль'
+  
+  const units = ['', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять']
+  const unitsFeminine = ['', 'одна', 'две', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять']
+  const teens = ['десять', 'одиннадцать', 'двенадцать', 'тринадцать', 'четырнадцать', 'пятнадцать', 'шестнадцать', 'семнадцать', 'восемнадцать', 'девятнадцать']
+  const tens = ['', '', 'двадцать', 'тридцать', 'сорок', 'пятьдесят', 'шестьдесят', 'семьдесят', 'восемьдесят', 'девяносто']
+  const hundreds = ['', 'сто', 'двести', 'триста', 'четыреста', 'пятьсот', 'шестьсот', 'семьсот', 'восемьсот', 'девятьсот']
+  
+  const words = []
+  
+  const parseThousand = (num, isFeminine) => {
+    let part = []
+    const h = Math.floor(num / 100)
+    const t = Math.floor((num % 100) / 10)
+    const u = num % 10
+    
+    if (h > 0) part.push(hundreds[h])
+    if (t === 1) {
+      part.push(teens[u])
+    } else {
+      if (t > 1) part.push(tens[t])
+      if (u > 0) part.push(isFeminine ? unitsFeminine[u] : units[u])
+    }
+    return part.join(' ')
+  }
+  
+  let temp = n
+  const billion = Math.floor(temp / 1000000000)
+  temp %= 1000000000
+  const million = Math.floor(temp / 1000000)
+  temp %= 1000000
+  const thousand = Math.floor(temp / 1000)
+  const remainder = temp % 1000
+  
+  if (billion > 0) {
+    words.push(parseThousand(billion, false))
+    const u = billion % 10
+    const t = billion % 100
+    if (t >= 11 && t <= 19) words.push('миллиардов')
+    else if (u === 1) words.push('миллиард')
+    else if (u >= 2 && u <= 4) words.push('миллиарда')
+    else words.push('миллиардов')
+  }
+  
+  if (million > 0) {
+    words.push(parseThousand(million, false))
+    const u = million % 10
+    const t = million % 100
+    if (t >= 11 && t <= 19) words.push('миллионов')
+    else if (u === 1) words.push('миллион')
+    else if (u >= 2 && u <= 4) words.push('миллиона')
+    else words.push('миллионов')
+  }
+  
+  if (thousand > 0) {
+    words.push(parseThousand(thousand, true))
+    const u = thousand % 10
+    const t = thousand % 100
+    if (t >= 11 && t <= 19) words.push('тысяч')
+    else if (u === 1) words.push('тысяча')
+    else if (u >= 2 && u <= 4) words.push('тысячи')
+    else words.push('тысяч')
+  }
+  
+  if (remainder > 0) {
+    words.push(parseThousand(remainder, false))
+  }
+  
+  return words.filter(Boolean).join(' ')
+}
+
+const capitalizeFirst = (str) => {
+  if (!str) return ''
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+const calculateVAT = (sum) => {
+  if (!sum) return 0
+  return Math.round((sum * 12 / 112) * 100) / 100
+}
+
+const formatDateOnly = (dateStr) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const year = d.getFullYear()
+  return `${day}.${month}.${year}`
+}
+
+const getInvoiceQty = (order) => {
+  if (!order || !order.items) return 0
+  return order.items.reduce((sum, item) => sum + item.quantity, 0)
+}
+
+const generatePDFInvoice = async (order) => {
+  if (!order) return
+  isGeneratingPDF.value = true
+
+  try {
+    const html2pdf = (await import('html2pdf.js')).default
+    const currentOrderNum = `${getRestaurantPrefix(authStore.user?.name)}-${String(getRestaurantOrderNumber(order)).padStart(2, '0')}`
+    const element = pdfTemplateRef.value
+
+    const options = {
+      margin: [0.3, 0.3, 0.3, 0.3],
+      filename: `Накладная_Форма_3-2_${currentOrderNum}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    }
+
+    await html2pdf()
+      .from(element)
+      .set(options)
+      .save()
+  } catch (err) {
+    console.error('Error generating PDF:', err)
+  } finally {
+    isGeneratingPDF.value = false
+  }
+}
+
 const isEditModalOpen = ref(false)
 const modalErrorMsg = ref('')
 const editForm = reactive({
   phone: '',
   address: '',
+  bin_iin: '',
+  bank: '',
+  kbe: '',
+  bic: '',
+  account_number: '',
   password: '',
   confirmPassword: ''
 })
@@ -247,6 +776,11 @@ const editForm = reactive({
 const openEditModal = () => {
   editForm.phone = authStore.user?.phone || ''
   editForm.address = authStore.user?.address || ''
+  editForm.bin_iin = authStore.user?.bin_iin || ''
+  editForm.bank = authStore.user?.bank || ''
+  editForm.kbe = authStore.user?.kbe || ''
+  editForm.bic = authStore.user?.bic || ''
+  editForm.account_number = authStore.user?.account_number || ''
   editForm.password = ''
   editForm.confirmPassword = ''
   modalErrorMsg.value = ''
@@ -285,7 +819,41 @@ const handleUpdateProfile = async () => {
     return
   }
 
-  const success = await authStore.updateProfile(editForm.phone, editForm.address, editForm.password)
+  if (!editForm.bin_iin.trim()) {
+    modalErrorMsg.value = 'Укажите БИН (ИИН) ресторана'
+    return
+  }
+
+  if (!editForm.bank.trim()) {
+    modalErrorMsg.value = 'Укажите наименование банка'
+    return
+  }
+
+  if (!editForm.kbe.trim()) {
+    modalErrorMsg.value = 'Укажите КБе'
+    return
+  }
+
+  if (!editForm.bic.trim()) {
+    modalErrorMsg.value = 'Укажите БИК'
+    return
+  }
+
+  if (!editForm.account_number.trim()) {
+    modalErrorMsg.value = 'Укажите номер банковского счета'
+    return
+  }
+
+  const success = await authStore.updateProfile(
+    editForm.phone, 
+    editForm.address, 
+    editForm.password,
+    editForm.bin_iin,
+    editForm.bank,
+    editForm.kbe,
+    editForm.bic,
+    editForm.account_number
+  )
   if (success) {
     isEditModalOpen.value = false
   }
@@ -857,5 +1425,159 @@ const repeatOrder = (order) => {
   border-radius: 12px;
   font-size: 0.9rem;
   text-align: center;
+}
+.pdf-offscreen-container {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 710px;
+}
+
+.pdf-invoice-f32 {
+  font-family: 'Arial', 'Helvetica', sans-serif;
+  color: #000;
+  background: #fff;
+  padding: 15px 15px 80px 15px;
+  width: 710px;
+  box-sizing: border-box;
+}
+
+.f32-appendix {
+  text-align: right;
+  font-size: 8px;
+  line-height: 1.2;
+  margin-bottom: 10px;
+  font-style: italic;
+}
+
+.f32-org-header {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+}
+
+.f32-org-header td {
+  border: none;
+  font-size: 8px;
+  padding: 2px 0;
+}
+
+.f32-underline-cell {
+  border-bottom: 1px solid #000 !important;
+  font-weight: bold;
+}
+
+.f32-iin-bin-table {
+  border-collapse: collapse;
+  float: right;
+}
+
+.f32-iin-bin-table td {
+  border: 1px solid #000 !important;
+  font-size: 8px;
+  padding: 2px 6px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.f32-doc-meta-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+.f32-doc-meta-table {
+  border-collapse: collapse;
+}
+
+.f32-doc-meta-table th, .f32-doc-meta-table td {
+  border: 1px solid #000;
+  font-size: 8px;
+  padding: 4px 10px;
+  text-align: center;
+}
+
+.f32-doc-meta-table th {
+  background-color: #f3f4f6;
+  font-weight: bold;
+}
+
+.f32-title {
+  text-align: center;
+  font-size: 13px;
+  font-weight: bold;
+  margin: 15px 0;
+  letter-spacing: 0.5px;
+}
+
+.f32-parties-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 15px;
+}
+
+.f32-parties-table th, .f32-parties-table td {
+  border: 1px solid #000;
+  font-size: 8px;
+  padding: 4px 6px;
+  vertical-align: middle;
+}
+
+.f32-parties-table th {
+  background-color: #f3f4f6;
+  font-weight: bold;
+  text-align: center;
+}
+
+.f32-parties-table td {
+  text-align: left;
+}
+
+.f32-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+.f32-items-table th, .f32-items-table td {
+  border: 1px solid #000;
+  font-size: 8px;
+  padding: 3px 5px;
+  vertical-align: middle;
+}
+
+.f32-items-table th {
+  background-color: #f3f4f6;
+  font-weight: bold;
+  text-align: center;
+}
+
+.f32-col-nums td {
+  text-align: center !important;
+  font-size: 7px;
+  background-color: #f9fafb;
+}
+
+.f32-total-row td {
+  font-weight: bold;
+  background-color: #f9fafb;
+}
+
+.f32-words-section {
+  font-size: 8.5px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.f32-words-line {
+  margin-bottom: 4px;
+}
+
+.f32-words-value {
+  font-weight: bold;
+  border-bottom: 1px solid #000;
+  display: inline-block;
+  padding-left: 5px;
+  padding-right: 5px;
 }
 </style>

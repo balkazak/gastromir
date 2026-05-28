@@ -82,7 +82,7 @@
               id="phone" 
               :value="phone" 
               @input="onPhoneInput" 
-              placeholder="+7 (701) 514 14 04" 
+              placeholder="+7 (700) 000 00 00" 
               maxlength="18"
               required
             />
@@ -97,7 +97,77 @@
               type="text" 
               id="address" 
               v-model="address" 
-              placeholder="Кунаева 29/1, 3 этаж" 
+              placeholder="ул. Абая 52, офис 4" 
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="bin_iin">БИН (ИИН) ресторана</label>
+          <div class="input-wrapper">
+            <FileText class="input-icon" />
+            <input 
+              type="text" 
+              id="bin_iin" 
+              v-model="bin_iin" 
+              placeholder="123456789012" 
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="bank">Наименование банка</label>
+          <div class="input-wrapper">
+            <Landmark class="input-icon" />
+            <input 
+              type="text" 
+              id="bank" 
+              v-model="bank" 
+              placeholder="АО &quot;Kaspi Bank&quot;" 
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="kbe">КБе</label>
+          <div class="input-wrapper">
+            <Hash class="input-icon" />
+            <input 
+              type="text" 
+              id="kbe" 
+              v-model="kbe" 
+              placeholder="17" 
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="bic">БИК</label>
+          <div class="input-wrapper">
+            <Globe class="input-icon" />
+            <input 
+              type="text" 
+              id="bic" 
+              v-model="bic" 
+              placeholder="CASPKZKA" 
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="account_number">Номер счета</label>
+          <div class="input-wrapper">
+            <CreditCard class="input-icon" />
+            <input 
+              type="text" 
+              id="account_number" 
+              v-model="account_number" 
+              placeholder="KZ000000000000000000" 
               required
             />
           </div>
@@ -121,7 +191,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { User, Mail, Lock, Phone, MapPin } from 'lucide-vue-next'
+import { User, Mail, Lock, Phone, MapPin, FileText, Landmark, Hash, Globe, CreditCard } from 'lucide-vue-next'
 import { formatPhone } from '@/utils/format'
 
 const name = ref('')
@@ -130,6 +200,11 @@ const password = ref('')
 const confirmPassword = ref('')
 const phone = ref('')
 const address = ref('')
+const bin_iin = ref('')
+const bank = ref('')
+const kbe = ref('')
+const bic = ref('')
+const account_number = ref('')
 const errorMsg = ref('')
 
 const authStore = useAuthStore()
@@ -162,7 +237,43 @@ const handleRegister = async () => {
     return
   }
 
-  const success = await authStore.register(name.value, email.value, password.value, phone.value, address.value)
+  if (!bin_iin.value.trim()) {
+    errorMsg.value = 'Укажите БИН (ИИН) ресторана'
+    return
+  }
+
+  if (!bank.value.trim()) {
+    errorMsg.value = 'Укажите наименование банка'
+    return
+  }
+
+  if (!kbe.value.trim()) {
+    errorMsg.value = 'Укажите КБе'
+    return
+  }
+
+  if (!bic.value.trim()) {
+    errorMsg.value = 'Укажите БИК'
+    return
+  }
+
+  if (!account_number.value.trim()) {
+    errorMsg.value = 'Укажите номер банковского счета'
+    return
+  }
+
+  const success = await authStore.register(
+    name.value, 
+    email.value, 
+    password.value, 
+    phone.value, 
+    address.value,
+    bin_iin.value,
+    bank.value,
+    kbe.value,
+    bic.value,
+    account_number.value
+  )
   if (success) {
     router.push('/')
   }

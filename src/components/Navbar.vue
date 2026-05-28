@@ -83,15 +83,18 @@ nav {
   left: 0;
   width: 100%;
   z-index: 1000;
-  padding: 1.5rem 0;
+  padding: 1.2rem 0;
   transition: var(--transition);
+  background: rgba(11, 13, 25, 0.05); /* Semi-transparent matching logo color */
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 nav.scrolled {
-  padding: 1rem 0;
-  background: var(--glass);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  padding: 0.9rem 0;
+  background: #0B0D19; /* Solid logo background color */
+  backdrop-filter: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
 }
 
 .nav-content {
