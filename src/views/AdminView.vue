@@ -219,15 +219,31 @@
 
         <!-- Tab 3: Monthly Invoices Log -->
         <div v-if="activeTab === 'invoices'" class="tab-pane animate-fade">
-          <div class="invoice-header-row">
-            <div class="card-header">
+          <div class="price-header-row" style="margin-bottom: 2rem;">
+            <div class="card-header" style="margin-bottom: 0;">
               <h2>История накладных и заказов</h2>
-              <p>Полный список накладных по всем ресторанам, отсортированный по месяцам</p>
+              <p>Полный список накладных по всем ресторанам с поиском и фильтрацией</p>
             </div>
             
-            <div class="month-filter-group">
-              <label>Фильтр по месяцам:</label>
-              <select v-model="selectedMonth" class="admin-select">
+            <div class="search-filters-box">
+              <!-- Search Invoices -->
+              <div class="admin-search-bar">
+                <Search class="search-icon" :size="18" />
+                <input 
+                  type="text" 
+                  v-model="invoiceSearch" 
+                  placeholder="Поиск по накладной, ресторану..." 
+                />
+              </div>
+
+              <!-- Filter Restaurant -->
+              <select v-model="filterRestaurant" class="admin-select-filter">
+                <option value="all">Все рестораны</option>
+                <option v-for="res in uniqueInvoiceRestaurants" :key="res" :value="res">{{ res }}</option>
+              </select>
+
+              <!-- Month filter -->
+              <select v-model="selectedMonth" class="admin-select-filter">
                 <option value="all">Все месяцы</option>
                 <option v-for="m in uniqueInvoiceMonths" :key="m" :value="m">{{ m }}</option>
               </select>
@@ -248,24 +264,42 @@
             <table class="admin-table">
               <thead>
                 <tr>
-                  <th>Накладная №</th>
-                  <th>Ресторан</th>
+                  <th @click="toggleInvoiceSort('id')" class="sortable-header" style="cursor: pointer;">
+                    <div class="header-content">
+                      Накладная № <ArrowUpDown :size="14" />
+                    </div>
+                  </th>
+                  <th @click="toggleInvoiceSort('restaurant_name')" class="sortable-header" style="cursor: pointer;">
+                    <div class="header-content">
+                      Ресторан <ArrowUpDown :size="14" />
+                    </div>
+                  </th>
                   <th>Эл. почта</th>
-                  <th>Дата заказа</th>
+                  <th @click="toggleInvoiceSort('created_at')" class="sortable-header" style="cursor: pointer;">
+                    <div class="header-content">
+                      Дата заказа <ArrowUpDown :size="14" />
+                    </div>
+                  </th>
                   <th>Кол-во товаров</th>
-                  <th>Сумма (₸)</th>
-                  <th style="text-align: right;">Детали</th>
+                  <th @click="toggleInvoiceSort('total_price')" class="sortable-header" style="cursor: pointer; width: 180px;">
+                    <div class="header-content">
+                      Сумма (₸) <ArrowUpDown :size="14" />
+                    </div>
+                  </th>
+                  <th style="text-align: right; width: 100px;">Детали</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="order in filteredOrders" :key="order.id">
-                  <td data-label="Накладная" class="font-bold">№{{ order.id }}</td>
+                  <td data-label="Накладная" class="font-bold">
+                    {{ getRestaurantPrefix(order.restaurant_name) }}-{{ String(getAdminRestaurantOrderNumber(order)).padStart(2, '0') }}
+                  </td>
                   <td data-label="Ресторан">{{ order.restaurant_name }}</td>
                   <td data-label="Email">{{ order.restaurant_email }}</td>
                   <td data-label="Дата заказа">{{ formatDate(order.created_at) }}</td>
                   <td data-label="Товаров">{{ order.items.length }} поз.</td>
-                  <td data-label="Сумма" class="invoice-price-col">{{ formatPrice(order.total_price) }} ₸</td>
-                  <td data-label="Детали" style="text-align: right;">
+                  <td data-label="Сумма" class="invoice-price-col font-bold">{{ formatPrice(order.total_price) }} ₸</td>
+                  <td data-label="Действия" style="text-align: right;">
                     <button @click="showInvoiceDetails(order)" class="btn-inspect" title="Просмотреть">
                       <Eye :size="18" />
                     </button>
@@ -283,7 +317,7 @@
       <div v-if="activeInvoice" class="details-modal-overlay" @click.self="activeInvoice = null">
         <div class="details-modal" v-motion-pop>
           <div class="details-modal-header">
-            <h3>Детали накладной №{{ activeInvoice.id }}</h3>
+            <h3>Детали накладной {{ getRestaurantPrefix(activeInvoice.restaurant_name) }}-{{ String(getAdminRestaurantOrderNumber(activeInvoice)).padStart(2, '0') }}</h3>
             <button @click="activeInvoice = null" class="close-btn"><X /></button>
           </div>
           <div class="details-modal-body">
@@ -340,6 +374,10 @@ const filterCategory = ref('all')
 const filterManufacturer = ref('all')
 const selectedMonth = ref('all')
 const activeInvoice = ref(null)
+const invoiceSearch = ref('')
+const filterRestaurant = ref('all')
+const sortInvoiceField = ref('created_at')
+const sortInvoiceOrder = ref('desc')
 
 // Sorting State
 const sortField = ref('name')
@@ -582,6 +620,26 @@ const saveProductEdit = async (prodId) => {
   }
 }
 
+const getRestaurantPrefix = (name) => {
+  if (!name) return 'ГМ'
+  const clean = name.replace(/["'«»“”„“]/g, '').trim()
+  const words = clean.split(/[\s\-]+/)
+  let prefix = words.map(w => w.charAt(0).toUpperCase()).join('')
+  if (prefix.length < 2) {
+    prefix = clean.slice(0, 3).toUpperCase()
+  }
+  return prefix
+}
+
+const getAdminRestaurantOrderNumber = (order) => {
+  if (!order || !orders.value.length) return 1
+  const restaurantOrders = orders.value
+    .filter(o => o.restaurant_name === order.restaurant_name)
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  const index = restaurantOrders.findIndex(o => o.id === order.id)
+  return index !== -1 ? index + 1 : 1
+}
+
 const uniqueInvoiceMonths = computed(() => {
   const months = new Set()
   orders.value.forEach(order => {
@@ -593,15 +651,82 @@ const uniqueInvoiceMonths = computed(() => {
   return Array.from(months)
 })
 
-const filteredOrders = computed(() => {
-  if (selectedMonth.value === 'all') return orders.value
-  return orders.value.filter(order => {
-    const date = new Date(order.created_at)
-    const monthYear = date.toLocaleString('ru-RU', { month: 'long', year: 'numeric' })
-    const capitalized = monthYear.charAt(0).toUpperCase() + monthYear.slice(1)
-    return capitalized === selectedMonth.value
-  })
+const uniqueInvoiceRestaurants = computed(() => {
+  return [...new Set(orders.value.map(o => o.restaurant_name))].sort()
 })
+
+const filteredOrders = computed(() => {
+  let list = orders.value
+
+  // Search filter
+  if (invoiceSearch.value) {
+    const q = invoiceSearch.value.toLowerCase()
+    list = list.filter(order => {
+      const idStr = `№${order.id}`
+      const prefix = getRestaurantPrefix(order.restaurant_name)
+      const formattedId = `${prefix}-${String(getAdminRestaurantOrderNumber(order)).padStart(2, '0')}`
+      return (
+        order.id.toString().includes(q) ||
+        idStr.toLowerCase().includes(q) ||
+        formattedId.toLowerCase().includes(q) ||
+        order.restaurant_name.toLowerCase().includes(q) ||
+        order.restaurant_email.toLowerCase().includes(q)
+      )
+    })
+  }
+
+  // Restaurant filter
+  if (filterRestaurant.value !== 'all') {
+    list = list.filter(order => order.restaurant_name === filterRestaurant.value)
+  }
+
+  // Month filter
+  if (selectedMonth.value !== 'all') {
+    list = list.filter(order => {
+      const date = new Date(order.created_at)
+      const monthYear = date.toLocaleString('ru-RU', { month: 'long', year: 'numeric' })
+      const capitalized = monthYear.charAt(0).toUpperCase() + monthYear.slice(1)
+      return capitalized === selectedMonth.value
+    })
+  }
+
+  // Sorting
+  list = [...list].sort((a, b) => {
+    let valA, valB
+
+    if (sortInvoiceField.value === 'id') {
+      valA = a.id
+      valB = b.id
+    } else if (sortInvoiceField.value === 'restaurant_name') {
+      valA = a.restaurant_name.toLowerCase()
+      valB = b.restaurant_name.toLowerCase()
+    } else if (sortInvoiceField.value === 'created_at') {
+      valA = new Date(a.created_at).getTime()
+      valB = new Date(b.created_at).getTime()
+    } else if (sortInvoiceField.value === 'total_price') {
+      valA = a.total_price
+      valB = b.total_price
+    } else {
+      valA = new Date(a.created_at).getTime()
+      valB = new Date(b.created_at).getTime()
+    }
+
+    if (valA < valB) return sortInvoiceOrder.value === 'asc' ? -1 : 1
+    if (valA > valB) return sortInvoiceOrder.value === 'asc' ? 1 : -1
+    return 0
+  })
+
+  return list
+})
+
+const toggleInvoiceSort = (field) => {
+  if (sortInvoiceField.value === field) {
+    sortInvoiceOrder.value = sortInvoiceOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortInvoiceField.value = field
+    sortInvoiceOrder.value = 'asc'
+  }
+}
 
 const updateLimit = async (userId, limit) => {
   try {
