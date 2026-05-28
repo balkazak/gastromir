@@ -15,13 +15,24 @@
 
         <div class="limit-status-card" v-motion-slide-visible-once-bottom>
           <div class="card-glow"></div>
-          <div class="limit-info">
-            <DollarSign :size="32" class="limit-icon" />
-            <div>
-              <h3>Ваш текущий лимит</h3>
-              <h2>{{ formatPrice(authStore.user?.order_limit) }} ₸</h2>
-              <p>Лимит на один заказ. Настраивается администратором.</p>
+          <div class="user-details-box">
+            <div class="details-row">
+              <Phone :size="20" class="details-icon" />
+              <div>
+                <h4>Телефон:</h4>
+                <p>{{ authStore.user?.phone || 'Не указан' }}</p>
+              </div>
             </div>
+            <div class="details-row" style="margin-top: 1rem;">
+              <MapPin :size="20" class="details-icon" />
+              <div>
+                <h4>Адрес доставки:</h4>
+                <p>{{ authStore.user?.address || 'Не указан' }}</p>
+              </div>
+            </div>
+            <button @click="openEditModal" class="btn btn-secondary btn-edit-profile" style="margin-top: 1.5rem; width: 100%;">
+              <Edit3 :size="16" /> Редактировать профиль
+            </button>
           </div>
         </div>
       </div>
@@ -135,20 +146,150 @@
         </div>
       </div>
     </Transition>
+
+    <!-- Edit Profile Modal -->
+    <Transition name="fade">
+      <div v-if="isEditModalOpen" class="details-modal-overlay" @click.self="closeEditModal">
+        <div class="details-modal" v-motion-pop>
+          <div class="details-modal-header">
+            <h3>Редактирование профиля</h3>
+            <button @click="closeEditModal" class="close-btn"><X /></button>
+          </div>
+          <form @submit.prevent="handleUpdateProfile">
+            <div class="details-modal-body">
+              <div v-if="modalErrorMsg" class="error-banner" style="margin-bottom: 1.5rem;">
+                {{ modalErrorMsg }}
+              </div>
+              <div v-else-if="authStore.error" class="error-banner" style="margin-bottom: 1.5rem;">
+                {{ authStore.error }}
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.85rem;">Номер телефона</label>
+                <input 
+                  type="tel" 
+                  :value="editForm.phone" 
+                  @input="onPhoneInput" 
+                  placeholder="+7 (701) 514 14 04" 
+                  maxlength="18"
+                  required 
+                  style="width: 100%; padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid #ddd; outline: none; font-size: 1rem; color: var(--primary);"
+                />
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.85rem;">Адрес доставки</label>
+                <input 
+                  type="text" 
+                  v-model="editForm.address" 
+                  placeholder="Кунаева 29/1, 3 этаж" 
+                  required 
+                  style="width: 100%; padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid #ddd; outline: none; font-size: 1rem; color: var(--primary);"
+                />
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.85rem;">Новый пароль (оставьте пустым, если не хотите менять)</label>
+                <input 
+                  type="password" 
+                  v-model="editForm.password" 
+                  placeholder="••••••••" 
+                  style="width: 100%; padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid #ddd; outline: none; font-size: 1rem; color: var(--primary);"
+                />
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label style="display: block; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.85rem;">Подтвердите новый пароль</label>
+                <input 
+                  type="password" 
+                  v-model="editForm.confirmPassword" 
+                  placeholder="••••••••" 
+                  style="width: 100%; padding: 1rem 1.25rem; border-radius: 1rem; border: 1px solid #ddd; outline: none; font-size: 1rem; color: var(--primary);"
+                />
+              </div>
+            </div>
+            <div class="details-modal-footer">
+              <button type="submit" class="btn btn-secondary btn-block" :disabled="authStore.loading">
+                {{ authStore.loading ? 'Сохранение...' : 'Сохранить изменения' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
-import { User, DollarSign, Calendar, Eye, RotateCcw, ClipboardList, X } from 'lucide-vue-next'
+import { User, Calendar, Eye, RotateCcw, ClipboardList, X, Phone, MapPin, Edit3 } from 'lucide-vue-next'
+import { formatPhone } from '@/utils/format'
 
 const authStore = useAuthStore()
 const cartStore = useCartStore()
+const router = useRouter()
 const orders = ref([])
 const loading = ref(true)
 const activeInvoice = ref(null)
+
+const isEditModalOpen = ref(false)
+const modalErrorMsg = ref('')
+const editForm = reactive({
+  phone: '',
+  address: '',
+  password: '',
+  confirmPassword: ''
+})
+
+const openEditModal = () => {
+  editForm.phone = authStore.user?.phone || ''
+  editForm.address = authStore.user?.address || ''
+  editForm.password = ''
+  editForm.confirmPassword = ''
+  modalErrorMsg.value = ''
+  isEditModalOpen.value = true
+}
+
+const closeEditModal = () => {
+  isEditModalOpen.value = false
+}
+
+const onPhoneInput = (event) => {
+  editForm.phone = formatPhone(event.target.value)
+}
+
+const handleUpdateProfile = async () => {
+  modalErrorMsg.value = ''
+
+  if (editForm.password) {
+    if (editForm.password !== editForm.confirmPassword) {
+      modalErrorMsg.value = 'Пароли не совпадают'
+      return
+    }
+    if (editForm.password.length < 6) {
+      modalErrorMsg.value = 'Пароль должен содержать минимум 6 символов'
+      return
+    }
+  }
+
+  if (!editForm.phone || editForm.phone.length < 18) {
+    modalErrorMsg.value = 'Введите корректный номер телефона'
+    return
+  }
+
+  if (!editForm.address.trim()) {
+    modalErrorMsg.value = 'Укажите адрес доставки'
+    return
+  }
+
+  const success = await authStore.updateProfile(editForm.phone, editForm.address, editForm.password)
+  if (success) {
+    isEditModalOpen.value = false
+  }
+}
 
 const fetchOrders = async () => {
   try {
@@ -222,7 +363,7 @@ const repeatOrder = (order) => {
     }
   })
   activeInvoice.value = null
-  cartStore.openModal()
+  router.push('/catalog')
 }
 </script>
 
@@ -666,5 +807,55 @@ const repeatOrder = (order) => {
     font-size: 1.2rem;
     color: var(--secondary-dark);
   }
+}
+.user-details-box {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: center;
+}
+
+.details-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.details-icon {
+  color: var(--secondary);
+  margin-top: 0.2rem;
+}
+
+.details-row h4 {
+  font-size: 0.9rem;
+  color: var(--gray);
+  margin-bottom: 0.15rem;
+}
+
+.details-row p {
+  font-size: 1.1rem;
+  color: var(--white);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.btn-edit-profile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  border-radius: 12px;
+}
+
+.error-banner {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  text-align: center;
 }
 </style>

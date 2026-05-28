@@ -73,6 +73,36 @@
           </div>
         </div>
 
+        <div class="form-group">
+          <label for="phone">Номер телефона</label>
+          <div class="input-wrapper">
+            <Phone class="input-icon" />
+            <input 
+              type="tel" 
+              id="phone" 
+              :value="phone" 
+              @input="onPhoneInput" 
+              placeholder="+7 (701) 514 14 04" 
+              maxlength="18"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="address">Адрес доставки</label>
+          <div class="input-wrapper">
+            <MapPin class="input-icon" />
+            <input 
+              type="text" 
+              id="address" 
+              v-model="address" 
+              placeholder="Кунаева 29/1, 3 этаж" 
+              required
+            />
+          </div>
+        </div>
+
         <button type="submit" class="btn btn-secondary auth-btn" :disabled="authStore.loading">
           <span v-if="authStore.loading" class="spinner"></span>
           <span v-else>Зарегистрироваться</span>
@@ -91,16 +121,23 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { User, Mail, Lock } from 'lucide-vue-next'
+import { User, Mail, Lock, Phone, MapPin } from 'lucide-vue-next'
+import { formatPhone } from '@/utils/format'
 
 const name = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const phone = ref('')
+const address = ref('')
 const errorMsg = ref('')
 
 const authStore = useAuthStore()
 const router = useRouter()
+
+const onPhoneInput = (event) => {
+  phone.value = formatPhone(event.target.value)
+}
 
 const handleRegister = async () => {
   errorMsg.value = ''
@@ -115,7 +152,17 @@ const handleRegister = async () => {
     return
   }
 
-  const success = await authStore.register(name.value, email.value, password.value)
+  if (!phone.value || phone.value.length < 18) {
+    errorMsg.value = 'Введите корректный номер телефона'
+    return
+  }
+
+  if (!address.value.trim()) {
+    errorMsg.value = 'Укажите адрес доставки'
+    return
+  }
+
+  const success = await authStore.register(name.value, email.value, password.value, phone.value, address.value)
   if (success) {
     router.push('/')
   }

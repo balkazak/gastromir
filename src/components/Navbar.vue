@@ -19,7 +19,7 @@
             </router-link>
             <router-link v-else to="/profile" class="user-name" @click="isMobileMenuOpen = false">
               <User class="user-icon" />
-              {{ authStore.user.name }}
+              Личный кабинет
             </router-link>
             <button @click="handleLogout" class="btn-logout" title="Выйти">
               <LogOut class="logout-icon" />
@@ -261,6 +261,7 @@ nav.scrolled {
   font-size: 0.9rem;
   display: flex;
   align-items: center;
+  white-space: nowrap;
 }
 
 .admin-link:hover {
@@ -274,6 +275,7 @@ nav.scrolled {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
 }
 
 .user-icon {
@@ -309,6 +311,14 @@ nav.scrolled {
     width: 100%;
     margin-top: 1rem;
     justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    gap: 0.75rem;
+  }
+  .user-name {
+    font-size: 0.8rem;
+  }
+  .admin-link {
+    font-size: 0.8rem;
   }
 }
 </style>

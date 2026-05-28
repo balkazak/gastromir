@@ -40,7 +40,14 @@
             </div>
             <div class="form-group">
               <label>Телефон для связи</label>
-              <input type="tel" v-model="orderData.phone" placeholder="+7 (___) ___ __ __" required />
+              <input 
+                type="tel" 
+                :value="orderData.phone" 
+                @input="onPhoneInput" 
+                placeholder="+7 (701) 514 14 04" 
+                maxlength="18"
+                required 
+              />
             </div>
             <div class="form-group">
               <label>Адрес доставки</label>
@@ -233,6 +240,7 @@ import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { parse, isValid, isBefore, startOfDay, format } from 'date-fns'
+import { formatPhone } from '@/utils/format'
 
 const cartStore = useCartStore()
 const authStore = useAuthStore()
@@ -253,19 +261,51 @@ const todayStr = format(new Date(), 'dd.MM.yyyy')
 
 const orderData = reactive({
   customerName: authStore.user?.name || '',
-  address: '',
-  phone: '',
+  address: authStore.user?.address || localStorage.getItem('gastromir_address') || '',
+  phone: authStore.user?.phone || localStorage.getItem('gastromir_phone') || '',
   paymentMethod: 'Наличный расчет',
   deliveryDate: todayStr,
   deliveryTime: 'До 14:00'
 })
 
+const onPhoneInput = (event) => {
+  orderData.phone = formatPhone(event.target.value)
+}
+
 // Keep prefilled customerName up-to-date
 watch(() => authStore.user, (newUser) => {
-  if (newUser && !orderData.customerName) {
-    orderData.customerName = newUser.name
+  if (newUser) {
+    if (!orderData.customerName) orderData.customerName = newUser.name
+    if (!orderData.phone && newUser.phone) orderData.phone = newUser.phone
+    if (!orderData.address && newUser.address) orderData.address = newUser.address
   }
 }, { immediate: true })
+
+watch(() => orderData.phone, (newPhone) => {
+  if (newPhone) {
+    localStorage.setItem('gastromir_phone', newPhone)
+  }
+})
+
+watch(() => orderData.address, (newAddress) => {
+  if (newAddress) {
+    localStorage.setItem('gastromir_address', newAddress)
+  }
+})
+
+watch(() => cartStore.isModalOpen, (isOpen) => {
+  if (isOpen) {
+    if (!orderData.phone) {
+      orderData.phone = authStore.user?.phone || localStorage.getItem('gastromir_phone') || ''
+    }
+    if (!orderData.address) {
+      orderData.address = authStore.user?.address || localStorage.getItem('gastromir_address') || ''
+    }
+    if (!orderData.customerName) {
+      orderData.customerName = authStore.user?.name || ''
+    }
+  }
+})
 
 const isOverLimit = computed(() => {
   if (!authStore.isAuthenticated) return false
@@ -361,15 +401,29 @@ const sendToWhatsApp = async () => {
     router.push('/login')
     return
   }
+
+  const newWindow = window.open('', '_blank')
+
   const saved = await placeOrderInDatabase()
-  if (!saved) return
+  if (!saved) {
+    if (newWindow) {
+      newWindow.close()
+    }
+    return
+  }
 
   const itemsText = cartStore.items.map(item => `- ${item.name}: ${item.quantity} ${item.unit} x ${formatPrice(item.price)} тг`).join('\n')
   const totalText = `Итого: ${formatPrice(cartStore.totalPrice)} тг`
   const message = `👋 *Новый заказ в GASTROMIR!*\n\n*Ресторан:* ${orderData.customerName}\n*Телефон:* ${orderData.phone}\n*Адрес:* ${orderData.address}\n*Способ оплаты:* ${orderData.paymentMethod}\n*Дата доставки:* ${orderData.deliveryDate}\n*Время доставки:* ${orderData.deliveryTime}\n\n*Заказ:*\n${itemsText}\n\n*${totalText}*`
   
   const encodedMessage = encodeURIComponent(message)
-  window.open(`https://wa.me/77015141404?text=${encodedMessage}`, '_blank')
+  const whatsappUrl = `https://wa.me/77015141404?text=${encodedMessage}`
+
+  if (newWindow) {
+    newWindow.location.href = whatsappUrl
+  } else {
+    window.open(whatsappUrl, '_blank')
+  }
 
   cartStore.clearCart()
   cartStore.closeModal()

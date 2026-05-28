@@ -21,14 +21,14 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // Register
-  const register = async (name, email, password) => {
+  const register = async (name, email, password, phone, address) => {
     loading.value = true
     error.value = null
     try {
       const response = await fetch(`${apiUrl}/api/auth/register`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ name, email, password, phone, address })
       })
 
       const data = await response.json()
@@ -112,6 +112,32 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('gastromir_token')
   }
 
+  // Update Profile (Phone, Address, Password)
+  const updateProfile = async (phone, address, password) => {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await fetch(`${apiUrl}/api/auth/profile`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({ phone, address, password })
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || 'Ошибка обновления профиля')
+      }
+
+      user.value = data.user
+      return true
+    } catch (err) {
+      error.value = err.message
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     user,
     token,
@@ -121,6 +147,7 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     login,
     fetchUser,
-    logout
+    logout,
+    updateProfile
   }
 })
