@@ -1,7 +1,7 @@
 <template>
   <div class="admin-page">
     <section class="admin-header section-padding">
-      <div class="container header-container">
+      <div class="container header-container admin-container">
         <div class="admin-profile" v-motion-slide-visible-once-bottom>
           <div class="shield-glow">
             <ShieldCheck :size="48" />
@@ -27,7 +27,7 @@
     </section>
 
     <section class="admin-content section-padding">
-      <div class="container">
+      <div class="container admin-container">
         <!-- Tab 1: Restaurants Management -->
         <div v-if="activeTab === 'restaurants'" class="tab-pane animate-fade">
           <div class="card-header">
@@ -94,6 +94,10 @@
             </div>
             
             <div class="search-filters-box">
+              <button @click="showAddProductModal = true" class="btn btn-secondary btn-add-product">
+                <Plus :size="18" /> Добавить товар
+              </button>
+
               <!-- Search Name -->
               <div class="admin-search-bar">
                 <Search class="search-icon" :size="18" />
@@ -150,7 +154,7 @@
                         Цена (₸) <ArrowUpDown :size="14" />
                       </div>
                     </th>
-                    <th style="text-align: right; width: 140px;">Действия</th>
+                    <th style="text-align: right; width: 170px;">Действия</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -194,9 +198,14 @@
                       <td data-label="Ед. изм.">{{ prod.unit }}</td>
                       <td data-label="Цена (₸)" class="font-bold">{{ formatPrice(prod.price) }} ₸</td>
                       <td data-label="Действия" style="text-align: right;">
-                        <button @click="startProductEdit(prod)" class="btn-edit-row">
-                          <Edit3 :size="18" /> Изменить
-                        </button>
+                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
+                          <button @click="startProductEdit(prod)" class="btn-edit-row">
+                            <Edit3 :size="18" /> Изменить
+                          </button>
+                          <button @click="deleteProduct(prod.id, prod.name)" class="btn-delete" title="Удалить товар">
+                            <Trash2 :size="18" />
+                          </button>
+                        </div>
                       </td>
                     </template>
                   </tr>
@@ -281,12 +290,12 @@
                     </div>
                   </th>
                   <th>Кол-во товаров</th>
-                  <th @click="toggleInvoiceSort('total_price')" class="sortable-header" style="cursor: pointer; width: 180px;">
+                  <th @click="toggleInvoiceSort('total_price')" class="sortable-header" style="cursor: pointer; width: 130px;">
                     <div class="header-content">
                       Сумма (₸) <ArrowUpDown :size="14" />
                     </div>
                   </th>
-                  <th style="text-align: right; width: 100px;">Детали</th>
+                  <th style="text-align: right; width: 155px;">Действия</th>
                 </tr>
               </thead>
               <tbody>
@@ -300,9 +309,14 @@
                   <td data-label="Товаров">{{ order.items.length }} поз.</td>
                   <td data-label="Сумма" class="invoice-price-col font-bold">{{ formatPrice(order.total_price) }} ₸</td>
                   <td data-label="Действия" style="text-align: right;">
-                    <button @click="showInvoiceDetails(order)" class="btn-inspect" title="Просмотреть">
-                      <Eye :size="18" />
-                    </button>
+                    <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
+                      <button @click="generatePDFInvoice(order)" class="btn-inspect" title="Скачать PDF" :disabled="isGeneratingPDF">
+                        <Download :size="18" />
+                      </button>
+                      <button @click="showInvoiceDetails(order)" class="btn-inspect" title="Просмотреть">
+                        <Eye :size="18" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -338,7 +352,19 @@
               <tbody>
                 <tr v-for="item in activeInvoice.items" :key="item.id">
                   <td data-label="Товар">{{ item.name }}</td>
-                  <td data-label="Кол-во" style="text-align: center;">{{ item.quantity }} {{ item.unit }}</td>
+                  <td data-label="Кол-во" style="text-align: center;">
+                    <div class="invoice-qty-edit">
+                      <input 
+                        type="number" 
+                        step="0.01" 
+                        min="0"
+                        v-model.number="item.quantity" 
+                        @input="updateInvoiceTotal" 
+                        class="invoice-qty-input" 
+                      />
+                      <span class="invoice-qty-unit">{{ item.unit }}</span>
+                    </div>
+                  </td>
                   <td data-label="Цена" style="text-align: right;">{{ formatPrice(item.price) }} ₸</td>
                   <td data-label="Сумма" style="text-align: right;">{{ formatPrice(item.price * item.quantity) }} ₸</td>
                 </tr>
@@ -349,18 +375,545 @@
               </tbody>
             </table>
           </div>
+          <div class="details-modal-footer">
+            <button @click="activeInvoice = null" class="btn-cancel" :disabled="isSavingInvoice">Отмена</button>
+            <button @click="saveInvoiceChanges" class="btn-submit" :disabled="isSavingInvoice">
+              {{ isSavingInvoice ? 'Сохранение...' : 'Сохранить изменения' }}
+            </button>
+          </div>
         </div>
       </div>
     </Transition>
+
+    <Transition name="fade">
+      <div v-if="showAddProductModal" class="details-modal-overlay" @click.self="closeAddProductModal">
+        <div class="details-modal" v-motion-pop>
+          <div class="details-modal-header">
+            <h3>Добавить новый товар</h3>
+            <button @click="closeAddProductModal" class="close-btn"><X /></button>
+          </div>
+          <div class="details-modal-body">
+            <form @submit.prevent="submitAddProduct" class="add-product-form">
+              <div class="form-group">
+                <label for="new-prod-name">Наименование товара</label>
+                <input id="new-prod-name" type="text" v-model="newProductForm.name" required placeholder="Например: Помидоры розовые" />
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="new-prod-category">Категория</label>
+                  <select id="new-prod-category" v-model="newProductForm.category" required>
+                    <option value="" disabled>Выберите категорию</option>
+                    <option v-for="cat in uniqueCategories" :key="cat" :value="cat">{{ cat }}</option>
+                    <option value="NEW_CATEGORY">+ Новая категория</option>
+                  </select>
+                </div>
+                <div class="form-group" v-if="newProductForm.category === 'NEW_CATEGORY'">
+                  <label for="new-prod-category-custom">Название новой категории</label>
+                  <input id="new-prod-category-custom" type="text" v-model="newProductForm.newCategory" required placeholder="Введите категорию" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="new-prod-manufacturer">Производитель / Бренд</label>
+                  <input id="new-prod-manufacturer" type="text" v-model="newProductForm.manufacturer" required placeholder="Например: Казахстан" />
+                </div>
+                <div class="form-group">
+                  <label for="new-prod-unit">Единица измерения</label>
+                  <select id="new-prod-unit" v-model="newProductForm.unit" required>
+                    <option value="" disabled>Выберите ед. изм.</option>
+                    <option value="кг">кг</option>
+                    <option value="шт">шт</option>
+                    <option value="уп">уп</option>
+                    <option value="л">л</option>
+                    <option value="короб">короб</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="new-prod-price">Цена (₸)</label>
+                <input id="new-prod-price" type="number" step="0.01" min="0" v-model.number="newProductForm.price" required placeholder="Например: 1200" />
+              </div>
+              <div class="form-actions">
+                <button type="button" @click="closeAddProductModal" class="btn-cancel">Отмена</button>
+                <button type="submit" class="btn-submit">Добавить товар</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <div class="pdf-offscreen-container" v-if="activeInvoice">
+      <div ref="pdfTemplateRef" class="pdf-invoice-f32">
+        <div class="f32-appendix">
+          Приложение 26<br />
+          к приказу Министра финансов<br />
+          Республики Казахстан<br />
+          от 20 декабря 2012 года № 562<br /><br />
+          <strong>Форма 3-2</strong>
+        </div>
+
+        <table class="f32-org-header">
+          <tr>
+            <td style="width: 25%; font-size: 8px;">Организация (индивидуальный предприниматель)</td>
+            <td class="f32-underline-cell" style="width: 50%; font-size: 10px;">ИП ИБРАЕВ "GASTROMIR"</td>
+            <td style="width: 5%;"></td>
+            <td style="width: 20%; text-align: right; vertical-align: top;">
+              <table class="f32-iin-bin-table">
+                <tr>
+                  <td style="background-color: #f3f4f6; font-size: 7px; font-weight: bold; border: 1px solid #000; padding: 1px 4px;">ИИН/БИН</td>
+                </tr>
+                <tr>
+                  <td style="border: 1px solid #000; padding: 2px 4px; font-weight: bold; font-size: 9px;">820727351424</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        <div class="f32-doc-meta-container">
+          <table class="f32-doc-meta-table">
+            <thead>
+              <tr>
+                <th style="border: 1px solid #000; padding: 4px 10px; background-color: #f3f4f6; font-weight: bold; font-size: 8px;">Номер документа</th>
+                <th style="border: 1px solid #000; padding: 4px 10px; background-color: #f3f4f6; font-weight: bold; font-size: 8px;">Дата составления</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="border: 1px solid #000; padding: 4px 10px; text-align: center; font-weight: bold; font-size: 9px;">{{ getRestaurantPrefix(activeInvoice.restaurant_name) }}-{{ String(getAdminRestaurantOrderNumber(activeInvoice)).padStart(2, '0') }}</td>
+                <td style="border: 1px solid #000; padding: 4px 10px; text-align: center; font-size: 9px;">{{ formatDateOnly(activeInvoice.created_at) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="f32-title" style="margin-bottom: 5px;">НАКЛАДНАЯ НА ОТПУСК ЗАПАСОВ НА СТОРОНУ</div>
+
+        <table class="f32-bank-details-table" style="width: 100%; border-collapse: collapse; margin-bottom: 12px; border: 1px solid #000;">
+          <tr>
+            <td style="width: 50%; border: 1px solid #000; padding: 5px; font-size: 8px; vertical-align: top; text-align: left; line-height: 1.3;">
+              <div style="font-weight: bold; font-size: 8.5px; margin-bottom: 3px; border-bottom: 1px solid #000; padding-bottom: 1px; color: #000;">ПОСТАВЩИК (ОТПРАВИТЕЛЬ):</div>
+              <div><strong>ИП ИБРАЕВ "GASTROMIR"</strong></div>
+              <div><strong>БИН (ИИН):</strong> 820727351424</div>
+              <div><strong>Банк:</strong> АО "Kaspi Bank"</div>
+              <div><strong>БИК:</strong> CASPKZKA &nbsp;&nbsp;&nbsp;&nbsp; <strong>КБе:</strong> 17</div>
+              <div><strong>Номер счета (ИИК):</strong> KZ91722S000047745678</div>
+              <div><strong>Адрес:</strong> г. Алматы</div>
+            </td>
+            
+            <td style="width: 50%; border: 1px solid #000; padding: 5px; font-size: 8px; vertical-align: top; text-align: left; line-height: 1.3;">
+              <div style="font-weight: bold; font-size: 8.5px; margin-bottom: 3px; border-bottom: 1px solid #000; padding-bottom: 1px; color: #000;">ПОКУПАТЕЛЬ (ПОЛУЧАТЕЛЬ):</div>
+              <div><strong>Компания:</strong> {{ activeInvoice.restaurant_name || '-' }}</div>
+              <div><strong>БИН (ИИН):</strong> {{ activeInvoice.restaurant_bin_iin || '-' }}</div>
+              <div><strong>Банк:</strong> {{ activeInvoice.restaurant_bank || '-' }}</div>
+              <div><strong>БИК:</strong> {{ activeInvoice.restaurant_bic || '-' }} &nbsp;&nbsp;&nbsp;&nbsp; <strong>КБе:</strong> {{ activeInvoice.restaurant_kbe || '-' }}</div>
+              <div><strong>Номер счета (ИИК):</strong> {{ activeInvoice.restaurant_account_number || '-' }}</div>
+              <div><strong>Адрес:</strong> {{ activeInvoice.restaurant_address || '-' }}</div>
+            </td>
+          </tr>
+        </table>
+
+        <table class="f32-parties-table">
+          <thead>
+            <tr>
+              <th style="border: 1px solid #000; padding: 4px 6px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 8px; width: 20%;">Организация (индивидуальный предприниматель) - отправитель</th>
+              <th style="border: 1px solid #000; padding: 4px 6px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 8px; width: 25%;">Организация (индивидуальный предприниматель) - получатель</th>
+              <th style="border: 1px solid #000; padding: 4px 6px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 8px; width: 15%;">Ответственный за поставку (Ф.И.О.)</th>
+              <th style="border: 1px solid #000; padding: 4px 6px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 8px; width: 15%;">Транспортная организация</th>
+              <th style="border: 1px solid #000; padding: 4px 6px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 8px; width: 25%;">Товарно-транспортная накладная (номер, дата)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px;">ИП ИБРАЕВ "GASTROMIR", БИН 820727351424, г. Алматы</td>
+              <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px;">{{ activeInvoice.restaurant_name }}, ИИН/БИН {{ activeInvoice.restaurant_bin_iin || '—' }}, {{ activeInvoice.restaurant_address }}</td>
+              <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">Ибраев Б. А.</td>
+              <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">GASTROMIR Логистика</td>
+              <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">{{ getRestaurantPrefix(activeInvoice.restaurant_name) }}-{{ String(getAdminRestaurantOrderNumber(activeInvoice)).padStart(2, '0') }}, {{ formatDateOnly(activeInvoice.created_at) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table class="f32-items-table">
+          <thead>
+            <tr>
+              <th rowspan="2" style="border: 1px solid #000; padding: 4px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 3%;">Номер по порядку</th>
+              <th rowspan="2" style="border: 1px solid #000; padding: 4px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 35%;">Наименование, характеристика</th>
+              <th rowspan="2" style="border: 1px solid #000; padding: 4px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 10%;">Номенклатурный номер</th>
+              <th rowspan="2" style="border: 1px solid #000; padding: 4px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 8%;">Единица измерения</th>
+              <th colspan="2" style="border: 1px solid #000; padding: 2px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 14%;">Количество</th>
+              <th rowspan="2" style="border: 1px solid #000; padding: 4px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 10%;">Цена за единицу, в KZT</th>
+              <th rowspan="2" style="border: 1px solid #000; padding: 4px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 10%;">Сумма с НДС, в KZT</th>
+              <th rowspan="2" style="border: 1px solid #000; padding: 4px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 7.5px; width: 10%;">Сумма НДС, в KZT</th>
+            </tr>
+            <tr>
+              <th style="border: 1px solid #000; padding: 2px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 6.5px;">подлежит отпуску</th>
+              <th style="border: 1px solid #000; padding: 2px; background-color: #f3f4f6; font-weight: bold; text-align: center; font-size: 6.5px;">отпущено</th>
+            </tr>
+            <tr class="f32-col-nums">
+              <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">1</td>
+              <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">2</td>
+              <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">3</td>
+              <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">4</td>
+              <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">5</td>
+              <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">6</td>
+              <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">7</td>
+              <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">8</td>
+              <td style="border: 1px solid #000; padding: 1px; text-align: center; font-size: 6px; background-color: #f9fafb;">9</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in activeInvoice.items" :key="item.id">
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ index + 1 }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: left;">{{ item.name }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">GM-{{ String(item.id).slice(-4).padStart(4, '0') }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ item.unit }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ item.quantity }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ item.quantity }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(item.price) }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(item.price * item.quantity) }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(calculateVAT(item.price * item.quantity)) }}</td>
+            </tr>
+            <tr class="f32-total-row">
+              <td colspan="4" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Итого</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ getInvoiceQty(activeInvoice) }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ getInvoiceQty(activeInvoice) }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; background-color: #f9fafb;"></td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(activeInvoice.total_price) }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(calculateVAT(activeInvoice.total_price)) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="f32-words-section">
+          <div class="f32-words-line" style="font-size: 8px; margin-bottom: 2px;">
+            Всего отпущено количество запасов (прописью):
+            <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 250px;">{{ capitalizeFirst(numberToWordsRu(getInvoiceQty(activeInvoice))) }}</span>
+          </div>
+          <div class="f32-words-line" style="font-size: 8px;">
+            на сумму (прописью), в KZT:
+            <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 350px;">{{ capitalizeFirst(numberToWordsRu(activeInvoice.total_price)) }} тенге 00 тиын</span>
+          </div>
+        </div>
+
+        <table class="f32-signatures-table" style="width: 100%; margin-top: 15px; border-collapse: collapse; border: none;">
+          <tr>
+            <td style="width: 48%; border: none; padding: 0; vertical-align: top;">
+              <table style="width: 100%; border-collapse: collapse; border: none;">
+                <tr>
+                  <td style="border: none; font-size: 8px; width: 80px; padding: 3px 0;">Отпуск разрешил</td>
+                  <td style="border: none; padding: 3px 0;">
+                    <table style="width: 100%; border-collapse: collapse; border: none;">
+                      <tr>
+                        <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 30%; text-align: center; padding: 0; line-height: 1;">Директор</td>
+                        <td style="border: none; width: 5%; padding: 0;"></td>
+                        <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 25%; padding: 0; position: relative; text-align: center;">
+                          <img :src="signatureImg" style="position: absolute; left: 50%; transform: translateX(-50%); top: -35px; width: 70px; height: auto; pointer-events: none;" />
+                        </td>
+                        <td style="border: none; width: 5%; padding: 0;"></td>
+                        <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 35%; text-align: center; padding: 0; line-height: 1;">Ибраев Б. А.</td>
+                      </tr>
+                      <tr>
+                        <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">должность</td>
+                        <td style="border: none; padding: 0;"></td>
+                        <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">подпись</td>
+                        <td style="border: none; padding: 0;"></td>
+                        <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">расшифровка подписи</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="border: none; font-size: 8px; padding: 10px 0 3px 0;">Главный бухгалтер</td>
+                  <td style="border: none; padding: 10px 0 3px 0;">
+                    <table style="width: 100%; border-collapse: collapse; border: none;">
+                      <tr>
+                        <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 40%; padding: 0;"></td>
+                        <td style="border: none; width: 10%; padding: 0;"></td>
+                        <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 50%; text-align: center; padding: 0; line-height: 1;"></td>
+                      </tr>
+                      <tr>
+                        <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">подпись</td>
+                        <td style="border: none; padding: 0;"></td>
+                        <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">расшифровка подписи</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="border: none; font-size: 8px; padding: 10px 0 3px 0; font-weight: bold; position: relative;">
+                    М.П.
+                    <img :src="printImg" style="position: absolute; left: 10px; top: 20px; width: 95px; height: 95px; opacity: 0.85; pointer-events: none;" />
+                  </td>
+                  <td style="border: none; padding: 10px 0 3px 0;"></td>
+                </tr>
+                <tr>
+                  <td style="border: none; font-size: 8px; padding: 10px 0 3px 0;">Отпустил</td>
+                  <td style="border: none; padding: 10px 0 3px 0;">
+                    <table style="width: 100%; border-collapse: collapse; border: none;">
+                      <tr>
+                        <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 40%; padding: 0; position: relative; text-align: center; height: 16px;">
+                          <img :src="signatureImg" style="position: absolute; left: 50%; transform: translateX(-50%); top: -35px; width: 70px; height: auto; pointer-events: none;" />
+                        </td>
+                        <td style="border: none; width: 10%; padding: 0;"></td>
+                        <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 50%; text-align: center; padding: 0; line-height: 1;">Ибраев Б. А.</td>
+                      </tr>
+                      <tr>
+                        <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">подпись</td>
+                        <td style="border: none; padding: 0;"></td>
+                        <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">расшифровка подписи</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+
+            <td style="width: 4%; border: none; padding: 0;"></td>
+
+            <td style="width: 48%; border: none; padding: 0; vertical-align: top;">
+              <table style="width: 100%; border-collapse: collapse; border: none;">
+                <tr>
+                  <td style="border: none; font-size: 8px; width: 80px; padding: 3px 0;">По доверенности</td>
+                  <td style="border: none; padding: 3px 0; border-bottom: 1px solid #000; font-size: 8px; height: 12px;"></td>
+                </tr>
+                <tr>
+                  <td style="border: none; font-size: 8px; padding: 10px 0 3px 0;">выданной</td>
+                  <td style="border: none; padding: 10px 0 3px 0; border-bottom: 1px solid #000; font-size: 8px; height: 12px;"></td>
+                </tr>
+                <tr>
+                  <td style="border: none; font-size: 8px; padding: 25px 0 3px 0;">Запасы получил</td>
+                  <td style="border: none; padding: 25px 0 3px 0;">
+                    <table style="width: 100%; border-collapse: collapse; border: none;">
+                      <tr>
+                        <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 40%; padding: 0;"></td>
+                        <td style="border: none; width: 10%; padding: 0;"></td>
+                        <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 50%; text-align: center; padding: 0; line-height: 1;">{{ activeInvoice.restaurant_name }}</td>
+                      </tr>
+                      <tr>
+                        <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">подпись</td>
+                        <td style="border: none; padding: 0;"></td>
+                        <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">расшифровка подписи</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { ShieldCheck, Users, DollarSign, Calendar, Eye, Trash2, Check, Search, ClipboardList, X, Edit3, ArrowUpDown } from 'lucide-vue-next'
+import { ShieldCheck, Users, DollarSign, Calendar, Eye, Trash2, Check, Search, ClipboardList, X, Edit3, ArrowUpDown, Plus, FileText, Download } from 'lucide-vue-next'
+import printImg from '@/assets/docs/print.png'
+import signatureImg from '@/assets/docs/signature.png'
 
 const authStore = useAuthStore()
+
+const pdfTemplateRef = ref(null)
+const isGeneratingPDF = ref(false)
+const isSavingInvoice = ref(false)
+
+const numberToWordsRu = (n) => {
+  if (n === 0) return 'ноль'
+  
+  const units = ['', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять']
+  const unitsFeminine = ['', 'одна', 'две', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять']
+  const teens = ['десять', 'одиннадцать', 'двенадцать', 'тринадцать', 'четырнадцать', 'пятнадцать', 'шестнадцать', 'семнадцать', 'восемнадцать', 'девятнадцать']
+  const tens = ['', '', 'двадцать', 'тридцать', 'сорок', 'пятьдесят', 'шестьдесят', 'семьдесят', 'восемьдесят', 'девяносто']
+  const hundreds = ['', 'сто', 'двести', 'триста', 'четыреста', 'пятьсот', 'шестьсот', 'семьсот', 'восемьсот', 'девятьсот']
+  
+  const words = []
+  
+  const parseThousand = (num, isFeminine) => {
+    let part = []
+    const h = Math.floor(num / 100)
+    const t = Math.floor((num % 100) / 10)
+    const u = num % 10
+    
+    if (h > 0) part.push(hundreds[h])
+    if (t === 1) {
+      part.push(teens[u])
+    } else {
+      if (t > 1) part.push(tens[t])
+      if (u > 0) part.push(isFeminine ? unitsFeminine[u] : units[u])
+    }
+    return part.join(' ')
+  }
+  
+  let temp = n
+  const billion = Math.floor(temp / 1000000000)
+  temp %= 1000000000
+  const million = Math.floor(temp / 1000000)
+  temp %= 1000000
+  const thousand = Math.floor(temp / 1000)
+  const remainder = temp % 1000
+  
+  if (billion > 0) {
+    words.push(parseThousand(billion, false))
+    const u = billion % 10
+    const t = billion % 100
+    if (t >= 11 && t <= 19) words.push('миллиардов')
+    else if (u === 1) words.push('миллиард')
+    else if (u >= 2 && u <= 4) words.push('миллиарда')
+    else words.push('миллиардов')
+  }
+  
+  if (million > 0) {
+    words.push(parseThousand(million, false))
+    const u = million % 10
+    const t = million % 100
+    if (t >= 11 && t <= 19) words.push('миллионов')
+    else if (u === 1) words.push('миллион')
+    else if (u >= 2 && u <= 4) words.push('миллиона')
+    else words.push('миллионов')
+  }
+  
+  if (thousand > 0) {
+    words.push(parseThousand(thousand, true))
+    const u = thousand % 10
+    const t = thousand % 100
+    if (t >= 11 && t <= 19) words.push('тысяч')
+    else if (u === 1) words.push('тысяча')
+    else if (u >= 2 && u <= 4) words.push('тысячи')
+    else words.push('тысяч')
+  }
+  
+  if (remainder > 0) {
+    words.push(parseThousand(remainder, false))
+  }
+  
+  return words.filter(Boolean).join(' ')
+}
+
+const capitalizeFirst = (str) => {
+  if (!str) return ''
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+const calculateVAT = (sum) => {
+  if (!sum) return 0
+  return Math.round((sum * 12 / 112) * 100) / 100
+}
+
+const formatDateOnly = (dateStr) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  const day = String(d.getDate()).padStart(2, '0')
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const year = d.getFullYear()
+  return `${day}.${month}.${year}`
+}
+
+const getInvoiceQty = (order) => {
+  if (!order || !order.items) return 0
+  return order.items.reduce((sum, item) => sum + item.quantity, 0)
+}
+
+const generatePDFInvoice = async (order) => {
+  if (!order) return
+  isGeneratingPDF.value = true
+  const originalActiveInvoice = activeInvoice.value
+
+  try {
+    const html2pdf = (await import('html2pdf.js')).default
+    activeInvoice.value = JSON.parse(JSON.stringify(order))
+    await nextTick()
+
+    const currentOrderNum = `${getRestaurantPrefix(order.restaurant_name)}-${String(getAdminRestaurantOrderNumber(order)).padStart(2, '0')}`
+    const element = pdfTemplateRef.value
+
+    if (!element) {
+      throw new Error('PDF template element not found in DOM')
+    }
+
+    const options = {
+      margin: [0.3, 0.3, 0.3, 0.3],
+      filename: `Накладная_Форма_3-2_${currentOrderNum}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    }
+
+    await html2pdf()
+      .from(element)
+      .set(options)
+      .save()
+  } catch (err) {
+    console.error('Error generating PDF:', err)
+    alert('Не удалось сгенерировать PDF. Попробуйте еще раз.')
+  } finally {
+    activeInvoice.value = originalActiveInvoice
+    isGeneratingPDF.value = false
+  }
+}
+
+const showAddProductModal = ref(false)
+const newProductForm = reactive({
+  name: '',
+  price: '',
+  category: '',
+  newCategory: '',
+  unit: '',
+  manufacturer: ''
+})
+
+const closeAddProductModal = () => {
+  showAddProductModal.value = false
+  newProductForm.name = ''
+  newProductForm.price = ''
+  newProductForm.category = ''
+  newProductForm.newCategory = ''
+  newProductForm.unit = ''
+  newProductForm.manufacturer = ''
+}
+
+const submitAddProduct = async () => {
+  try {
+    const finalCategory = newProductForm.category === 'NEW_CATEGORY'
+      ? newProductForm.newCategory.trim()
+      : newProductForm.category
+
+    if (!finalCategory) {
+      alert('Пожалуйста, выберите или укажите категорию')
+      return
+    }
+
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/products`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        name: newProductForm.name,
+        price: parseFloat(newProductForm.price),
+        category: finalCategory,
+        unit: newProductForm.unit,
+        manufacturer: newProductForm.manufacturer
+      })
+    })
+
+    const data = await response.json()
+    if (response.ok) {
+      products.value.push(data.product)
+      closeAddProductModal()
+      alert('Товар успешно добавлен!')
+    } else {
+      alert(data.message || 'Ошибка при добавлении товара')
+    }
+  } catch (err) {
+    console.error(err)
+    alert('Не удалось добавить товар')
+  }
+}
 
 const tabs = [
   { id: 'restaurants', name: 'Рестораны', icon: Users },
@@ -772,6 +1325,23 @@ const deleteRestaurant = async (userId, name) => {
   }
 }
 
+const deleteProduct = async (productId, name) => {
+  if (!confirm(`Вы действительно хотите удалить товар "${name}"?`)) return
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/products/${productId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    if (response.ok) {
+      products.value = products.value.filter(p => p.id !== productId)
+    }
+  } catch (err) {
+    console.error(err)
+  }
+}
+
 const formatDate = (dateStr) => {
   const date = new Date(dateStr)
   return date.toLocaleDateString('ru-RU', {
@@ -788,7 +1358,49 @@ const formatPrice = (price) => {
 }
 
 const showInvoiceDetails = (order) => {
-  activeInvoice.value = order
+  activeInvoice.value = JSON.parse(JSON.stringify(order))
+}
+
+const updateInvoiceTotal = () => {
+  if (activeInvoice.value && activeInvoice.value.items) {
+    activeInvoice.value.total_price = activeInvoice.value.items.reduce((sum, item) => {
+      return sum + (item.price * (parseFloat(item.quantity) || 0))
+    }, 0)
+  }
+}
+
+const saveInvoiceChanges = async () => {
+  if (isSavingInvoice.value) return
+  isSavingInvoice.value = true
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/orders/${activeInvoice.value.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        items: activeInvoice.value.items,
+        totalPrice: activeInvoice.value.total_price
+      })
+    })
+
+    const data = await response.json()
+    if (response.ok) {
+      const idx = orders.value.findIndex(o => o.id === activeInvoice.value.id)
+      if (idx !== -1) {
+        orders.value[idx] = { 
+          ...orders.value[idx], 
+          ...data.order 
+        }
+      }
+      activeInvoice.value = null
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    isSavingInvoice.value = false
+  }
 }
 </script>
 
@@ -913,7 +1525,7 @@ const showInvoiceDetails = (order) => {
 
 .admin-table th {
   background: #f8fafc;
-  padding: 1.25rem 1.5rem;
+  padding: 1.25rem 1rem;
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--gray);
@@ -939,7 +1551,7 @@ const showInvoiceDetails = (order) => {
 }
 
 .admin-table td {
-  padding: 1.25rem 1.5rem;
+  padding: 1.25rem 1rem;
   border-bottom: 1px solid #f1f5f9;
   font-size: 0.95rem;
   color: var(--primary-light);
@@ -1368,6 +1980,124 @@ const showInvoiceDetails = (order) => {
   background: #f1f5f9;
 }
 
+.btn-add-product {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 10px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+}
+
+.add-product-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.95rem;
+  outline: none;
+  background: white;
+  transition: var(--transition);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.btn-submit {
+  background: var(--gradient-orange);
+  color: var(--white);
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.btn-submit:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+}
+
+.btn-cancel {
+  background: #f1f5f9;
+  color: var(--primary);
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.btn-cancel:hover {
+  background: #e2e8f0;
+}
+
+.invoice-qty-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+}
+
+.invoice-qty-input {
+  width: 65px;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.invoice-qty-unit {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--gray);
+}
+
+.details-modal-footer {
+  padding: 1.25rem 2rem;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
 @media (max-width: 992px) {
   .header-container {
     flex-direction: column;
@@ -1495,5 +2225,164 @@ const showInvoiceDetails = (order) => {
   .details-modal-body {
     padding: 1.25rem;
   }
+}
+
+.pdf-offscreen-container {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 710px;
+}
+
+.pdf-invoice-f32 {
+  font-family: 'Arial', 'Helvetica', sans-serif;
+  color: #000;
+  background: #fff;
+  padding: 15px 15px 80px 15px;
+  width: 710px;
+  box-sizing: border-box;
+}
+
+.f32-appendix {
+  text-align: right;
+  font-size: 8px;
+  line-height: 1.2;
+  margin-bottom: 10px;
+  font-style: italic;
+}
+
+.f32-org-header {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+}
+
+.f32-org-header td {
+  border: none;
+  font-size: 8px;
+  padding: 2px 0;
+}
+
+.f32-underline-cell {
+  border-bottom: 1px solid #000 !important;
+  font-weight: bold;
+}
+
+.f32-iin-bin-table {
+  border-collapse: collapse;
+  float: right;
+}
+
+.f32-iin-bin-table td {
+  border: 1px solid #000 !important;
+  font-size: 8px;
+  padding: 2px 6px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.f32-doc-meta-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+.f32-doc-meta-table {
+  border-collapse: collapse;
+}
+
+.f32-doc-meta-table th, .f32-doc-meta-table td {
+  border: 1px solid #000;
+  font-size: 8px;
+  padding: 4px 10px;
+  text-align: center;
+}
+
+.f32-doc-meta-table th {
+  background-color: #f3f4f6;
+  font-weight: bold;
+}
+
+.f32-title {
+  text-align: center;
+  font-size: 13px;
+  font-weight: bold;
+  margin: 15px 0;
+  letter-spacing: 0.5px;
+}
+
+.f32-parties-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 15px;
+}
+
+.f32-parties-table th, .f32-parties-table td {
+  border: 1px solid #000;
+  font-size: 8px;
+  padding: 4px 6px;
+  vertical-align: middle;
+}
+
+.f32-parties-table th {
+  background-color: #f3f4f6;
+  font-weight: bold;
+  text-align: center;
+}
+
+.f32-parties-table td {
+  text-align: left;
+}
+
+.f32-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+.f32-items-table th, .f32-items-table td {
+  border: 1px solid #000;
+  font-size: 8px;
+  padding: 3px 5px;
+  vertical-align: middle;
+}
+
+.f32-items-table th {
+  background-color: #f3f4f6;
+  font-weight: bold;
+  text-align: center;
+}
+
+.f32-col-nums td {
+  text-align: center !important;
+  font-size: 7px;
+  background-color: #f9fafb;
+}
+
+.f32-total-row td {
+  font-weight: bold;
+  background-color: #f9fafb;
+}
+
+.f32-words-section {
+  font-size: 8.5px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.f32-words-line {
+  margin-bottom: 4px;
+}
+
+.f32-words-value {
+  font-weight: bold;
+  border-bottom: 1px solid #000;
+  display: inline-block;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.admin-container {
+  max-width: 1400px !important;
 }
 </style>

@@ -57,72 +57,10 @@
 
             <div class="flow-step">
               <div class="flow-icon-container">
-                <Heart class="flow-icon heart-filled" />
-              </div>
-              <span class="flow-text">ФОНД</span>
-            </div>
-
-            <div class="flow-arrow">
-              <ArrowDown class="arrow-svg" />
-            </div>
-
-            <div class="flow-step">
-              <div class="flow-icon-container">
                 <Users class="flow-icon" />
               </div>
               <span class="flow-text">ПОМОЩЬ ЛЮДЯМ</span>
             </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 2. Dark Blue Stats Banner -->
-    <section class="stats-banner" v-motion-slide-visible-once-bottom>
-      <div class="container stats-inner">
-        <div class="stat-item">
-          <div class="stat-icon-wrapper">
-            <Utensils class="stat-icon" />
-          </div>
-          <div class="stat-text">
-            <div class="stat-val">78 540</div>
-            <div class="stat-desc">выдано обедов</div>
-          </div>
-        </div>
-        
-        <div class="stat-separator"></div>
-
-        <div class="stat-item">
-          <div class="stat-icon-wrapper">
-            <Users class="stat-icon" />
-          </div>
-          <div class="stat-text">
-            <div class="stat-val">4 120</div>
-            <div class="stat-desc">человек получили помощь</div>
-          </div>
-        </div>
-
-        <div class="stat-separator"></div>
-
-        <div class="stat-item">
-          <div class="stat-icon-wrapper">
-            <Store class="stat-icon" />
-          </div>
-          <div class="stat-text">
-            <div class="stat-val">156</div>
-            <div class="stat-desc">партнеров-ресторанов</div>
-          </div>
-        </div>
-
-        <div class="stat-separator"></div>
-
-        <div class="stat-item">
-          <div class="stat-icon-wrapper">
-            <Wallet class="stat-icon" />
-          </div>
-          <div class="stat-text">
-            <div class="stat-val">23 850 000 ₸</div>
-            <div class="stat-desc">собрано средств (1%)</div>
           </div>
         </div>
       </div>
@@ -207,7 +145,7 @@
                 <span class="timeline-number">05</span>
                 <div class="timeline-text-wrap">
                   <h3 class="timeline-step-heading">АКИМАТ ГОРОДА</h3>
-                  <p class="timeline-step-desc">участие, контроль, наблюдательный совет</p>
+                  <p class="timeline-step-desc">участие</p>
                 </div>
               </div>
             </div>
@@ -253,54 +191,6 @@
       </div>
     </section>
 
-    <!-- 4. Hot Meals Schedule Info -->
-    <section ref="mealsScheduleSection" class="meals-schedule section-padding">
-      <div class="container">
-        <h2 class="schedule-title" v-motion-slide-visible-once-bottom>
-          ГОРЯЧЕЕ ПИТАНИЕ ДЛЯ НУЖДАЮЩИХСЯ
-        </h2>
-        
-        <div class="schedule-grid">
-          <!-- Time -->
-          <div class="schedule-card" v-motion-slide-visible-once-bottom>
-            <div class="schedule-icon-circle">
-              <Clock class="schedule-card-icon" />
-            </div>
-            <div class="schedule-content">
-              <span class="schedule-label">ВРЕМЯ</span>
-              <h3 class="schedule-value">12:00 – 14:00</h3>
-              <p class="schedule-sub">ежедневно</p>
-            </div>
-          </div>
-
-          <!-- Location -->
-          <div class="schedule-card" v-motion-slide-visible-once-bottom>
-            <div class="schedule-icon-circle">
-              <MapPin class="schedule-card-icon" />
-            </div>
-            <div class="schedule-content">
-              <span class="schedule-label">ЛОКАЦИЯ</span>
-              <h3 class="schedule-value">Старый город /</h3>
-              <h3 class="schedule-value">район ж/д узла</h3>
-            </div>
-          </div>
-
-          <!-- Categories -->
-          <div class="schedule-card" v-motion-slide-visible-once-bottom>
-            <div class="schedule-icon-circle">
-              <Users class="schedule-card-icon" />
-            </div>
-            <div class="schedule-content">
-              <span class="schedule-label">КАТЕГОРИИ</span>
-              <p class="schedule-desc">
-                социально уязвимые граждане, пожилые, бездомные, нуждающиеся
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- 5. City Akimat Participation Block -->
     <section class="akimat-participation section-padding white-bg">
       <div class="container">
@@ -326,18 +216,7 @@
                   </div>
                   <span class="akimat-list-text">Координация с социальными службами</span>
                 </li>
-                <li class="akimat-list-item">
-                  <div class="checkmark-wrapper">
-                    <Check class="checkmark-icon" />
-                  </div>
-                  <span class="akimat-list-text">Участие в наблюдательном совете фонда</span>
-                </li>
-                <li class="akimat-list-item">
-                  <div class="checkmark-wrapper">
-                    <Check class="checkmark-icon" />
-                  </div>
-                  <span class="akimat-list-text">Мониторинг и контроль реализации проекта</span>
-                </li>
+          
               </ul>
             </div>
           </div>

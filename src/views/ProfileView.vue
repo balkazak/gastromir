@@ -132,7 +132,7 @@
                     <Eye :size="16" /> Посмотреть детали
                   </button>
                   <button @click="repeatOrder(order)" class="btn btn-secondary btn-repeat">
-                    <RotateCcw :size="16" /> Повторить заказ
+                    <RotateCcw :size="16" /> Повторить и Дополнить заказ
                   </button>
                 </div>
               </div>
@@ -184,7 +184,7 @@
               <FileText :size="18" /> {{ isGeneratingPDF ? 'Генерация PDF...' : 'Скачать накладную (PDF)' }}
             </button>
             <button @click="repeatOrder(activeInvoice)" class="btn btn-secondary btn-block" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0;">
-              <RotateCcw :size="18" /> Повторить этот заказ полностью
+              <RotateCcw :size="18" /> Повторить и Дополнить заказ
             </button>
           </div>
         </div>

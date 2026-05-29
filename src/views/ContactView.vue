@@ -47,8 +47,8 @@
               </div>
               <div class="team-card">
                 <div class="team-info">
-                  <p class="name">Гульжан</p>
-                  <p class="role">Менеджер по снабжению</p>
+                  <p class="name">Айтпаева Гульжан Нурлановна </p>
+                  <p class="role">Помощник руководителя по снабжению</p>
                   <a href="tel:87015141404" class="phone">8 701 514 1404</a>
                 </div>
               </div>
