@@ -172,6 +172,16 @@
                   <td data-label="Цена" style="text-align: right;">{{ formatPrice(item.price) }} ₸</td>
                   <td data-label="Сумма" style="text-align: right;">{{ formatPrice(item.price * item.quantity) }} ₸</td>
                 </tr>
+                <template v-if="activeInvoice.discount && parseFloat(activeInvoice.discount) > 0">
+                  <tr class="modal-subtotal-row" style="font-size: 0.95rem; color: var(--gray);">
+                    <td colspan="3" style="text-align: right; border-bottom: none; padding-top: 0.5rem; padding-bottom: 0.25rem;">Сумма без скидки:</td>
+                    <td style="text-align: right; border-bottom: none; padding-top: 0.5rem; padding-bottom: 0.25rem;">{{ formatPrice(activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) }} ₸</td>
+                  </tr>
+                  <tr class="modal-discount-row" style="font-size: 0.95rem; color: #ef4444;">
+                    <td colspan="3" style="text-align: right; border-bottom: none; padding-top: 0.25rem; padding-bottom: 0.25rem;">Скидка ({{ parseFloat(activeInvoice.discount) }}%):</td>
+                    <td style="text-align: right; border-bottom: none; padding-top: 0.25rem; padding-bottom: 0.25rem;">-{{ formatPrice((activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) - activeInvoice.total_price) }} ₸</td>
+                  </tr>
+                </template>
                 <tr class="modal-total-row">
                   <td colspan="3" class="total-label-cell"><strong>Итого к оплате:</strong></td>
                   <td style="text-align: right;" class="total-amount-cell"><strong>{{ formatPrice(activeInvoice.total_price) }} ₸</strong></td>
@@ -378,9 +388,9 @@
             <div><strong>ИП ИБРАЕВ "GASTROMIR"</strong></div>
             <div><strong>БИН (ИИН):</strong> 820727351424</div>
             <div><strong>Банк:</strong> АО "Kaspi Bank"</div>
-            <div><strong>БИК:</strong> CASPKZKA &nbsp;&nbsp;&nbsp;&nbsp; <strong>КБе:</strong> 17</div>
-            <div><strong>Номер счета (ИИК):</strong> KZ91722S000047745678</div>
-            <div><strong>Адрес:</strong> г. Алматы</div>
+            <div><strong>БИК:</strong> CASPKZKA &nbsp;&nbsp;&nbsp;&nbsp; <strong>КБе:</strong> 19</div>
+            <div><strong>Номер счета (ИИК):</strong> KZ96722S000053776272</div>
+            <div><strong>Адрес:</strong> г. Астана, ул. Григория Потанина, д. 2, кв./офис 26</div>
           </td>
           
           <!-- Restaurant (Buyer) Details -->
@@ -409,7 +419,7 @@
         </thead>
         <tbody>
           <tr>
-            <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px;">ИП ИБРАЕВ "GASTROMIR", БИН 820727351424, г. Алматы</td>
+            <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px;">ИП ИБРАЕВ "GASTROMIR", БИН 820727351424, г. Астана, ул. Григория Потанина, д. 2, кв./офис 26</td>
             <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px;">{{ authStore.user?.name }}, ИИН/БИН {{ authStore.user?.bin_iin || '—' }}, {{ authStore.user?.address }}</td>
             <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">Ибраев Б. А.</td>
             <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">GASTROMIR Логистика</td>
@@ -459,8 +469,20 @@
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(item.price * item.quantity) }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(calculateVAT(item.price * item.quantity)) }}</td>
           </tr>
+          <template v-if="activeInvoice.discount && parseFloat(activeInvoice.discount) > 0">
+            <tr class="f32-discount-row">
+              <td colspan="7" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Сумма без скидки</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(calculateVAT(activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100))) }}</td>
+            </tr>
+            <tr class="f32-discount-row" style="color: #c2410c;">
+              <td colspan="7" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Скидка ({{ parseFloat(activeInvoice.discount) }}%)</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">-{{ formatPrice((activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) - activeInvoice.total_price) }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">-{{ formatPrice(calculateVAT((activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) - activeInvoice.total_price)) }}</td>
+            </tr>
+          </template>
           <tr class="f32-total-row">
-            <td colspan="4" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Итого</td>
+            <td colspan="4" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Итого к оплате</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ getInvoiceQty(activeInvoice) }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ getInvoiceQty(activeInvoice) }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; background-color: #f9fafb;"></td>
@@ -636,7 +658,8 @@ const getRestaurantOrderNumber = (order) => {
 }
 
 const numberToWordsRu = (n) => {
-  if (n === 0) return 'ноль'
+  n = Math.round(parseFloat(n))
+  if (isNaN(n) || n === 0) return 'ноль'
   
   const units = ['', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять']
   const unitsFeminine = ['', 'одна', 'две', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять']
@@ -907,7 +930,9 @@ const formatDate = (dateStr) => {
 }
 
 const formatPrice = (price) => {
-  return new Intl.NumberFormat('ru-RU').format(price)
+  const p = parseFloat(price)
+  if (isNaN(p)) return '0'
+  return new Intl.NumberFormat('ru-RU').format(p)
 }
 
 const showInvoiceDetails = (order) => {

@@ -92,9 +92,19 @@
             <p v-if="cartStore.hasFreshItems" class="fresh-disclaimer">
               🥬 Цены на свежую продукцию (овощи, фрукты, зелень, салаты) являются плавающими и зависят от сезонности, качества и ежедневных поставок.
             </p>
-            <div class="total-row">
+            <div v-if="discountPercent > 0" class="discount-breakdown" style="width: 100%; border-top: 1px solid #e2e8f0; padding-top: 1rem; margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.95rem; color: var(--gray);">
+                <span>Сумма без скидки:</span>
+                <span>{{ formatPrice(cartStore.totalPrice) }} ₸</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.95rem; color: #ef4444; font-weight: 600;">
+                <span>Скидка ({{ discountPercent }}%):</span>
+                <span>-{{ formatPrice(discountAmount) }} ₸</span>
+              </div>
+            </div>
+            <div class="total-row" style="margin-top: 0.5rem;">
               <span>Итого к оплате:</span>
-              <strong>{{ formatPrice(cartStore.totalPrice) }} ₸</strong>
+              <strong>{{ formatPrice(discountedTotalPrice) }} ₸</strong>
             </div>
             
             <div v-if="!authStore.isAuthenticated" class="auth-warning-box">
@@ -102,7 +112,7 @@
             </div>
             
             <div v-else-if="isOverLimit" class="limit-warning-box">
-              ⚠️ Сумма заказа ({{ formatPrice(cartStore.totalPrice) }} ₸) превышает ваш лимит ({{ formatPrice(authStore.user?.order_limit) }} ₸). Уберите товары или обратитесь к администратору.
+              ⚠️ Сумма заказа ({{ formatPrice(discountedTotalPrice) }} ₸) превышает ваш лимит ({{ formatPrice(authStore.user?.order_limit) }} ₸). Уберите товары или обратитесь к администратору.
             </div>
             
             <div class="footer-actions" v-if="authStore.isAuthenticated">
@@ -202,9 +212,9 @@
             <div><strong>ИП ИБРАЕВ "GASTROMIR"</strong></div>
             <div><strong>БИН (ИИН):</strong> 820727351424</div>
             <div><strong>Банк:</strong> АО "Kaspi Bank"</div>
-            <div><strong>БИК:</strong> CASPKZKA &nbsp;&nbsp;&nbsp;&nbsp; <strong>КБе:</strong> 17</div>
-            <div><strong>Номер счета (ИИК):</strong> KZ91722S000047745678</div>
-            <div><strong>Адрес:</strong> г. Алматы</div>
+            <div><strong>БИК:</strong> CASPKZKA &nbsp;&nbsp;&nbsp;&nbsp; <strong>КБе:</strong> 19</div>
+            <div><strong>Номер счета (ИИК):</strong> KZ96722S000053776272</div>
+            <div><strong>Адрес:</strong> г. Астана, ул. Григория Потанина, д. 2, кв./офис 26</div>
           </td>
           
           <!-- Restaurant (Buyer) Details -->
@@ -233,7 +243,7 @@
         </thead>
         <tbody>
           <tr>
-            <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px;">ИП ИБРАЕВ "GASTROMIR", БИН 820727351424, г. Алматы</td>
+            <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px;">ИП ИБРАЕВ "GASTROMIR", БИН 820727351424, г. Астана, ул. Григория Потанина, д. 2, кв./офис 26</td>
             <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px;">{{ orderData.customerName }}, ИИН/БИН {{ authStore.user?.bin_iin || '—' }}, {{ orderData.address }}</td>
             <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">Ибраев Б. А.</td>
             <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">GASTROMIR Логистика</td>
@@ -283,13 +293,25 @@
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(item.price * item.quantity) }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(calculateVAT(item.price * item.quantity)) }}</td>
           </tr>
+          <template v-if="discountPercent > 0">
+            <tr class="f32-discount-row">
+              <td colspan="7" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Сумма без скидки</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(cartStore.totalPrice) }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(calculateVAT(cartStore.totalPrice)) }}</td>
+            </tr>
+            <tr class="f32-discount-row" style="color: #c2410c;">
+              <td colspan="7" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Скидка ({{ discountPercent }}%)</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">-{{ formatPrice(discountAmount) }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">-{{ formatPrice(calculateVAT(discountAmount)) }}</td>
+            </tr>
+          </template>
           <tr class="f32-total-row">
-            <td colspan="4" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Итого</td>
+            <td colspan="4" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Итого к оплате</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ totalQuantity }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ totalQuantity }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; background-color: #f9fafb;"></td>
-            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(cartStore.totalPrice) }}</td>
-            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(calculateVAT(cartStore.totalPrice)) }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(discountedTotalPrice) }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(calculateVAT(discountedTotalPrice)) }}</td>
           </tr>
         </tbody>
       </table>
@@ -302,7 +324,7 @@
         </div>
         <div class="f32-words-line" style="font-size: 8px;">
           на сумму (прописью), в KZT:
-          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 350px;">{{ capitalizeFirst(numberToWordsRu(cartStore.totalPrice)) }} тенге 00 тиын</span>
+          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 350px;">{{ capitalizeFirst(numberToWordsRu(discountedTotalPrice)) }} тенге 00 тиын</span>
         </div>
       </div>
 
@@ -438,8 +460,13 @@ const router = useRouter()
 const pdfTemplateRef = ref(null)
 const isGeneratingPDF = ref(false)
 
+const discountPercent = computed(() => authStore.user?.discount || 0);
+const discountAmount = computed(() => Math.round((cartStore.totalPrice * discountPercent.value / 100) * 100) / 100);
+const discountedTotalPrice = computed(() => cartStore.totalPrice - discountAmount.value);
+
 const numberToWordsRu = (n) => {
-  if (n === 0) return 'ноль'
+  n = Math.round(parseFloat(n))
+  if (isNaN(n) || n === 0) return 'ноль'
   
   const units = ['', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять']
   const unitsFeminine = ['', 'одна', 'две', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять']
@@ -631,7 +658,7 @@ const isOverLimit = computed(() => {
   if (!authStore.isAuthenticated) return false
   if (authStore.user?.role === 'admin') return false
   const limit = authStore.user?.order_limit || 500000.00
-  return cartStore.totalPrice > limit
+  return discountedTotalPrice.value > limit
 })
 
 const onDateInput = (event) => {
@@ -687,7 +714,9 @@ const barItemsTotal = computed(() => {
 })
 
 const formatPrice = (price) => {
-  return new Intl.NumberFormat('ru-RU').format(price)
+  const p = parseFloat(price)
+  if (isNaN(p)) return '0'
+  return new Intl.NumberFormat('ru-RU').format(p)
 }
 
 const placeOrderInDatabase = async () => {
@@ -700,7 +729,9 @@ const placeOrderInDatabase = async () => {
       },
       body: JSON.stringify({
         items: cartStore.items,
-        totalPrice: cartStore.totalPrice
+        totalPrice: discountedTotalPrice.value,
+        discount: discountPercent.value,
+        originalPrice: cartStore.totalPrice
       })
     })
     const data = await response.json()
@@ -733,7 +764,8 @@ const sendToWhatsApp = async () => {
   }
 
   const itemsText = cartStore.items.map(item => `- ${item.name}: ${item.quantity} ${item.unit} x ${formatPrice(item.price)} тг`).join('\n')
-  const totalText = `Итого: ${formatPrice(cartStore.totalPrice)} тг`
+  const discountText = discountPercent.value > 0 ? `\nСкидка (${discountPercent.value}%): -${formatPrice(discountAmount.value)} тг` : ''
+  const totalText = `Итого без скидки: ${formatPrice(cartStore.totalPrice)} тг${discountText}\nИтого к оплате: ${formatPrice(discountedTotalPrice.value)} тг`
   const message = `👋 *Новый заказ в GASTROMIR!*\n\n*Ресторан:* ${orderData.customerName}\n*Телефон:* ${orderData.phone}\n*Адрес:* ${orderData.address}\n*Способ оплаты:* ${orderData.paymentMethod}\n*Дата доставки:* ${orderData.deliveryDate}\n*Время доставки:* ${orderData.deliveryTime}\n\n*Заказ:*\n${itemsText}\n\n*${totalText}*`
   
   const encodedMessage = encodeURIComponent(message)
@@ -778,6 +810,10 @@ const sendToEmail = async () => {
     `${i + 1}. ${item.name} — ${item.quantity} ${item.unit} × ${formatPrice(item.price)} = ${formatPrice(item.quantity * item.price)} тг`
   ).join('\n')
 
+  const discountNote = discountPercent.value > 0 
+    ? `\nСумма без скидки: ${formatPrice(cartStore.totalPrice)} тг\nСкидка (${discountPercent.value}%): -${formatPrice(discountAmount.value)} тг`
+    : ''
+
   const weightNote = cartStore.hasWeightItems
     ? '\n\nПРИМЕЧАНИЕ: Для весовых товаров итоговая стоимость зависит от фактического веса и рассчитывается после сборки заказа.'
     : ''
@@ -786,7 +822,7 @@ const sendToEmail = async () => {
     ? '\n\nПРИМЕЧАНИЕ: Цены на свежую продукцию (овощи, фрукты, зелень, салаты) являются плавающими и зависят от сезонности, качества и ежедневных поставок.'
     : ''
 
-  const message = `===============================\nНАКЛАДНАЯ\n===============================\n\nПоставщик: GASTROMIR ИП ИБРАЕВ\nБИН/ИИН: 820727351424\nТелефон: +7 701 514 14 04\n\nПолучатель: ${orderData.customerName}\nТелефон: ${orderData.phone}\nАдрес: ${orderData.address}\nСпособ оплаты: ${orderData.paymentMethod}\nДата доставки: ${orderData.deliveryDate}\nВремя доставки: ${orderData.deliveryTime}\n\nДата заказа: ${date}\nВремя заказа: ${time}\n\n--------------------------------\nТОВАР\n--------------------------------\n${itemsList}\n\n--------------------------------\nИТОГО: ${formatPrice(cartStore.totalPrice)} тг\nК ОПЛАТЕ: ${formatPrice(cartStore.totalPrice)} тг\n\n================================\nСпасибо за заказ!\nGASTRO MIR\n================================${weightNote}${freshNote}`
+  const message = `===============================\nНАКЛАДНАЯ\n===============================\n\nПоставщик: GASTROMIR ИП ИБРАЕВ\nБИН/ИИН: 820727351424\nТелефон: +7 701 514 14 04\n\nПолучатель: ${orderData.customerName}\nТелефон: ${orderData.phone}\nАдрес: ${orderData.address}\nСпособ оплаты: ${orderData.paymentMethod}\nДата доставки: ${orderData.deliveryDate}\nВремя доставки: ${orderData.deliveryTime}\n\nДата заказа: ${date}\nВремя заказа: ${time}\n\n--------------------------------\nТОВАР\n--------------------------------\n${itemsList}\n\n--------------------------------${discountNote}\nИТОГО К ОПЛАТЕ: ${formatPrice(discountedTotalPrice.value)} тг\n\n================================\nСпасибо за заказ!\nGASTRO MIR\n================================${weightNote}${freshNote}`
 
   try {
     const formDataPayload = new FormData()

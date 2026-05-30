@@ -52,7 +52,8 @@
                   <th>Имя / Название</th>
                   <th>Электронная почта</th>
                   <th>Дата регистрации</th>
-                  <th style="width: 250px;">Лимит на заказ (₸)</th>
+                  <th style="width: 220px;">Лимит на заказ (₸)</th>
+                  <th style="width: 180px;">Скидка (%)</th>
                   <th style="text-align: right;">Действия</th>
                 </tr>
               </thead>
@@ -69,7 +70,22 @@
                         class="limit-input"
                         placeholder="Лимит"
                       />
-                      <button @click="updateLimit(res.id, res.order_limit)" class="btn-save-limit" title="Сохранить">
+                      <button @click="updateLimit(res.id, res.order_limit)" class="btn-save-limit" title="Сохранить лимит">
+                        <Check :size="16" />
+                      </button>
+                    </div>
+                  </td>
+                  <td data-label="Скидка (%)">
+                    <div class="limit-edit-wrapper">
+                      <input 
+                        type="number" 
+                        min="0"
+                        max="100"
+                        v-model.number="res.discount" 
+                        class="limit-input"
+                        placeholder="Скидка %"
+                      />
+                      <button @click="updateDiscount(res.id, res.discount)" class="btn-save-limit" title="Сохранить скидку">
                         <Check :size="16" />
                       </button>
                     </div>
@@ -368,8 +384,18 @@
                   <td data-label="Цена" style="text-align: right;">{{ formatPrice(item.price) }} ₸</td>
                   <td data-label="Сумма" style="text-align: right;">{{ formatPrice(item.price * item.quantity) }} ₸</td>
                 </tr>
+                <template v-if="activeInvoice.discount && parseFloat(activeInvoice.discount) > 0">
+                  <tr class="modal-subtotal-row" style="font-size: 0.95rem; color: var(--gray);">
+                    <td colspan="3" style="text-align: right; border-bottom: none; padding-top: 0.5rem; padding-bottom: 0.25rem;">Сумма без скидки:</td>
+                    <td style="text-align: right; border-bottom: none; padding-top: 0.5rem; padding-bottom: 0.25rem;">{{ formatPrice(activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) }} ₸</td>
+                  </tr>
+                  <tr class="modal-discount-row" style="font-size: 0.95rem; color: #ef4444;">
+                    <td colspan="3" style="text-align: right; border-bottom: none; padding-top: 0.25rem; padding-bottom: 0.25rem;">Скидка ({{ parseFloat(activeInvoice.discount) }}%):</td>
+                    <td style="text-align: right; border-bottom: none; padding-top: 0.25rem; padding-bottom: 0.25rem;">-{{ formatPrice((activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) - activeInvoice.total_price) }} ₸</td>
+                  </tr>
+                </template>
                 <tr class="modal-total-row">
-                  <td colspan="3" class="total-label-cell"><strong>Общая сумма:</strong></td>
+                  <td colspan="3" class="total-label-cell"><strong>Итого к оплате:</strong></td>
                   <td style="text-align: right;" class="total-amount-cell"><strong>{{ formatPrice(activeInvoice.total_price) }} ₸</strong></td>
                 </tr>
               </tbody>
@@ -497,9 +523,9 @@
               <div><strong>ИП ИБРАЕВ "GASTROMIR"</strong></div>
               <div><strong>БИН (ИИН):</strong> 820727351424</div>
               <div><strong>Банк:</strong> АО "Kaspi Bank"</div>
-              <div><strong>БИК:</strong> CASPKZKA &nbsp;&nbsp;&nbsp;&nbsp; <strong>КБе:</strong> 17</div>
-              <div><strong>Номер счета (ИИК):</strong> KZ91722S000047745678</div>
-              <div><strong>Адрес:</strong> г. Алматы</div>
+              <div><strong>БИК:</strong> CASPKZKA &nbsp;&nbsp;&nbsp;&nbsp; <strong>КБе:</strong> 19</div>
+              <div><strong>Номер счета (ИИК):</strong> KZ96722S000053776272</div>
+              <div><strong>Адрес:</strong> г. Астана, ул. Григория Потанина, д. 2, кв./офис 26</div>
             </td>
             
             <td style="width: 50%; border: 1px solid #000; padding: 5px; font-size: 8px; vertical-align: top; text-align: left; line-height: 1.3;">
@@ -526,7 +552,7 @@
           </thead>
           <tbody>
             <tr>
-              <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px;">ИП ИБРАЕВ "GASTROMIR", БИН 820727351424, г. Алматы</td>
+              <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px;">ИП ИБРАЕВ "GASTROMIR", БИН 820727351424, г. Астана, ул. Григория Потанина, д. 2, кв./офис 26</td>
               <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px;">{{ activeInvoice.restaurant_name }}, ИИН/БИН {{ activeInvoice.restaurant_bin_iin || '—' }}, {{ activeInvoice.restaurant_address }}</td>
               <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">Ибраев Б. А.</td>
               <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">GASTROMIR Логистика</td>
@@ -575,8 +601,20 @@
               <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(item.price * item.quantity) }}</td>
               <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(calculateVAT(item.price * item.quantity)) }}</td>
             </tr>
+            <template v-if="activeInvoice.discount && parseFloat(activeInvoice.discount) > 0">
+              <tr class="f32-discount-row">
+                <td colspan="7" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Сумма без скидки</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) }}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(calculateVAT(activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100))) }}</td>
+              </tr>
+              <tr class="f32-discount-row" style="color: #c2410c;">
+                <td colspan="7" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Скидка ({{ parseFloat(activeInvoice.discount) }}%)</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">-{{ formatPrice((activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) - activeInvoice.total_price) }}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">-{{ formatPrice(calculateVAT((activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) - activeInvoice.total_price)) }}</td>
+              </tr>
+            </template>
             <tr class="f32-total-row">
-              <td colspan="4" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Итого</td>
+              <td colspan="4" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Итого к оплате</td>
               <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ getInvoiceQty(activeInvoice) }}</td>
               <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ getInvoiceQty(activeInvoice) }}</td>
               <td style="border: 1px solid #000; padding: 3px; font-size: 8px; background-color: #f9fafb;"></td>
@@ -722,7 +760,8 @@ const isGeneratingPDF = ref(false)
 const isSavingInvoice = ref(false)
 
 const numberToWordsRu = (n) => {
-  if (n === 0) return 'ноль'
+  n = Math.round(parseFloat(n))
+  if (isNaN(n) || n === 0) return 'ноль'
   
   const units = ['', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять']
   const unitsFeminine = ['', 'одна', 'две', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять']
@@ -1303,6 +1342,32 @@ const updateLimit = async (userId, limit) => {
   }
 }
 
+const updateDiscount = async (userId, discount) => {
+  if (discount === undefined || isNaN(discount) || discount < 0 || discount > 100) {
+    alert('Некорректный процент скидки (должен быть от 0 до 100)')
+    return
+  }
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/users/${userId}/discount`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({ discount })
+    })
+    const data = await response.json()
+    if (response.ok) {
+      alert(data.message)
+    } else {
+      alert(data.message || 'Ошибка обновления')
+    }
+  } catch (err) {
+    console.error(err)
+    alert('Не удалось обновить скидку')
+  }
+}
+
 const deleteRestaurant = async (userId, name) => {
   if (!confirm(`Вы действительно хотите безвозвратно удалить ресторан "${name}"?`)) return
   try {
@@ -1354,7 +1419,9 @@ const formatDate = (dateStr) => {
 }
 
 const formatPrice = (price) => {
-  return new Intl.NumberFormat('ru-RU').format(price)
+  const p = parseFloat(price)
+  if (isNaN(p)) return '0'
+  return new Intl.NumberFormat('ru-RU').format(p)
 }
 
 const showInvoiceDetails = (order) => {
@@ -1363,9 +1430,14 @@ const showInvoiceDetails = (order) => {
 
 const updateInvoiceTotal = () => {
   if (activeInvoice.value && activeInvoice.value.items) {
-    activeInvoice.value.total_price = activeInvoice.value.items.reduce((sum, item) => {
+    const originalSum = activeInvoice.value.items.reduce((sum, item) => {
       return sum + (item.price * (parseFloat(item.quantity) || 0))
     }, 0)
+    
+    // Recalculate discounted total if there is a discount
+    const discount = parseFloat(activeInvoice.value.discount || 0)
+    activeInvoice.value.original_price = originalSum
+    activeInvoice.value.total_price = Math.round((originalSum * (1 - discount / 100)) * 100) / 100
   }
 }
 
@@ -1381,7 +1453,9 @@ const saveInvoiceChanges = async () => {
       },
       body: JSON.stringify({
         items: activeInvoice.value.items,
-        totalPrice: activeInvoice.value.total_price
+        totalPrice: activeInvoice.value.total_price,
+        discount: parseFloat(activeInvoice.value.discount || 0),
+        originalPrice: parseFloat(activeInvoice.value.original_price || activeInvoice.value.total_price)
       })
     })
 
