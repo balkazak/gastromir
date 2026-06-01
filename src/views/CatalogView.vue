@@ -267,9 +267,10 @@ const isFreshProduceVisible = computed(() => {
 })
 
 const setActiveCategory = (cat) => {
+  searchQuery.value = ''
   activeCategory.value = cat
   if (productsRef.value) {
-    const headerHeight = 100 // Adjust based on navbar height
+    const headerHeight = 100
     const elementPosition = productsRef.value.getBoundingClientRect().top + window.pageYOffset
     const offsetPosition = elementPosition - headerHeight
 
