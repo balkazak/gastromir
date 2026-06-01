@@ -291,18 +291,18 @@
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ item.quantity }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(item.price) }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(item.price * item.quantity) }}</td>
-            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(calculateVAT(item.price * item.quantity)) }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;"></td>
           </tr>
           <template v-if="discountPercent > 0">
             <tr class="f32-discount-row">
               <td colspan="7" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Сумма без скидки</td>
               <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(cartStore.totalPrice) }}</td>
-              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(calculateVAT(cartStore.totalPrice)) }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;"></td>
             </tr>
             <tr class="f32-discount-row" style="color: #c2410c;">
               <td colspan="7" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Скидка ({{ discountPercent }}%)</td>
               <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">-{{ formatPrice(discountAmount) }}</td>
-              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">-{{ formatPrice(calculateVAT(discountAmount)) }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;"></td>
             </tr>
           </template>
           <tr class="f32-total-row">
@@ -311,7 +311,7 @@
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ totalQuantity }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; background-color: #f9fafb;"></td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(discountedTotalPrice) }}</td>
-            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(calculateVAT(discountedTotalPrice)) }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;"></td>
           </tr>
         </tbody>
       </table>
@@ -320,11 +320,11 @@
       <div class="f32-words-section">
         <div class="f32-words-line" style="font-size: 8px; margin-bottom: 2px;">
           Всего отпущено количество запасов (прописью):
-          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 250px;">{{ capitalizeFirst(numberToWordsRu(totalQuantity)) }}</span>
+          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 250px;"></span>
         </div>
         <div class="f32-words-line" style="font-size: 8px;">
           на сумму (прописью), в KZT:
-          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 350px;">{{ capitalizeFirst(numberToWordsRu(discountedTotalPrice)) }} тенге 00 тиын</span>
+          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 350px;"></span>
         </div>
       </div>
 

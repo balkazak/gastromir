@@ -219,7 +219,43 @@ const displayedProducts = computed(() => {
 })
 
 const uniqueCategories = computed(() => {
-  return [...new Set(products.value.map(p => p.category))]
+  const cats = [...new Set(products.value.map(p => p.category))]
+  const categoryOrder = [
+    'Бакалея',
+    'Фрукты',
+    'Овощи',
+    'Зелень',
+    'Ягоды',
+    'Салаты',
+    'Масла и жиры',
+    'Молочные продукты',
+    'Сыры и сырные продукты',
+    'Колбасные изделия и х/к',
+    'Морепродукты',
+    'Мука и мучные изделия',
+    'Мясо птицы',
+    'Полуфабрикаты и картофельные изделия',
+    'Суши бар',
+    'Соусы и уксусы',
+    'Консервация',
+    'Крупы',
+    'Кондитерские',
+    'Орехи',
+    'Приправы и специи',
+    'Сиропы',
+    'Чай-кофе',
+    'Ягоды и овощи с/м'
+  ]
+  return cats.sort((a, b) => {
+    let idxA = categoryOrder.indexOf(a)
+    let idxB = categoryOrder.indexOf(b)
+    if (idxA === -1) idxA = 9999
+    if (idxB === -1) idxB = 9999
+    if (idxA !== idxB) {
+      return idxA - idxB
+    }
+    return a.localeCompare(b, 'ru')
+  })
 })
 
 const isFreshProduceVisible = computed(() => {

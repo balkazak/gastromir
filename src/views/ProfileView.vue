@@ -467,18 +467,18 @@
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ item.quantity }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(item.price) }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(item.price * item.quantity) }}</td>
-            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(calculateVAT(item.price * item.quantity)) }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;"></td>
           </tr>
           <template v-if="activeInvoice.discount && parseFloat(activeInvoice.discount) > 0">
             <tr class="f32-discount-row">
               <td colspan="7" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Сумма без скидки</td>
               <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) }}</td>
-              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(calculateVAT(activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100))) }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;"></td>
             </tr>
             <tr class="f32-discount-row" style="color: #c2410c;">
               <td colspan="7" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Скидка ({{ parseFloat(activeInvoice.discount) }}%)</td>
               <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">-{{ formatPrice((activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) - activeInvoice.total_price) }}</td>
-              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">-{{ formatPrice(calculateVAT((activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) - activeInvoice.total_price)) }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;"></td>
             </tr>
           </template>
           <tr class="f32-total-row">
@@ -487,7 +487,7 @@
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ getInvoiceQty(activeInvoice) }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; background-color: #f9fafb;"></td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(activeInvoice.total_price) }}</td>
-            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(calculateVAT(activeInvoice.total_price)) }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;"></td>
           </tr>
         </tbody>
       </table>
@@ -496,11 +496,11 @@
       <div class="f32-words-section">
         <div class="f32-words-line" style="font-size: 8px; margin-bottom: 2px;">
           Всего отпущено количество запасов (прописью):
-          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 250px;">{{ capitalizeFirst(numberToWordsRu(getInvoiceQty(activeInvoice))) }}</span>
+          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 250px;"></span>
         </div>
         <div class="f32-words-line" style="font-size: 8px;">
           на сумму (прописью), в KZT:
-          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 350px;">{{ capitalizeFirst(numberToWordsRu(activeInvoice.total_price)) }} тенге 00 тиын</span>
+          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 350px;"></span>
         </div>
       </div>
 

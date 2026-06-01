@@ -381,7 +381,20 @@
                       <span class="invoice-qty-unit">{{ item.unit }}</span>
                     </div>
                   </td>
-                  <td data-label="Цена" style="text-align: right;">{{ formatPrice(item.price) }} ₸</td>
+                  <td data-label="Цена" style="text-align: right;">
+                    <div class="invoice-qty-edit" style="justify-content: flex-end;">
+                      <input 
+                        type="number" 
+                        step="0.01" 
+                        min="0"
+                        v-model.number="item.price" 
+                        @input="updateInvoiceTotal" 
+                        class="invoice-qty-input" 
+                        style="width: 85px; text-align: right;"
+                      />
+                      <span class="invoice-qty-unit">₸</span>
+                    </div>
+                  </td>
                   <td data-label="Сумма" style="text-align: right;">{{ formatPrice(item.price * item.quantity) }} ₸</td>
                 </tr>
                 <template v-if="activeInvoice.discount && parseFloat(activeInvoice.discount) > 0">
@@ -599,18 +612,18 @@
               <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ item.quantity }}</td>
               <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(item.price) }}</td>
               <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(item.price * item.quantity) }}</td>
-              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(calculateVAT(item.price * item.quantity)) }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;"></td>
             </tr>
             <template v-if="activeInvoice.discount && parseFloat(activeInvoice.discount) > 0">
               <tr class="f32-discount-row">
                 <td colspan="7" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Сумма без скидки</td>
                 <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) }}</td>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(calculateVAT(activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100))) }}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;"></td>
               </tr>
               <tr class="f32-discount-row" style="color: #c2410c;">
                 <td colspan="7" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Скидка ({{ parseFloat(activeInvoice.discount) }}%)</td>
                 <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">-{{ formatPrice((activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) - activeInvoice.total_price) }}</td>
-                <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">-{{ formatPrice(calculateVAT((activeInvoice.original_price || activeInvoice.total_price / (1 - activeInvoice.discount / 100)) - activeInvoice.total_price)) }}</td>
+                <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;"></td>
               </tr>
             </template>
             <tr class="f32-total-row">
@@ -619,7 +632,7 @@
               <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ getInvoiceQty(activeInvoice) }}</td>
               <td style="border: 1px solid #000; padding: 3px; font-size: 8px; background-color: #f9fafb;"></td>
               <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(activeInvoice.total_price) }}</td>
-              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(calculateVAT(activeInvoice.total_price)) }}</td>
+              <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;"></td>
             </tr>
           </tbody>
         </table>
@@ -627,11 +640,11 @@
         <div class="f32-words-section">
           <div class="f32-words-line" style="font-size: 8px; margin-bottom: 2px;">
             Всего отпущено количество запасов (прописью):
-            <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 250px;">{{ capitalizeFirst(numberToWordsRu(getInvoiceQty(activeInvoice))) }}</span>
+            <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 250px;"></span>
           </div>
           <div class="f32-words-line" style="font-size: 8px;">
             на сумму (прописью), в KZT:
-            <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 350px;">{{ capitalizeFirst(numberToWordsRu(activeInvoice.total_price)) }} тенге 00 тиын</span>
+            <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 350px;"></span>
           </div>
         </div>
 
@@ -1110,7 +1123,43 @@ onUnmounted(() => {
 
 // Unique Lists for Dropdown Filters
 const uniqueCategories = computed(() => {
-  return [...new Set(products.value.map(p => p.category))].sort()
+  const cats = [...new Set(products.value.map(p => p.category))]
+  const categoryOrder = [
+    'Бакалея',
+    'Фрукты',
+    'Овощи',
+    'Зелень',
+    'Ягоды',
+    'Салаты',
+    'Масла и жиры',
+    'Молочные продукты',
+    'Сыры и сырные продукты',
+    'Колбасные изделия и х/к',
+    'Морепродукты',
+    'Мука и мучные изделия',
+    'Мясо птицы',
+    'Полуфабрикаты и картофельные изделия',
+    'Суши бар',
+    'Соусы и уксусы',
+    'Консервация',
+    'Крупы',
+    'Кондитерские',
+    'Орехи',
+    'Приправы и специи',
+    'Сиропы',
+    'Чай-кофе',
+    'Ягоды и овощи с/м'
+  ]
+  return cats.sort((a, b) => {
+    let idxA = categoryOrder.indexOf(a)
+    let idxB = categoryOrder.indexOf(b)
+    if (idxA === -1) idxA = 9999
+    if (idxB === -1) idxB = 9999
+    if (idxA !== idxB) {
+      return idxA - idxB
+    }
+    return a.localeCompare(b, 'ru')
+  })
 })
 
 const uniqueManufacturers = computed(() => {
@@ -1202,6 +1251,7 @@ const saveProductEdit = async (prodId) => {
         products.value[idx] = { ...data.product }
       }
       editingProductId.value = null
+      await fetchOrders()
       alert('Товар успешно обновлен!')
     } else {
       alert(data.message || 'Ошибка обновления')
