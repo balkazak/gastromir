@@ -17,30 +17,40 @@
       </div>
     </section>
 
+    <!-- Categories Bar: outside .container for proper sticky/fixed positioning -->
+    <div class="categories-bar-wrapper">
+      <div class="container">
+        <div 
+          class="categories-bar" 
+          ref="categoriesBarRef"
+          @mousedown="handleMouseDown"
+          @mouseleave="handleMouseLeave"
+          @mouseup="handleMouseUp"
+          @mousemove="handleMouseMove"
+        >
+          <button 
+            :class="{ active: activeCategory === 'all' }"
+            @click="setActiveCategory('all')"
+            class="category-pill-btn"
+          >
+            Все товары
+          </button>
+          <button 
+            v-for="cat in uniqueCategories" 
+            :key="cat"
+            :class="{ active: activeCategory === cat }"
+            @click="setActiveCategory(cat)"
+            class="category-pill-btn"
+          >
+            {{ cat }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <section class="catalog-content section-padding">
       <div class="container">
         <div class="catalog-layout">
-          <!-- Categories Sidebar -->
-          <aside class="sidebar">
-            <h3>Категории</h3>
-            <ul class="category-list">
-              <li 
-                :class="{ active: activeCategory === 'all' }"
-                @click="setActiveCategory('all')"
-              >
-                Все товары
-              </li>
-              <li 
-                v-for="cat in uniqueCategories" 
-                :key="cat"
-                :class="{ active: activeCategory === cat }"
-                @click="setActiveCategory(cat)"
-              >
-                {{ cat }}
-              </li>
-            </ul>
-          </aside>
-
           <!-- Products Grid -->
           <main class="products-main" ref="productsRef">
             <div v-if="loading" class="loading-state">
@@ -94,7 +104,7 @@
                         </button>
                       </div>
                     </div>
-                    <p v-if="product.unit === 'кг'" class="weight-note">
+                    <p v-if="isWeightProduct(product)" class="weight-note">
                       ⚖️ Весовой товар — итоговая стоимость зависит от фактического веса
                     </p>
                   </div>
@@ -132,12 +142,49 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { Search, ShoppingCart, Check, PackageX, Info } from 'lucide-vue-next'
-import { useCartStore } from '@/stores/cart'
+import { useCartStore, isWeightProduct } from '@/stores/cart'
 
 const cartStore = useCartStore()
 const searchQuery = ref('')
 const activeCategory = ref('all')
 const productsRef = ref(null)
+const categoriesBarRef = ref(null)
+
+// Mouse drag scroll handlers for categories bar
+let isDown = false
+let startX
+let scrollLeft
+
+const handleMouseDown = (e) => {
+  const bar = categoriesBarRef.value
+  if (!bar || bar.scrollWidth <= bar.clientWidth) return
+  isDown = true
+  bar.classList.add('active-drag')
+  startX = e.pageX - bar.offsetLeft
+  scrollLeft = bar.scrollLeft
+}
+
+const handleMouseLeave = () => {
+  isDown = false
+  const bar = categoriesBarRef.value
+  if (bar) bar.classList.remove('active-drag')
+}
+
+const handleMouseUp = () => {
+  isDown = false
+  const bar = categoriesBarRef.value
+  if (bar) bar.classList.remove('active-drag')
+}
+
+const handleMouseMove = (e) => {
+  if (!isDown) return
+  e.preventDefault()
+  const bar = categoriesBarRef.value
+  if (!bar) return
+  const x = e.pageX - bar.offsetLeft
+  const walk = (x - startX) * 2 // scroll multiplier
+  bar.scrollLeft = scrollLeft - walk
+}
 
 const products = ref([])
 const loading = ref(true)
@@ -349,37 +396,58 @@ const isItemInCart = (id) => {
 }
 
 .catalog-layout {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 3rem;
+  display: block;
 }
 
-.sidebar h3 {
-  margin-bottom: 1.5rem;
-  font-size: 1.25rem;
+/* Categories Horizontal Scroll Bar Styles */
+.categories-bar-wrapper {
+  position: sticky;
+  top: 75px; /* stick right below header/navbar */
+  z-index: 200;
+  background-color: #f8fafc;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e2e8f0;
+  width: 100%;
 }
 
-.category-list {
-  list-style: none;
+.categories-bar {
+  display: flex;
+  flex-wrap: wrap; /* Wrap chips on desktop */
+  gap: 0.75rem;
+  padding: 0.5rem 0.25rem;
+  user-select: none;
 }
 
-.category-list li {
-  padding: 0.75rem 1.25rem;
-  border-radius: 1rem;
-  cursor: pointer;
-  transition: var(--transition);
-  color: var(--gray);
-  margin-bottom: 0.5rem;
-}
-
-.category-list li:hover {
-  background: #f1f5f9;
+.category-pill-btn {
+  white-space: nowrap;
+  padding: 0.6rem 1.5rem;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(11, 18, 33, 0.18);
+  background: var(--white);
   color: var(--primary);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(11, 18, 33, 0.06);
+  letter-spacing: 0.01em;
 }
 
-.category-list li.active {
-  background: var(--primary);
+.category-pill-btn:hover {
+  border-color: var(--secondary);
+  color: var(--secondary-dark);
+  background: rgba(245, 158, 11, 0.07);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.15);
+  transform: translateY(-1px);
+}
+
+.category-pill-btn.active {
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);
+  border-color: transparent;
   color: var(--white);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
+  font-weight: 700;
+  transform: translateY(-1px);
 }
 
 .products-grid {
@@ -549,31 +617,29 @@ const isItemInCart = (id) => {
 .cart-info span { font-weight: 700; color: var(--primary); }
 .cart-info p { font-size: 0.9rem; color: var(--gray); }
 
-@media (max-width: 1024px) {
-  .catalog-layout { grid-template-columns: 200px 1fr; gap: 2rem; }
-}
-
 @media (max-width: 768px) {
-  .catalog-layout { grid-template-columns: 1fr; }
-  .sidebar { 
-    position: sticky;
-    top: 80px;
-    z-index: 10;
-    background: var(--white);
-    padding: 1rem;
-    margin-bottom: 2rem;
-    border-radius: 1rem;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  .categories-bar-wrapper {
+    top: 84px; /* Adjust sticky top position below mobile navbar (height ~84px) */
+    margin-bottom: 1.5rem;
+    padding: 0.5rem 0;
+  }
+  .categories-bar {
+    flex-wrap: nowrap; /* Horizontal scrolling on mobile */
     overflow-x: auto;
+    scrollbar-width: none; /* Hide scrollbar for Firefox */
+    cursor: grab;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
   }
-  .category-list {
-    display: flex;
-    gap: 0.5rem;
+  .categories-bar::-webkit-scrollbar {
+    display: none; /* Hide scrollbar for Chrome/Safari/Edge */
   }
-  .category-list li {
-    white-space: nowrap;
-    margin-bottom: 0;
-    padding: 0.5rem 1rem;
+  .categories-bar.active-drag {
+    cursor: grabbing;
+  }
+  .category-pill-btn {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.85rem;
   }
 }
 
@@ -588,6 +654,36 @@ const isItemInCart = (id) => {
     gap: 1rem;
   }
   .cart-info { gap: 0.5rem; }
+}
+
+/* Mobile: fixed categories bar always at top of viewport */
+@media (max-width: 768px) {
+  .categories-bar-wrapper {
+    position: fixed;
+    top: 87px; /* below the mobile navbar (55px logo + 2*16px padding) */
+    left: 0;
+    right: 0;
+    z-index: 200;
+    padding: 0.6rem 0;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+  }
+
+  .categories-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .categories-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Push catalog content down so it's not hidden under fixed bar */
+  .catalog-content {
+    padding-top: calc(64px + 3rem) !important;
+  }
 }
 
 .fresh-produce-note {

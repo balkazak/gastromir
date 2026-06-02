@@ -81,61 +81,181 @@
 
     <section class="invoices-section section-padding">
       <div class="container">
-        <div class="section-title">
-          <h2>История <span>накладных</span></h2>
-          <p>Все ваши заказы, сгруппированные по месяцам</p>
-        </div>
-
-        <div v-if="loading" class="loading-state">
-          <span class="loader"></span>
-          <p>Загрузка истории накладных...</p>
-        </div>
-
-        <div v-else-if="Object.keys(groupedOrders).length === 0" class="empty-state" v-motion-pop>
-          <ClipboardList :size="64" />
-          <h3>Накладных пока нет</h3>
-          <p>Сделайте свой первый заказ в каталоге товаров!</p>
-          <router-link to="/catalog" class="btn btn-secondary">Перейти в каталог</router-link>
-        </div>
-
-        <div v-else class="invoices-timeline">
-          <div 
-            v-for="(orders, month) in groupedOrders" 
-            :key="month" 
-            class="month-group"
-            v-motion-slide-visible-once-bottom
+        <!-- Profile Tabs -->
+        <div class="profile-tabs" v-motion-slide-visible-once-bottom>
+          <button 
+            :class="{ active: activeTab === 'invoices' }"
+            @click="activeTab = 'invoices'"
+            class="profile-tab-btn"
           >
-            <h3 class="month-title"><Calendar :size="18" /> {{ month }}</h3>
-            
-            <div class="orders-grid">
-              <div v-for="order in orders" :key="order.id" class="invoice-card">
-                <div class="invoice-card-header">
-                  <div>
-                    <span class="invoice-num">Накладная №{{ order.id }}</span>
-                    <span class="invoice-date">{{ formatDate(order.created_at) }}</span>
-                  </div>
-                  <span class="invoice-price">{{ formatPrice(order.total_price) }} ₸</span>
-                </div>
+            <ClipboardList :size="18" /> История накладных
+          </button>
+          <button 
+            :class="{ active: activeTab === 'reports' }"
+            @click="activeTab = 'reports'"
+            class="profile-tab-btn"
+          >
+            <TrendingUp :size="18" /> Отчет по закупкам
+          </button>
+        </div>
 
-                <div class="invoice-items-preview">
-                  <div v-for="(item, index) in order.items.slice(0, 3)" :key="index" class="preview-item">
-                    <span>{{ item.name }}</span>
-                    <span>{{ item.quantity }} {{ item.unit }}</span>
-                  </div>
-                  <div v-if="order.items.length > 3" class="preview-more">
-                    и еще {{ order.items.length - 3 }} товар(ов)...
-                  </div>
-                </div>
+        <!-- Tab 1: Invoices List -->
+        <div v-if="activeTab === 'invoices'" class="tab-pane animate-fade">
+          <div class="section-title">
+            <h2>История <span>накладных</span></h2>
+            <p>Все ваши заказы, сгруппированные по месяцам</p>
+          </div>
 
-                <div class="invoice-card-actions">
-                  <button @click="showInvoiceDetails(order)" class="btn-details">
-                    <Eye :size="16" /> Посмотреть детали
-                  </button>
-                  <button @click="repeatOrder(order)" class="btn btn-secondary btn-repeat">
-                    <RotateCcw :size="16" /> Повторить и Дополнить заказ
-                  </button>
+          <div v-if="loading" class="loading-state">
+            <span class="loader"></span>
+            <p>Загрузка истории накладных...</p>
+          </div>
+
+          <div v-else-if="Object.keys(groupedOrders).length === 0" class="empty-state" v-motion-pop>
+            <ClipboardList :size="64" />
+            <h3>Накладных пока нет</h3>
+            <p>Сделайте свой первый заказ в каталоге товаров!</p>
+            <router-link to="/catalog" class="btn btn-secondary">Перейти в каталог</router-link>
+          </div>
+
+          <div v-else class="invoices-timeline">
+            <div 
+              v-for="(orders, month) in groupedOrders" 
+              :key="month" 
+              class="month-group"
+              v-motion-slide-visible-once-bottom
+            >
+              <h3 class="month-title"><Calendar :size="18" /> {{ month }}</h3>
+              
+              <div class="orders-grid">
+                <div v-for="order in orders" :key="order.id" class="invoice-card">
+                  <div class="invoice-card-header">
+                    <div>
+                      <span class="invoice-num">Накладная №{{ order.id }}</span>
+                      <span class="invoice-date">{{ formatDate(order.created_at) }}</span>
+                    </div>
+                    <span class="invoice-price">{{ formatPrice(order.total_price) }} ₸</span>
+                  </div>
+
+                  <div class="invoice-items-preview">
+                    <div v-for="(item, index) in order.items.slice(0, 3)" :key="index" class="preview-item">
+                      <span>{{ item.name }}</span>
+                      <span>{{ item.quantity }} {{ item.unit }}</span>
+                    </div>
+                    <div v-if="order.items.length > 3" class="preview-more">
+                      и еще {{ order.items.length - 3 }} товар(ов)...
+                    </div>
+                  </div>
+
+                  <div class="invoice-card-actions">
+                    <button @click="showInvoiceDetails(order)" class="btn-details">
+                      <Eye :size="16" /> Посмотреть детали
+                    </button>
+                    <button @click="repeatOrder(order)" class="btn btn-secondary btn-repeat">
+                      <RotateCcw :size="16" /> Повторить и Дополнить заказ
+                    </button>
+                  </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Purchases Report -->
+        <div v-if="activeTab === 'reports'" class="tab-pane animate-fade">
+          <div class="price-header-row" style="margin-bottom: 2rem; display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;">
+            <div class="card-header" style="margin-bottom: 0;">
+              <h2>Отчет по закупкам и оплатам по дням</h2>
+              <p>Сводная статистика ваших заказов и платежей с расчетом остатка долга</p>
+            </div>
+            
+            <div class="search-filters-box debts-actions-box" style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+              <!-- Select Month Dropdown -->
+              <select v-model="selectedReportMonth" class="admin-select-filter">
+                <option value="all">Все периоды</option>
+                <option v-for="m in uniqueReportMonths" :key="m" :value="m">{{ m }}</option>
+              </select>
+
+              <!-- Actions -->
+              <button @click="exportReportToCSV" class="btn btn-secondary" style="background-color: #10b981; border-color: #10b981; display: flex; align-items: center; gap: 0.5rem; color: #fff;">
+                <FileText :size="18" /> Экспорт в Excel (CSV)
+              </button>
+
+              <button @click="generateReportPDF" class="btn btn-primary" :disabled="isGeneratingReportPDF" style="display: flex; align-items: center; gap: 0.5rem;">
+                <Download :size="18" /> {{ isGeneratingReportPDF ? 'Генерация...' : 'Скачать PDF отчет' }}
+              </button>
+            </div>
+          </div>
+
+          <div v-if="loading || loadingPayments" class="loading-state">
+            <span class="loader"></span>
+            <p>Загрузка данных отчета...</p>
+          </div>
+
+          <div v-else-if="dailyReportRows.length === 0" class="empty-state">
+            <TrendingUp :size="48" />
+            <p>Данные за этот период отсутствуют</p>
+          </div>
+
+          <div v-else>
+            <!-- Daily Details Table -->
+            <div class="table-responsive" style="margin-bottom: 2.5rem;">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Дата</th>
+                    <th>Месяц</th>
+                    <th>Год</th>
+                    <th style="text-align: center;">Кол-во накладных</th>
+                    <th style="text-align: right;">Сумма закупок, ₸</th>
+                    <th style="text-align: right;">Оплата, ₸</th>
+                    <th style="text-align: right;">Остаток, ₸</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in dailyReportRows" :key="row.date">
+                    <td data-label="Дата" class="font-bold">{{ row.dateFormatted }}</td>
+                    <td data-label="Месяц">{{ row.month }}</td>
+                    <td data-label="Год">{{ row.year }}</td>
+                    <td data-label="Кол-во накладных" style="text-align: center;">{{ row.orderCount }}</td>
+                    <td data-label="Сумма закупок, ₸" style="text-align: right;" class="font-bold">{{ formatPrice(row.purchases) }} ₸</td>
+                    <td data-label="Оплата, ₸" style="text-align: right;" class="text-success font-bold">{{ formatPrice(row.payments) }} ₸</td>
+                    <td data-label="Остаток, ₸" style="text-align: right;" class="font-bold" :class="{ 'text-danger': row.balance > 0 }">{{ formatPrice(row.balance) }} ₸</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Monthly Summary Section -->
+            <div class="price-header-row" style="margin-top: 2rem; margin-bottom: 1rem;">
+              <div class="card-header" style="margin-bottom: 0;">
+                <h2><Calendar :size="20" style="display: inline-block; vertical-align: middle; margin-right: 0.5rem;" /> ИТОГО ПО МЕСЯЦУ</h2>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Месяц</th>
+                    <th>Год</th>
+                    <th style="text-align: center;">Кол-во накладных</th>
+                    <th style="text-align: right;">Общие закупки, ₸</th>
+                    <th style="text-align: right;">Общие оплаты, ₸</th>
+                    <th style="text-align: right;">Остаток долга, ₸</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in monthlySummaryRows" :key="row.month + row.year">
+                    <td data-label="Месяц" class="font-bold">{{ row.month }}</td>
+                    <td data-label="Год">{{ row.year }}</td>
+                    <td data-label="Кол-во накладных" style="text-align: center;">{{ row.orderCount }}</td>
+                    <td data-label="Общие закупки, ₸" style="text-align: right;" class="font-bold">{{ formatPrice(row.purchases) }} ₸</td>
+                    <td data-label="Общие оплаты, ₸" style="text-align: right;" class="text-success font-bold">{{ formatPrice(row.payments) }} ₸</td>
+                    <td data-label="Остаток долга, ₸" style="text-align: right;" class="font-bold" :class="{ 'text-danger': row.debt > 0 }">{{ formatPrice(row.debt) }} ₸</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -616,6 +736,86 @@
       </table>
     </div>
   </div>
+
+  <!-- Purchases Report PDF Template -->
+  <div class="pdf-offscreen-container">
+    <div ref="reportPdfTemplateRef" class="pdf-debts-report" style="width: 710px; padding: 20px; font-family: 'Arial', sans-serif;">
+      <h2 class="pdf-report-title">Отчет по закупкам и оплатам по дням</h2>
+      <p class="pdf-report-meta"><strong>Покупатель:</strong> {{ authStore.user?.name || 'Ресторан' }}</p>
+      <p class="pdf-report-meta"><strong>Период:</strong> {{ selectedReportMonth === 'all' ? 'Все периоды' : selectedReportMonth }}</p>
+      <p class="pdf-report-meta"><strong>Дата выгрузки:</strong> {{ formatDateOnly(new Date()) }}</p>
+
+      <!-- Daily Table -->
+      <table class="pdf-report-table">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Месяц</th>
+            <th>Год</th>
+            <th style="text-align: center;">Накладные</th>
+            <th style="text-align: right;">Закупки, ₸</th>
+            <th style="text-align: right;">Оплаты, ₸</th>
+            <th style="text-align: right;">Остаток, ₸</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in dailyReportRows" :key="row.date">
+            <td style="font-weight: bold;">{{ row.dateFormatted }}</td>
+            <td>{{ row.month }}</td>
+            <td>{{ row.year }}</td>
+            <td style="text-align: center;">{{ row.orderCount }}</td>
+            <td style="text-align: right;">{{ formatPrice(row.purchases) }}</td>
+            <td style="text-align: right; color: #16a34a;">{{ formatPrice(row.payments) }}</td>
+            <td style="text-align: right; font-weight: bold;">{{ formatPrice(row.balance) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="page-break-before: auto; height: 20px;"></div>
+
+      <!-- Monthly Totals Table -->
+      <h3 style="font-size: 12px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; text-transform: uppercase;">ИТОГО ПО МЕСЯЦУ</h3>
+      <table class="pdf-report-table">
+        <thead>
+          <tr>
+            <th>Месяц</th>
+            <th>Год</th>
+            <th style="text-align: center;">Накладные</th>
+            <th style="text-align: right;">Общие закупки, ₸</th>
+            <th style="text-align: right;">Общие оплаты, ₸</th>
+            <th style="text-align: right;">Остаток долга, ₸</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in monthlySummaryRows" :key="row.month + row.year">
+            <td style="font-weight: bold;">{{ row.month }}</td>
+            <td>{{ row.year }}</td>
+            <td style="text-align: center;">{{ row.orderCount }}</td>
+            <td style="text-align: right; font-weight: bold;">{{ formatPrice(row.purchases) }}</td>
+            <td style="text-align: right; color: #16a34a; font-weight: bold;">{{ formatPrice(row.payments) }}</td>
+            <td style="text-align: right; font-weight: bold; color: #dc2626;">{{ formatPrice(row.debt) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Signatures -->
+      <div class="pdf-report-signatures" style="margin-top: 50px;">
+        <div class="sig-block">
+          <p>От ИП ИБРАЕВ "GASTROMIR":</p>
+          <div class="sig-line">
+            <span class="line">____________________</span>
+            <span>Ибраев Б. А.</span>
+          </div>
+        </div>
+        <div class="sig-block" style="text-align: right;">
+          <p>Получатель / Проверил:</p>
+          <div class="sig-line" style="justify-content: flex-end;">
+            <span class="line">____________________</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   </div>
 </template>
 
@@ -626,11 +826,13 @@ import signatureImg from '@/assets/docs/signature.png'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
-import { User, Calendar, Eye, RotateCcw, ClipboardList, X, Phone, MapPin, Edit3, FileText, Landmark, Hash, Globe, CreditCard } from 'lucide-vue-next'
+import { useToastStore } from '@/stores/toast'
+import { User, Calendar, Eye, RotateCcw, ClipboardList, X, Phone, MapPin, Edit3, FileText, Landmark, Hash, Globe, CreditCard, TrendingUp, Download } from 'lucide-vue-next'
 import { formatPhone } from '@/utils/format'
 
 const authStore = useAuthStore()
 const cartStore = useCartStore()
+const toastStore = useToastStore()
 const router = useRouter()
 const orders = ref([])
 const loading = ref(true)
@@ -638,6 +840,16 @@ const activeInvoice = ref(null)
 
 const pdfTemplateRef = ref(null)
 const isGeneratingPDF = ref(false)
+
+// Tabs navigation state
+const activeTab = ref('invoices')
+
+// Report state
+const selectedReportMonth = ref('all')
+const payments = ref([])
+const loadingPayments = ref(false)
+const isGeneratingReportPDF = ref(false)
+const reportPdfTemplateRef = ref(null)
 
 const getRestaurantPrefix = (name) => {
   if (!name) return 'ГМ'
@@ -900,9 +1112,285 @@ const fetchOrders = async () => {
   }
 }
 
+const fetchPayments = async () => {
+  try {
+    loadingPayments.value = true
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/payments`, {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    if (response.ok) {
+      payments.value = await response.json()
+    }
+  } catch (err) {
+    console.error('Failed to fetch payments:', err)
+  } finally {
+    loadingPayments.value = false
+  }
+}
+
 onMounted(() => {
   fetchOrders()
+  fetchPayments()
 })
+
+const formatDateString = (dateStr) => {
+  const d = new Date(dateStr)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const getRussianMonthName = (dateStr) => {
+  const d = new Date(dateStr)
+  const months = [
+    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+  ]
+  return months[d.getMonth()]
+}
+
+// Compute daily report rows
+const dailyReportRows = computed(() => {
+  const dateMap = {}
+
+  // Group orders by day
+  orders.value.forEach(order => {
+    const dayKey = formatDateString(order.created_at)
+    if (!dateMap[dayKey]) {
+      dateMap[dayKey] = {
+        date: dayKey,
+        purchases: 0,
+        payments: 0,
+        orderCount: 0
+      }
+    }
+    dateMap[dayKey].purchases += parseFloat(order.total_price) || 0
+    dateMap[dayKey].orderCount += 1
+  })
+
+  // Group payments by day
+  payments.value.forEach(pay => {
+    const dayKey = formatDateString(pay.created_at)
+    if (!dateMap[dayKey]) {
+      dateMap[dayKey] = {
+        date: dayKey,
+        purchases: 0,
+        payments: 0,
+        orderCount: 0
+      }
+    }
+    dateMap[dayKey].payments += parseFloat(pay.amount) || 0
+  })
+
+  // Sort daily rows chronologically
+  const sortedDates = Object.keys(dateMap).sort((a, b) => new Date(a) - new Date(b))
+
+  let runningBalance = 0
+  const rows = sortedDates.map(dateStr => {
+    const data = dateMap[dateStr]
+    runningBalance = runningBalance + data.purchases - data.payments
+    
+    const d = new Date(dateStr)
+    const formattedDate = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    
+    return {
+      date: dateStr,
+      dateFormatted: formattedDate,
+      month: getRussianMonthName(dateStr),
+      year: d.getFullYear().toString(),
+      orderCount: data.orderCount,
+      purchases: data.purchases,
+      payments: data.payments,
+      balance: runningBalance
+    }
+  })
+
+  // Apply month filter on the final rows
+  if (selectedReportMonth.value !== 'all') {
+    return rows.filter(row => {
+      const monthYearText = `${row.month} ${row.year}`
+      return monthYearText === selectedReportMonth.value
+    })
+  }
+
+  return rows
+})
+
+// Compute monthly summary rows
+const monthlySummaryRows = computed(() => {
+  const monthMap = {}
+
+  // Group orders by month-year
+  orders.value.forEach(order => {
+    const d = new Date(order.created_at)
+    const mName = getRussianMonthName(order.created_at)
+    const year = d.getFullYear()
+    const monthKey = `${mName} ${year}`
+    
+    if (!monthMap[monthKey]) {
+      monthMap[monthKey] = {
+        month: mName,
+        year: year.toString(),
+        orderCount: 0,
+        purchases: 0,
+        payments: 0,
+        sortDate: new Date(year, d.getMonth(), 1)
+      }
+    }
+    monthMap[monthKey].purchases += parseFloat(order.total_price) || 0
+    monthMap[monthKey].orderCount += 1
+  })
+
+  // Group payments by month-year
+  payments.value.forEach(pay => {
+    const d = new Date(pay.created_at)
+    const mName = getRussianMonthName(pay.created_at)
+    const year = d.getFullYear()
+    const monthKey = `${mName} ${year}`
+    
+    if (!monthMap[monthKey]) {
+      monthMap[monthKey] = {
+        month: mName,
+        year: year.toString(),
+        orderCount: 0,
+        purchases: 0,
+        payments: 0,
+        sortDate: new Date(year, d.getMonth(), 1)
+      }
+    }
+    monthMap[monthKey].payments += parseFloat(pay.amount) || 0
+  })
+
+  // Sort months chronologically
+  const sortedMonthKeys = Object.keys(monthMap).sort((a, b) => monthMap[a].sortDate - monthMap[b].sortDate)
+
+  let runningDebt = 0
+  const rows = sortedMonthKeys.map(key => {
+    const data = monthMap[key]
+    runningDebt = runningDebt + data.purchases - data.payments
+    return {
+      month: data.month,
+      year: data.year,
+      orderCount: data.orderCount,
+      purchases: data.purchases,
+      payments: data.payments,
+      debt: runningDebt
+    }
+  })
+
+  // Apply month filter if selected
+  if (selectedReportMonth.value !== 'all') {
+    return rows.filter(row => `${row.month} ${row.year}` === selectedReportMonth.value)
+  }
+
+  return rows
+})
+
+// Populating unique list of months for drop-downs
+const uniqueReportMonths = computed(() => {
+  const months = new Set()
+  orders.value.forEach(order => {
+    const d = new Date(order.created_at)
+    const mName = getRussianMonthName(order.created_at)
+    months.add(`${mName} ${d.getFullYear()}`)
+  })
+  payments.value.forEach(pay => {
+    const d = new Date(pay.created_at)
+    const mName = getRussianMonthName(pay.created_at)
+    months.add(`${mName} ${d.getFullYear()}`)
+  })
+  return Array.from(months)
+})
+
+const exportReportToCSV = () => {
+  const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')
+  const restName = (authStore.user?.name || 'Ресторан').replace(/\s+/g, '_')
+  const monthName = selectedReportMonth.value === 'all' ? 'Все_периоды' : selectedReportMonth.value.replace(' ', '_')
+  
+  let csvContent = "\uFEFF"
+  csvContent += `ОТЧЕТ ПО ЗАКУПКАМ И ОПЛАТАМ ПО ДНЯМ\n`
+  csvContent += `Ресторан: ${authStore.user?.name || ''}\n`
+  csvContent += `Период: ${selectedReportMonth.value === 'all' ? 'Все периоды' : selectedReportMonth.value}\n\n`
+  
+  const dailyHeaders = ['Дата', 'Месяц', 'Год', 'Кол-во накладных', 'Сумма закупок, KZT', 'Оплата, KZT', 'Остаток, KZT']
+  csvContent += dailyHeaders.join(';') + '\n'
+  
+  dailyReportRows.value.forEach(row => {
+    csvContent += [
+      row.dateFormatted,
+      row.month,
+      row.year,
+      row.orderCount,
+      row.purchases,
+      row.payments,
+      row.balance
+    ].join(';') + '\n'
+  })
+  
+  csvContent += `\n\nИТОГО ПО МЕСЯЦУ\n`
+  const monthlyHeaders = ['Месяц', 'Год', 'Кол-во накладных', 'Общие закупки, KZT', 'Общие оплаты, KZT', 'Остаток долга, KZT']
+  csvContent += monthlyHeaders.join(';') + '\n'
+  
+  monthlySummaryRows.value.forEach(row => {
+    csvContent += [
+      row.month,
+      row.year,
+      row.orderCount,
+      row.purchases,
+      row.payments,
+      row.debt
+    ].join(';') + '\n'
+  })
+  
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement("a")
+  const url = URL.createObjectURL(blob)
+  link.setAttribute("href", url)
+  link.setAttribute("download", `Отчет_закупки_${restName}_${monthName}_${date}.csv`)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  
+  toastStore.success('Отчет CSV успешно скачан!')
+}
+
+const generateReportPDF = async () => {
+  if (!reportPdfTemplateRef.value) return
+  isGeneratingReportPDF.value = true
+  
+  try {
+    const html2pdf = (await import('html2pdf.js')).default
+    const element = reportPdfTemplateRef.value
+    
+    const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')
+    const restName = (authStore.user?.name || 'Ресторан').replace(/\s+/g, '_')
+    const monthName = selectedReportMonth.value === 'all' ? 'Все_периоды' : selectedReportMonth.value.replace(' ', '_')
+    
+    const options = {
+      margin: [0.4, 0.4, 0.4, 0.4],
+      filename: `Отчет_закупки_${restName}_${monthName}_${date}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    }
+    
+    await html2pdf()
+      .from(element)
+      .set(options)
+      .save()
+      
+    toastStore.success('PDF отчет успешно скачан!')
+  } catch (err) {
+    console.error('Error generating report PDF:', err)
+    toastStore.error('Не удалось сгенерировать PDF отчет')
+  } finally {
+    isGeneratingReportPDF.value = false
+  }
+}
 
 const groupedOrders = computed(() => {
   const groups = {}
@@ -1604,5 +2092,170 @@ const repeatOrder = (order) => {
   display: inline-block;
   padding-left: 5px;
   padding-right: 5px;
+}
+
+/* Custom Profile Tabs Styles */
+.profile-tabs {
+  display: flex;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 0.35rem;
+  border-radius: 16px;
+  gap: 0.25rem;
+  margin-bottom: 2.5rem;
+  max-width: fit-content;
+}
+
+.profile-tab-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--primary-light);
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.profile-tab-btn:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.profile-tab-btn.active {
+  background: var(--secondary);
+  color: var(--white);
+  opacity: 1;
+}
+
+/* Reports Tables and Filters Styling */
+.price-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.card-header h2 {
+  font-size: 1.5rem;
+  color: var(--primary);
+  margin-bottom: 0.25rem;
+  font-weight: 700;
+}
+
+.card-header p {
+  color: var(--gray);
+  font-size: 0.95rem;
+}
+
+.admin-select-filter {
+  padding: 0.6rem 2.25rem 0.6rem 1rem;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  font-weight: 600;
+  font-size: 0.9rem;
+  background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E") no-repeat right 0.75rem center;
+  appearance: none;
+  cursor: pointer;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.admin-table th {
+  background: #f8fafc;
+  padding: 1.25rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--gray);
+  text-transform: uppercase;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-table td {
+  padding: 1.25rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.95rem;
+  color: var(--primary-light);
+}
+
+.font-bold {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Debts PDF Report Styles */
+.pdf-debts-report {
+  font-family: 'Arial', sans-serif;
+  color: #000;
+  background: #fff;
+  padding: 20px;
+  width: 710px;
+  box-sizing: border-box;
+}
+.pdf-report-title {
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+.pdf-report-meta {
+  font-size: 10px;
+  margin-bottom: 5px;
+}
+.pdf-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  margin-bottom: 25px;
+}
+.pdf-report-table th, .pdf-report-table td {
+  border: 1px solid #000;
+  font-size: 9px;
+  padding: 5px;
+  text-align: left;
+}
+.pdf-report-table th {
+  background-color: #f3f4f6;
+  font-weight: bold;
+  text-align: center;
+}
+.pdf-report-total-row td {
+  font-weight: bold;
+  background-color: #f9fafb;
+}
+.pdf-report-signatures {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 40px;
+  font-size: 10px;
+}
+.sig-block {
+  width: 45%;
+}
+.sig-block p {
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+.sig-line {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+.sig-line .line {
+  font-family: monospace;
 }
 </style>

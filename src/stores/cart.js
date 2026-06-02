@@ -1,6 +1,18 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 
+export const isWeightProduct = (product) => {
+  if (!product) return false
+  if (product.unit === 'кг') return true
+  
+  const name = product.name.toLowerCase()
+  // Check if name has weight patterns: e.g. "0,25кг", "125гр", "250гр", "(вес)", etc.
+  const weightRegex = /\b\d+([.,]\d+)?\s*(кг|гр|грамм|г\b)/
+  const hasWeightWord = name.includes('вес') || name.includes('гр.') || name.includes('гр ') || name.includes('кг.')
+  
+  return weightRegex.test(name) || hasWeightWord
+}
+
 export const useCartStore = defineStore('cart', () => {
   const items = ref([])
   const isModalOpen = ref(false)
@@ -25,7 +37,7 @@ export const useCartStore = defineStore('cart', () => {
   })
 
   const hasWeightItems = computed(() => {
-    return items.value.some(item => item.unit === 'кг')
+    return items.value.some(item => isWeightProduct(item))
   })
 
   const hasFreshItems = computed(() => {
@@ -46,6 +58,16 @@ export const useCartStore = defineStore('cart', () => {
     const item = items.value.find(i => i.id === id)
     if (item) {
       item.quantity += delta
+      if (item.quantity <= 0) {
+        items.value = items.value.filter(i => i.id !== id)
+      }
+    }
+  }
+
+  const setQuantity = (id, val) => {
+    const item = items.value.find(i => i.id === id)
+    if (item) {
+      item.quantity = val
       if (item.quantity <= 0) {
         items.value = items.value.filter(i => i.id !== id)
       }
@@ -81,6 +103,7 @@ export const useCartStore = defineStore('cart', () => {
     hasFreshItems,
     addItem,
     updateQuantity,
+    setQuantity,
     removeItem,
     clearCart,
     toggleModal,

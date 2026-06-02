@@ -1,9 +1,4 @@
 <template>
-  <Transition name="fade">
-    <div v-if="showToast" class="toast-success">
-      <span>✅ Накладная отправлена на Email!</span>
-    </div>
-  </Transition>
 
   <Transition name="fade">
     <div v-if="cartStore.isModalOpen" class="modal-overlay" @click.self="cartStore.closeModal">
@@ -15,19 +10,34 @@
 
         <div v-if="cartStore.items.length > 0" class="modal-body">
           <div class="cart-items">
-            <div v-for="item in cartStore.items" :key="item.id" class="cart-item">
+            <div v-for="(item, index) in cartStore.items" :key="item.id" class="cart-item">
+              <span class="item-index">{{ index + 1 }}</span>
               <div class="item-details">
                 <h4>{{ item.name }}</h4>
-                <p>{{ formatPrice(item.price) }} ₸ <span class="unit">/ {{ item.unit }}</span></p>
-                <span v-if="item.unit === 'кг'" class="weight-badge">⚖️ весовой</span>
+                <p class="price-unit">{{ formatPrice(item.price) }} ₸ <span class="unit">/ {{ item.unit }}</span></p>
               </div>
               <div class="item-actions">
                 <div class="qty-control">
-                  <button @click="cartStore.updateQuantity(item.id, -1)">-</button>
-                  <span>{{ item.quantity }}</span>
-                  <button @click="cartStore.updateQuantity(item.id, 1)">+</button>
+                  <button @click="cartStore.updateQuantity(item.id, -1)" class="qty-btn" title="Уменьшить">-</button>
+                  <div class="qty-input-wrapper">
+                    <input 
+                      type="number" 
+                      step="any"
+                      min="0"
+                      :value="item.quantity"
+                      @input="onQuantityInput(item.id, $event)"
+                      @blur="onQuantityBlur(item.id, $event)"
+                      @focus="$event.target.select()"
+                      class="qty-input"
+                    />
+                    <span class="qty-unit-label">{{ item.unit }}</span>
+                  </div>
+                  <button @click="cartStore.updateQuantity(item.id, 1)" class="qty-btn" title="Увеличить">+</button>
                 </div>
-                <button @click="cartStore.removeItem(item.id)" class="remove-btn"><Trash2 :size="18" /></button>
+                <div class="item-subtotal">
+                  {{ formatPrice(item.price * (item.quantity || 0)) }} ₸
+                </div>
+                <button @click="cartStore.removeItem(item.id)" class="remove-btn" title="Удалить"><Trash2 :size="18" /></button>
               </div>
             </div>
           </div>
@@ -287,8 +297,8 @@
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: left;">{{ item.name }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">GM-{{ String(item.id).slice(-4).padStart(4, '0') }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ item.unit }}</td>
-            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ item.quantity }}</td>
-            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ item.quantity }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ formatQty(item.quantity) }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center;">{{ formatQty(item.quantity) }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(item.price) }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;">{{ formatPrice(item.price * item.quantity) }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right;"></td>
@@ -307,8 +317,8 @@
           </template>
           <tr class="f32-total-row">
             <td colspan="4" style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">Итого к оплате</td>
-            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ totalQuantity }}</td>
-            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ totalQuantity }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ formatQty(totalQuantity) }}</td>
+            <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: center; font-weight: bold; background-color: #f9fafb;">{{ formatQty(totalQuantity) }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; background-color: #f9fafb;"></td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;">{{ formatPrice(discountedTotalPrice) }}</td>
             <td style="border: 1px solid #000; padding: 3px; font-size: 8px; text-align: right; font-weight: bold; background-color: #f9fafb;"></td>
@@ -320,11 +330,11 @@
       <div class="f32-words-section">
         <div class="f32-words-line" style="font-size: 8px; margin-bottom: 2px;">
           Всего отпущено количество запасов (прописью):
-          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 250px;"></span>
+          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 250px;">{{ totalQuantityInWords }}</span>
         </div>
         <div class="f32-words-line" style="font-size: 8px;">
           на сумму (прописью), в KZT:
-          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 350px;"></span>
+          <span class="f32-words-value" style="font-weight: bold; border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; min-width: 350px;">{{ discountedTotalPriceInWords }}</span>
         </div>
       </div>
 
@@ -449,6 +459,7 @@ import signatureImg from '@/assets/docs/signature.png'
 import { X, Trash2, ShoppingCart, Check, FileText, Landmark, Hash, Globe, CreditCard } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import { useRouter } from 'vue-router'
 import { parse, isValid, isBefore, startOfDay, format } from 'date-fns'
 import { formatPhone } from '@/utils/format'
@@ -456,6 +467,7 @@ import { formatPhone } from '@/utils/format'
 const cartStore = useCartStore()
 const authStore = useAuthStore()
 const router = useRouter()
+const toastStore = useToastStore()
 
 const pdfTemplateRef = ref(null)
 const isGeneratingPDF = ref(false)
@@ -463,6 +475,36 @@ const isGeneratingPDF = ref(false)
 const discountPercent = computed(() => authStore.user?.discount || 0);
 const discountAmount = computed(() => Math.round((cartStore.totalPrice * discountPercent.value / 100) * 100) / 100);
 const discountedTotalPrice = computed(() => cartStore.totalPrice - discountAmount.value);
+
+const formatQty = (qty) => {
+  const q = parseFloat(qty)
+  if (isNaN(q)) return '0'
+  return Number(q.toFixed(3)).toString()
+}
+
+const onQuantityInput = (id, event) => {
+  const value = event.target.value
+  if (value === '') return
+  const parsed = parseFloat(value)
+  if (!isNaN(parsed) && parsed >= 0) {
+    cartStore.setQuantity(id, parsed)
+  }
+}
+
+const onQuantityBlur = (id, event) => {
+  const value = event.target.value
+  const parsed = parseFloat(value)
+  if (isNaN(parsed) || parsed <= 0) {
+    cartStore.removeItem(id)
+  } else {
+    cartStore.setQuantity(id, parsed)
+  }
+}
+
+const discountedTotalPriceInWords = computed(() => {
+  const p = discountedTotalPrice.value
+  return `${capitalizeFirst(numberToWordsRu(p))} тенге 00 тиын`
+})
 
 const numberToWordsRu = (n) => {
   n = Math.round(parseFloat(n))
@@ -577,7 +619,7 @@ const totalQuantity = computed(() => {
 
 const totalQuantityInWords = computed(() => {
   const q = totalQuantity.value
-  return `${q} (${numberToWordsRu(q)})`
+  return `${formatQty(q)} (${numberToWordsRu(q)})`
 })
 
 const totalPriceInWords = computed(() => {
@@ -741,7 +783,7 @@ const placeOrderInDatabase = async () => {
     return true
   } catch (err) {
     console.error(err)
-    alert(err.message || 'Ошибка подключения к серверу')
+    toastStore.error(err.message || 'Ошибка подключения к серверу')
     return false
   }
 }
@@ -763,7 +805,7 @@ const sendToWhatsApp = async () => {
     return
   }
 
-  const itemsText = cartStore.items.map(item => `- ${item.name}: ${item.quantity} ${item.unit} x ${formatPrice(item.price)} тг`).join('\n')
+  const itemsText = cartStore.items.map(item => `- ${item.name}: ${formatQty(item.quantity)} ${item.unit} x ${formatPrice(item.price)} тг`).join('\n')
   const discountText = discountPercent.value > 0 ? `\nСкидка (${discountPercent.value}%): -${formatPrice(discountAmount.value)} тг` : ''
   const totalText = `Итого без скидки: ${formatPrice(cartStore.totalPrice)} тг${discountText}\nИтого к оплате: ${formatPrice(discountedTotalPrice.value)} тг`
   const message = `👋 *Новый заказ в GASTROMIR!*\n\n*Ресторан:* ${orderData.customerName}\n*Телефон:* ${orderData.phone}\n*Адрес:* ${orderData.address}\n*Способ оплаты:* ${orderData.paymentMethod}\n*Дата доставки:* ${orderData.deliveryDate}\n*Время доставки:* ${orderData.deliveryTime}\n\n*Заказ:*\n${itemsText}\n\n*${totalText}*`
@@ -782,12 +824,7 @@ const sendToWhatsApp = async () => {
 }
 
 const isSendingEmail = ref(false)
-const showToast = ref(false)
-
-const showSuccessToast = () => {
-  showToast.value = true
-  setTimeout(() => { showToast.value = false }, 4000)
-}
+// Local toast variables removed in favor of global toastStore
 
 const sendToEmail = async () => {
   if (!authStore.isAuthenticated) {
@@ -807,7 +844,7 @@ const sendToEmail = async () => {
   const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
 
   const itemsList = cartStore.items.map((item, i) =>
-    `${i + 1}. ${item.name} — ${item.quantity} ${item.unit} × ${formatPrice(item.price)} = ${formatPrice(item.quantity * item.price)} тг`
+    `${i + 1}. ${item.name} — ${formatQty(item.quantity)} ${item.unit} × ${formatPrice(item.price)} = ${formatPrice(item.quantity * item.price)} тг`
   ).join('\n')
 
   const discountNote = discountPercent.value > 0 
@@ -851,13 +888,13 @@ const sendToEmail = async () => {
       orderData.paymentMethod = 'Наличный расчет'
       orderData.deliveryDate = todayStr
       orderData.deliveryTime = 'До 14:00'
-      showSuccessToast()
+      toastStore.success('Накладная отправлена на Email!')
     } else {
-      alert('Ошибка при отправке. Попробуйте ещё раз.')
+      toastStore.error('Ошибка при отправке. Попробуйте ещё раз.')
     }
   } catch (error) {
     console.error('Ошибка отправки:', error)
-    alert('Ошибка при отправке. Проверьте подключение к интернету.')
+    toastStore.error('Ошибка при отправке. Проверьте подключение к интернету.')
   } finally {
     isSendingEmail.value = false
   }
@@ -946,15 +983,25 @@ const generatePDFInvoice = async () => {
 .cart-item {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  padding: 1rem 0;
+  gap: 1rem;
+  padding: 0.75rem 0;
   border-bottom: 1px solid #f1f5f9;
 }
 
+.item-index {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--gray);
+  min-width: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .item-img {
-  width: 60px;
-  height: 60px;
-  border-radius: 0.75rem;
+  width: 50px;
+  height: 50px;
+  border-radius: 0.5rem;
   object-fit: cover;
 }
 
@@ -963,19 +1010,27 @@ const generatePDFInvoice = async () => {
 }
 
 .item-details h4 {
-  font-size: 1rem;
-  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+  margin-bottom: 0.15rem;
+  font-weight: 600;
+  color: var(--primary);
 }
 
-.item-details p {
-  color: var(--primary);
-  font-weight: 700;
+.item-details p.price-unit {
+  color: var(--gray);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.item-details p.price-unit .unit {
+  color: var(--gray);
 }
 
 .item-actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .qty-control {
@@ -983,33 +1038,96 @@ const generatePDFInvoice = async () => {
   align-items: center;
   background: #f1f5f9;
   border-radius: 9999px;
-  padding: 0.25rem;
+  padding: 0.2rem;
 }
 
-.qty-control button {
+.qty-btn {
   width: 24px;
   height: 24px;
   border-radius: 50%;
   background: var(--white);
+  border: 1px solid transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--primary);
 }
 
-.qty-control span {
-  width: 30px;
+.qty-btn:hover {
+  background: var(--primary);
+  color: var(--white);
+}
+
+.qty-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--white);
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.05rem 0.4rem;
+  margin: 0 0.25rem;
+  transition: var(--transition);
+}
+
+.qty-input-wrapper:focus-within {
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+}
+
+.qty-input {
+  width: 38px;
+  border: none;
+  background: transparent;
   text-align: center;
   font-weight: 600;
+  font-size: 0.9rem;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  color: var(--primary);
+  -moz-appearance: textfield;
+}
+
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.qty-unit-label {
+  font-size: 0.75rem;
+  color: var(--gray);
+  font-weight: 500;
+  margin-left: 0.1rem;
+  user-select: none;
+}
+
+.item-subtotal {
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 85px;
+  text-align: right;
+  font-size: 0.95rem;
 }
 
 .remove-btn {
   color: #ef4444;
   opacity: 0.6;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 
 .remove-btn:hover {
   opacity: 1;
+  transform: scale(1.05);
 }
 
 .order-form {
@@ -1166,32 +1284,47 @@ const generatePDFInvoice = async () => {
     height: 100dvh;
   }
   .modal-body { padding: 1.25rem; }
-  .cart-item { gap: 1rem; }
+  .cart-item { 
+    gap: 0.5rem; 
+    padding: 0.5rem 0;
+  }
+  .item-index {
+    min-width: 1rem;
+    font-size: 0.8rem;
+  }
+  .item-details h4 {
+    font-size: 0.85rem;
+    line-height: 1.2;
+  }
+  .item-details p.price-unit {
+    font-size: 0.75rem;
+  }
+  .item-actions {
+    gap: 0.5rem;
+  }
+  .qty-btn {
+    width: 20px;
+    height: 20px;
+    font-size: 0.8rem;
+  }
+  .qty-input-wrapper {
+    padding: 0 0.25rem;
+    margin: 0 0.1rem;
+  }
+  .qty-input {
+    width: 28px;
+    font-size: 0.8rem;
+  }
+  .qty-unit-label {
+    font-size: 0.7rem;
+  }
+  .item-subtotal {
+    font-size: 0.85rem;
+    min-width: 65px;
+  }
   .order-form { padding: 1.5rem; border-radius: 1.5rem; }
   .modal-footer { padding: 1.25rem; padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)); }
   .total-row { font-size: 1.1rem; }
-}
-
-.toast-success {
-  position: fixed;
-  bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #22c55e;
-  color: #fff;
-  padding: 1rem 2rem;
-  border-radius: 1rem;
-  font-size: 1rem;
-  font-weight: 600;
-  z-index: 9999;
-  box-shadow: 0 8px 30px rgba(34,197,94,0.35);
-  white-space: nowrap;
-  animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 .payment-methods-grid {

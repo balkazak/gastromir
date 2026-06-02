@@ -101,6 +101,249 @@
           </div>
         </div>
 
+        <!-- Tab 4: Mutual Settlements (Взаиморасчеты) -->
+        <div v-if="activeTab === 'debts'" class="tab-pane animate-fade">
+          <div class="price-header-row" style="margin-bottom: 2rem; align-items: flex-start;">
+            <div class="card-header" style="margin-bottom: 0;">
+              <h2>Взаиморасчеты (дебиторская задолженность)</h2>
+              <p>Управляйте отгрузками, оплатами и просроченной задолженностью ресторанов</p>
+            </div>
+            <div class="search-filters-box debts-actions-box" style="display: flex; gap: 0.75rem;">
+              <button @click="exportToCSV" class="btn btn-secondary" style="background-color: #10b981; border-color: #10b981; display: flex; align-items: center; gap: 0.5rem; color: #fff;">
+                <FileText :size="18" /> Экспорт в Excel (CSV)
+              </button>
+              <button @click="generateDebtsPDF" class="btn btn-primary" :disabled="isGeneratingDebtsPDF" style="display: flex; align-items: center; gap: 0.5rem;">
+                <Download :size="18" /> {{ isGeneratingDebtsPDF ? 'Генерация...' : 'Скачать PDF отчет' }}
+              </button>
+            </div>
+          </div>
+
+          <div v-if="loadingUsers" class="loading-state">
+            <span class="loader"></span>
+            <p>Загрузка данных взаиморасчетов...</p>
+          </div>
+
+          <div v-else-if="restaurants.length === 0" class="empty-state">
+            <Users :size="48" />
+            <p>Нет зарегистрированных ресторанов</p>
+          </div>
+
+          <div v-else>
+            <div class="table-responsive">
+              <table class="admin-table debts-table">
+                <thead>
+                  <tr>
+                    <th>Покупатель</th>
+                    <th style="width: 200px;">Отгружено, ₸</th>
+                    <th style="width: 200px;">Оплачено, ₸</th>
+                    <th>Текущая задолженность, ₸</th>
+                    <th style="width: 200px;">Просроченная задолженность, ₸</th>
+                    <th style="text-align: right; width: 100px;">Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="res in restaurants" :key="res.id">
+                    <td data-label="Покупатель" class="font-bold">{{ res.name }}</td>
+                    
+                    <td data-label="Отгружено, ₸">
+                      <div class="limit-edit-wrapper">
+                        <input 
+                          type="number" 
+                          v-model.number="res.shipped_amount" 
+                          class="limit-input"
+                          placeholder="0"
+                        />
+                      </div>
+                    </td>
+                    
+                    <td data-label="Оплачено, ₸">
+                      <div class="limit-edit-wrapper">
+                        <input 
+                          type="number" 
+                          v-model.number="res.paid_amount" 
+                          class="limit-input"
+                          placeholder="0"
+                        />
+                      </div>
+                    </td>
+                    
+                    <td data-label="Текущая задолженность, ₸" class="font-bold" :class="{ 'text-danger': (res.shipped_amount - res.paid_amount) > 0 }">
+                      {{ formatPrice(res.shipped_amount - res.paid_amount) }} ₸
+                    </td>
+                    
+                    <td data-label="Просроченная задолженность, ₸">
+                      <div class="limit-edit-wrapper">
+                        <input 
+                          type="number" 
+                          v-model.number="res.overdue_amount" 
+                          class="limit-input"
+                          placeholder="0"
+                        />
+                      </div>
+                    </td>
+                    
+                    <td data-label="Действия" style="text-align: right;">
+                      <button 
+                        @click="saveDebts(res.id, res.shipped_amount, res.paid_amount, res.overdue_amount)" 
+                        class="btn-save-limit" 
+                        title="Сохранить взаиморасчеты"
+                      >
+                        <Check :size="16" />
+                      </button>
+                    </td>
+                  </tr>
+
+                  <!-- Total Row inside the table -->
+                  <tr class="debts-table-total-row">
+                    <td data-label="Покупатель" class="font-bold">ИТОГО:</td>
+                    <td data-label="Отгружено, ₸" class="font-bold">{{ formatPrice(totalShipped) }} ₸</td>
+                    <td data-label="Оплачено, ₸" class="font-bold text-success">{{ formatPrice(totalPaid) }} ₸</td>
+                    <td data-label="Текущая задолженность, ₸" class="font-bold" :class="{ 'text-danger': totalDebt > 0 }">
+                      {{ formatPrice(totalDebt) }} ₸
+                    </td>
+                    <td data-label="Просроченная задолженность, ₸" class="font-bold" :class="{ 'text-danger': totalOverdue > 0 }">
+                      {{ formatPrice(totalOverdue) }} ₸
+                    </td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Итого Summary Box -->
+            <div class="debts-summary-card">
+              <h3>Итого:</h3>
+              <ul class="debts-summary-list">
+                <li>
+                  <span class="summary-label">Отгружено:</span>
+                  <span class="summary-value">{{ formatPrice(totalShipped) }} ₸</span>
+                </li>
+                <li>
+                  <span class="summary-label">Оплачено:</span>
+                  <span class="summary-value text-success">{{ formatPrice(totalPaid) }} ₸</span>
+                </li>
+                <li>
+                  <span class="summary-label">Долг:</span>
+                  <span class="summary-value" :class="{ 'text-danger': totalDebt > 0 }">{{ formatPrice(totalDebt) }} ₸</span>
+                </li>
+                <li>
+                  <span class="summary-label">Просрочка:</span>
+                  <span class="summary-value" :class="{ 'text-danger': totalOverdue > 0 }">{{ formatPrice(totalOverdue) }} ₸</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 5: General Purchases & Payments Daily Report -->
+        <div v-if="activeTab === 'reports'" class="tab-pane animate-fade">
+          <div class="price-header-row" style="margin-bottom: 2rem; align-items: flex-start; justify-content: space-between;">
+            <div class="card-header" style="margin-bottom: 0;">
+              <h2>Отчет по закупкам и оплатам по дням</h2>
+              <p>Сводная статистика заказов и платежей с расчетом остатка долга</p>
+            </div>
+            
+            <div class="search-filters-box debts-actions-box" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              <!-- Select Restaurant Dropdown -->
+              <select v-model="selectedReportRestaurant" class="admin-select-filter">
+                <option value="all">Все покупатели</option>
+                <option v-for="res in restaurants" :key="res.id" :value="res.name">{{ res.name }}</option>
+              </select>
+
+              <!-- Select Month Dropdown -->
+              <select v-model="selectedReportMonth" class="admin-select-filter">
+                <option value="all">Все периоды</option>
+                <option v-for="m in uniqueReportMonths" :key="m" :value="m">{{ m }}</option>
+              </select>
+
+              <!-- Actions -->
+              <button @click="showRecordPaymentModal = true" class="btn btn-secondary" style="background-color: var(--primary); border-color: var(--primary); display: flex; align-items: center; gap: 0.5rem; color: #fff;">
+                <Plus :size="18" /> Внести оплату
+              </button>
+
+              <button @click="exportReportToCSV" class="btn btn-secondary" style="background-color: #10b981; border-color: #10b981; display: flex; align-items: center; gap: 0.5rem; color: #fff;">
+                <FileText :size="18" /> Экспорт в Excel (CSV)
+              </button>
+
+              <button @click="generateReportPDF" class="btn btn-primary" :disabled="isGeneratingReportPDF" style="display: flex; align-items: center; gap: 0.5rem;">
+                <Download :size="18" /> {{ isGeneratingReportPDF ? 'Генерация...' : 'Скачать PDF отчет' }}
+              </button>
+            </div>
+          </div>
+
+          <div v-if="loadingOrders || loadingPayments" class="loading-state">
+            <span class="loader"></span>
+            <p>Загрузка данных отчета...</p>
+          </div>
+
+          <div v-else-if="dailyReportRows.length === 0" class="empty-state">
+            <TrendingUp :size="48" />
+            <p>Данные за этот период отсутствуют</p>
+          </div>
+
+          <div v-else>
+            <!-- Daily Details Table -->
+            <div class="table-responsive" style="margin-bottom: 2.5rem;">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Дата</th>
+                    <th>Месяц</th>
+                    <th>Год</th>
+                    <th style="text-align: center;">Кол-во накладных</th>
+                    <th style="text-align: right;">Сумма закупок, ₸</th>
+                    <th style="text-align: right;">Оплата, ₸</th>
+                    <th style="text-align: right;">Остаток, ₸</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in dailyReportRows" :key="row.date">
+                    <td data-label="Дата" class="font-bold">{{ row.dateFormatted }}</td>
+                    <td data-label="Месяц">{{ row.month }}</td>
+                    <td data-label="Год">{{ row.year }}</td>
+                    <td data-label="Кол-во накладных" style="text-align: center;">{{ row.orderCount }}</td>
+                    <td data-label="Сумма закупок, ₸" style="text-align: right;" class="font-bold">{{ formatPrice(row.purchases) }} ₸</td>
+                    <td data-label="Оплата, ₸" style="text-align: right;" class="text-success font-bold">{{ formatPrice(row.payments) }} ₸</td>
+                    <td data-label="Остаток, ₸" style="text-align: right;" class="font-bold" :class="{ 'text-danger': row.balance > 0 }">{{ formatPrice(row.balance) }} ₸</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Monthly Summary Section -->
+            <div class="price-header-row" style="margin-top: 2rem; margin-bottom: 1rem;">
+              <div class="card-header" style="margin-bottom: 0;">
+                <h2><Calendar :size="20" style="display: inline-block; vertical-align: middle; margin-right: 0.5rem;" /> ИТОГО ПО МЕСЯЦУ</h2>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Месяц</th>
+                    <th>Год</th>
+                    <th style="text-align: center;">Кол-во накладных</th>
+                    <th style="text-align: right;">Общие закупки, ₸</th>
+                    <th style="text-align: right;">Общие оплаты, ₸</th>
+                    <th style="text-align: right;">Остаток долга, ₸</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in monthlySummaryRows" :key="row.month + row.year">
+                    <td data-label="Месяц" class="font-bold">{{ row.month }}</td>
+                    <td data-label="Год">{{ row.year }}</td>
+                    <td data-label="Кол-во накладных" style="text-align: center;">{{ row.orderCount }}</td>
+                    <td data-label="Общие закупки, ₸" style="text-align: right;" class="font-bold">{{ formatPrice(row.purchases) }} ₸</td>
+                    <td data-label="Общие оплаты, ₸" style="text-align: right;" class="text-success font-bold">{{ formatPrice(row.payments) }} ₸</td>
+                    <td data-label="Остаток долга, ₸" style="text-align: right;" class="font-bold" :class="{ 'text-danger': row.debt > 0 }">{{ formatPrice(row.debt) }} ₸</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <!-- Tab 2: Products Full Catalog Editor with Advanced Filters & Infinite Scroll -->
         <div v-if="activeTab === 'products'" class="tab-pane animate-fade">
           <div class="price-header-row">
@@ -482,6 +725,49 @@
       </div>
     </Transition>
 
+    <!-- Record Payment Modal -->
+    <Transition name="fade">
+      <div v-if="showRecordPaymentModal" class="details-modal-overlay" @click.self="showRecordPaymentModal = false">
+        <div class="details-modal" v-motion-pop>
+          <div class="details-modal-header">
+            <h3>Внести оплату (зарегистрировать платеж)</h3>
+            <button @click="showRecordPaymentModal = false" class="close-btn"><X /></button>
+          </div>
+          <div class="details-modal-body">
+            <form @submit.prevent="submitAddPayment" class="add-product-form">
+              <!-- Select Restaurant -->
+              <div class="form-group">
+                <label for="payment-restaurant">Выберите ресторан / покупателя</label>
+                <select id="payment-restaurant" v-model="newPaymentForm.user_id" required class="limit-input" style="width: 100%; font-weight: normal; margin-top: 0.5rem;">
+                  <option value="" disabled>Выберите покупателя...</option>
+                  <option v-for="res in restaurants" :key="res.id" :value="res.id">{{ res.name }}</option>
+                </select>
+              </div>
+
+              <!-- Amount -->
+              <div class="form-group" style="margin-top: 1rem;">
+                <label for="payment-amount">Сумма оплаты (₸)</label>
+                <input id="payment-amount" type="number" step="0.01" min="0.01" v-model.number="newPaymentForm.amount" required placeholder="Например: 50000" class="limit-input" style="width: 100%; font-weight: normal; margin-top: 0.5rem;" />
+              </div>
+
+              <!-- Custom Date (Optional) -->
+              <div class="form-group" style="margin-top: 1rem;">
+                <label for="payment-date">Дата платежа (по умолчанию: сегодня)</label>
+                <input id="payment-date" type="datetime-local" v-model="newPaymentForm.created_at" class="limit-input" style="width: 100%; font-weight: normal; margin-top: 0.5rem;" />
+              </div>
+
+              <div class="form-actions" style="margin-top: 1.5rem;">
+                <button type="button" @click="showRecordPaymentModal = false" class="btn-cancel">Отмена</button>
+                <button type="submit" class="btn-submit" :disabled="isSavingPayment">
+                  {{ isSavingPayment ? 'Сохранение...' : 'Зарегистрировать платеж' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <div class="pdf-offscreen-container" v-if="activeInvoice">
       <div ref="pdfTemplateRef" class="pdf-invoice-f32">
         <div class="f32-appendix">
@@ -756,20 +1042,159 @@
         </table>
       </div>
     </div>
+
+    <!-- Debts Report PDF Template -->
+    <div class="pdf-offscreen-container">
+      <div ref="debtsPdfTemplateRef" class="pdf-debts-report">
+        <h2 class="pdf-report-title">Акт сверки взаиморасчетов (сводный)</h2>
+        <p class="pdf-report-meta"><strong>Дата составления:</strong> {{ formatDateOnly(new Date()) }}</p>
+        <p class="pdf-report-meta"><strong>Организация:</strong> ИП ИБРАЕВ "GASTROMIR"</p>
+        
+        <table class="pdf-report-table">
+          <thead>
+            <tr>
+              <th style="width: 5%;">#</th>
+              <th>Покупатель</th>
+              <th style="width: 20%; text-align: right;">Отгружено, ₸</th>
+              <th style="width: 20%; text-align: right;">Оплачено, ₸</th>
+              <th style="width: 20%; text-align: right;">Текущий долг, ₸</th>
+              <th style="width: 15%; text-align: right;">Просрочка, ₸</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(res, index) in restaurants" :key="res.id">
+              <td>{{ index + 1 }}</td>
+              <td style="font-weight: bold;">{{ res.name }}</td>
+              <td style="text-align: right;">{{ formatPrice(res.shipped_amount) }}</td>
+              <td style="text-align: right;">{{ formatPrice(res.paid_amount) }}</td>
+              <td style="text-align: right; font-weight: bold;">{{ formatPrice(res.shipped_amount - res.paid_amount) }}</td>
+              <td style="text-align: right; color: #dc2626;">{{ formatPrice(res.overdue_amount) }}</td>
+            </tr>
+            <tr class="pdf-report-total-row">
+              <td colspan="2"><strong>ИТОГО:</strong></td>
+              <td style="text-align: right;"><strong>{{ formatPrice(totalShipped) }}</strong></td>
+              <td style="text-align: right;"><strong>{{ formatPrice(totalPaid) }}</strong></td>
+              <td style="text-align: right;"><strong>{{ formatPrice(totalDebt) }}</strong></td>
+              <td style="text-align: right;"><strong>{{ formatPrice(totalOverdue) }}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div class="pdf-report-signatures">
+          <div class="sig-block">
+            <p>От ИП ИБРАЕВ "GASTROMIR":</p>
+            <div class="sig-line">
+              <span class="line">____________________</span>
+              <span>Ибраев Б. А.</span>
+            </div>
+          </div>
+          <div class="sig-block" style="text-align: right;">
+            <p>Проверил администратор:</p>
+            <div class="sig-line" style="justify-content: flex-end;">
+              <span class="line">____________________</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Purchases Report PDF Template -->
+    <div class="pdf-offscreen-container">
+      <div ref="reportPdfTemplateRef" class="pdf-debts-report" style="width: 710px; padding: 20px; font-family: 'Arial', sans-serif;">
+        <h2 class="pdf-report-title">Отчет по закупкам и оплатам по дням</h2>
+        <p class="pdf-report-meta"><strong>Покупатель:</strong> {{ selectedReportRestaurant === 'all' ? 'Все рестораны' : selectedReportRestaurant }}</p>
+        <p class="pdf-report-meta"><strong>Период:</strong> {{ selectedReportMonth === 'all' ? 'Все периоды' : selectedReportMonth }}</p>
+        <p class="pdf-report-meta"><strong>Дата выгрузки:</strong> {{ formatDateOnly(new Date()) }}</p>
+
+        <!-- Daily Table -->
+        <table class="pdf-report-table">
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th>Месяц</th>
+              <th>Год</th>
+              <th style="text-align: center;">Накладные</th>
+              <th style="text-align: right;">Закупки, ₸</th>
+              <th style="text-align: right;">Оплаты, ₸</th>
+              <th style="text-align: right;">Остаток, ₸</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in dailyReportRows" :key="row.date">
+              <td style="font-weight: bold;">{{ row.dateFormatted }}</td>
+              <td>{{ row.month }}</td>
+              <td>{{ row.year }}</td>
+              <td style="text-align: center;">{{ row.orderCount }}</td>
+              <td style="text-align: right;">{{ formatPrice(row.purchases) }}</td>
+              <td style="text-align: right; color: #16a34a;">{{ formatPrice(row.payments) }}</td>
+              <td style="text-align: right; font-weight: bold;">{{ formatPrice(row.balance) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="page-break-before: auto; height: 20px;"></div>
+
+        <!-- Monthly Totals Table -->
+        <h3 style="font-size: 12px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; text-transform: uppercase;">ИТОГО ПО МЕСЯЦУ</h3>
+        <table class="pdf-report-table">
+          <thead>
+            <tr>
+              <th>Месяц</th>
+              <th>Год</th>
+              <th style="text-align: center;">Накладные</th>
+              <th style="text-align: right;">Общие закупки, ₸</th>
+              <th style="text-align: right;">Общие оплаты, ₸</th>
+              <th style="text-align: right;">Остаток долга, ₸</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in monthlySummaryRows" :key="row.month + row.year">
+              <td style="font-weight: bold;">{{ row.month }}</td>
+              <td>{{ row.year }}</td>
+              <td style="text-align: center;">{{ row.orderCount }}</td>
+              <td style="text-align: right; font-weight: bold;">{{ formatPrice(row.purchases) }}</td>
+              <td style="text-align: right; color: #16a34a; font-weight: bold;">{{ formatPrice(row.payments) }}</td>
+              <td style="text-align: right; font-weight: bold; color: #dc2626;">{{ formatPrice(row.debt) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Signatures -->
+        <div class="pdf-report-signatures" style="margin-top: 50px;">
+          <div class="sig-block">
+            <p>От ИП ИБРАЕВ "GASTROMIR":</p>
+            <div class="sig-line">
+              <span class="line">____________________</span>
+              <span>Ибраев Б. А.</span>
+            </div>
+          </div>
+          <div class="sig-block" style="text-align: right;">
+            <p>Получатель / Проверил:</p>
+            <div class="sig-line" style="justify-content: flex-end;">
+              <span class="line">____________________</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { ShieldCheck, Users, DollarSign, Calendar, Eye, Trash2, Check, Search, ClipboardList, X, Edit3, ArrowUpDown, Plus, FileText, Download } from 'lucide-vue-next'
+import { useToastStore } from '@/stores/toast'
+import { ShieldCheck, Users, DollarSign, Calendar, Eye, Trash2, Check, Search, ClipboardList, X, Edit3, ArrowUpDown, Plus, FileText, Download, Wallet, TrendingUp } from 'lucide-vue-next'
 import printImg from '@/assets/docs/print.png'
 import signatureImg from '@/assets/docs/signature.png'
 
 const authStore = useAuthStore()
+const toastStore = useToastStore()
 
 const pdfTemplateRef = ref(null)
+const debtsPdfTemplateRef = ref(null)
 const isGeneratingPDF = ref(false)
+const isGeneratingDebtsPDF = ref(false)
 const isSavingInvoice = ref(false)
 
 const numberToWordsRu = (n) => {
@@ -900,7 +1325,7 @@ const generatePDFInvoice = async (order) => {
       .save()
   } catch (err) {
     console.error('Error generating PDF:', err)
-    alert('Не удалось сгенерировать PDF. Попробуйте еще раз.')
+    toastStore.error('Не удалось сгенерировать PDF. Попробуйте еще раз.')
   } finally {
     activeInvoice.value = originalActiveInvoice
     isGeneratingPDF.value = false
@@ -934,7 +1359,7 @@ const submitAddProduct = async () => {
       : newProductForm.category
 
     if (!finalCategory) {
-      alert('Пожалуйста, выберите или укажите категорию')
+      toastStore.warning('Пожалуйста, выберите или укажите категорию')
       return
     }
 
@@ -957,20 +1382,22 @@ const submitAddProduct = async () => {
     if (response.ok) {
       products.value.push(data.product)
       closeAddProductModal()
-      alert('Товар успешно добавлен!')
+      toastStore.success('Товар успешно добавлен!')
     } else {
-      alert(data.message || 'Ошибка при добавлении товара')
+      toastStore.error(data.message || 'Ошибка при добавлении товара')
     }
   } catch (err) {
     console.error(err)
-    alert('Не удалось добавить товар')
+    toastStore.error('Не удалось добавить товар')
   }
 }
 
 const tabs = [
   { id: 'restaurants', name: 'Рестораны', icon: Users },
+  { id: 'debts', name: 'Взаиморасчеты', icon: Wallet },
   { id: 'products', name: 'Каталог цен', icon: DollarSign },
-  { id: 'invoices', name: 'Накладные', icon: ClipboardList }
+  { id: 'invoices', name: 'Накладные', icon: ClipboardList },
+  { id: 'reports', name: 'Отчет по дням', icon: TrendingUp }
 ]
 
 const activeTab = ref('restaurants')
@@ -1111,10 +1538,371 @@ watch([productSearch, filterCategory, filterManufacturer, sortField, sortOrder],
   resetLimit()
 })
 
+// --- Payments & Purchase Report Logic ---
+const payments = ref([])
+const loadingPayments = ref(false)
+const selectedReportRestaurant = ref('all')
+const selectedReportMonth = ref('all')
+const showRecordPaymentModal = ref(false)
+const isSavingPayment = ref(false)
+const isGeneratingReportPDF = ref(false)
+const reportPdfTemplateRef = ref(null)
+
+const newPaymentForm = reactive({
+  user_id: '',
+  amount: '',
+  created_at: ''
+})
+
+const fetchPayments = async () => {
+  try {
+    loadingPayments.value = true
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/payments`, {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    if (response.ok) {
+      payments.value = await response.json()
+    }
+  } catch (err) {
+    console.error('Failed to load payments:', err)
+  } finally {
+    loadingPayments.value = false
+  }
+}
+
+// Helper to get formatted date string as YYYY-MM-DD
+const formatDateString = (dateStr) => {
+  const d = new Date(dateStr)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const getRussianMonthName = (dateStr) => {
+  const d = new Date(dateStr)
+  const months = [
+    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+  ]
+  return months[d.getMonth()]
+}
+
+// Compute daily report rows
+const dailyReportRows = computed(() => {
+  const dateMap = {}
+
+  // Filter orders by selected restaurant
+  const filteredOrdersList = orders.value.filter(order => {
+    if (selectedReportRestaurant.value === 'all') return true
+    return order.restaurant_name === selectedReportRestaurant.value
+  })
+
+  // Filter payments by selected restaurant
+  const filteredPaymentsList = payments.value.filter(pay => {
+    if (selectedReportRestaurant.value === 'all') return true
+    return pay.restaurant_name === selectedReportRestaurant.value
+  })
+
+  // Group orders by day
+  filteredOrdersList.forEach(order => {
+    const dayKey = formatDateString(order.created_at)
+    if (!dateMap[dayKey]) {
+      dateMap[dayKey] = {
+        date: dayKey,
+        purchases: 0,
+        payments: 0,
+        orderCount: 0
+      }
+    }
+    dateMap[dayKey].purchases += parseFloat(order.total_price) || 0
+    dateMap[dayKey].orderCount += 1
+  })
+
+  // Group payments by day
+  filteredPaymentsList.forEach(pay => {
+    const dayKey = formatDateString(pay.created_at)
+    if (!dateMap[dayKey]) {
+      dateMap[dayKey] = {
+        date: dayKey,
+        purchases: 0,
+        payments: 0,
+        orderCount: 0
+      }
+    }
+    dateMap[dayKey].payments += parseFloat(pay.amount) || 0
+  })
+
+  // Sort daily rows chronologically
+  const sortedDates = Object.keys(dateMap).sort((a, b) => new Date(a) - new Date(b))
+
+  let runningBalance = 0
+  const rows = sortedDates.map(dateStr => {
+    const data = dateMap[dateStr]
+    runningBalance = runningBalance + data.purchases - data.payments
+    
+    const d = new Date(dateStr)
+    const formattedDate = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    
+    return {
+      date: dateStr,
+      dateFormatted: formattedDate,
+      month: getRussianMonthName(dateStr),
+      year: d.getFullYear().toString(),
+      orderCount: data.orderCount,
+      purchases: data.purchases,
+      payments: data.payments,
+      balance: runningBalance
+    }
+  })
+
+  // Apply month filter on the final rows (so running balance is computed correctly over history first!)
+  if (selectedReportMonth.value !== 'all') {
+    return rows.filter(row => {
+      const monthYearText = `${row.month} ${row.year}`
+      return monthYearText === selectedReportMonth.value
+    })
+  }
+
+  return rows
+})
+
+// Compute monthly summary rows
+const monthlySummaryRows = computed(() => {
+  const monthMap = {}
+
+  // Filter orders by selected restaurant
+  const filteredOrdersList = orders.value.filter(order => {
+    if (selectedReportRestaurant.value === 'all') return true
+    return order.restaurant_name === selectedReportRestaurant.value
+  })
+
+  // Filter payments by selected restaurant
+  const filteredPaymentsList = payments.value.filter(pay => {
+    if (selectedReportRestaurant.value === 'all') return true
+    return pay.restaurant_name === selectedReportRestaurant.value
+  })
+
+  // Group orders by month-year
+  filteredOrdersList.forEach(order => {
+    const d = new Date(order.created_at)
+    const mName = getRussianMonthName(order.created_at)
+    const year = d.getFullYear()
+    const monthKey = `${mName} ${year}`
+    
+    if (!monthMap[monthKey]) {
+      monthMap[monthKey] = {
+        month: mName,
+        year: year.toString(),
+        orderCount: 0,
+        purchases: 0,
+        payments: 0,
+        sortDate: new Date(year, d.getMonth(), 1)
+      }
+    }
+    monthMap[monthKey].purchases += parseFloat(order.total_price) || 0
+    monthMap[monthKey].orderCount += 1
+  })
+
+  // Group payments by month-year
+  filteredPaymentsList.forEach(pay => {
+    const d = new Date(pay.created_at)
+    const mName = getRussianMonthName(pay.created_at)
+    const year = d.getFullYear()
+    const monthKey = `${mName} ${year}`
+    
+    if (!monthMap[monthKey]) {
+      monthMap[monthKey] = {
+        month: mName,
+        year: year.toString(),
+        orderCount: 0,
+        purchases: 0,
+        payments: 0,
+        sortDate: new Date(year, d.getMonth(), 1)
+      }
+    }
+    monthMap[monthKey].payments += parseFloat(pay.amount) || 0
+  })
+
+  // Sort months chronologically
+  const sortedMonthKeys = Object.keys(monthMap).sort((a, b) => monthMap[a].sortDate - monthMap[b].sortDate)
+
+  let runningDebt = 0
+  const rows = sortedMonthKeys.map(key => {
+    const data = monthMap[key]
+    runningDebt = runningDebt + data.purchases - data.payments
+    return {
+      month: data.month,
+      year: data.year,
+      orderCount: data.orderCount,
+      purchases: data.purchases,
+      payments: data.payments,
+      debt: runningDebt
+    }
+  })
+
+  // Apply month filter if selected
+  if (selectedReportMonth.value !== 'all') {
+    return rows.filter(row => `${row.month} ${row.year}` === selectedReportMonth.value)
+  }
+
+  return rows
+})
+
+// Populating unique list of months for drop-downs
+const uniqueReportMonths = computed(() => {
+  const months = new Set()
+  orders.value.forEach(order => {
+    const d = new Date(order.created_at)
+    const mName = getRussianMonthName(order.created_at)
+    months.add(`${mName} ${d.getFullYear()}`)
+  })
+  payments.value.forEach(pay => {
+    const d = new Date(pay.created_at)
+    const mName = getRussianMonthName(pay.created_at)
+    months.add(`${mName} ${d.getFullYear()}`)
+  })
+  return Array.from(months)
+})
+
+// Save payment logic
+const submitAddPayment = async () => {
+  if (!newPaymentForm.user_id || !newPaymentForm.amount) {
+    toastStore.warning('Пожалуйста, выберите ресторан и введите сумму.')
+    return
+  }
+  
+  try {
+    isSavingPayment.value = true
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/payments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        user_id: parseInt(newPaymentForm.user_id, 10),
+        amount: parseFloat(newPaymentForm.amount),
+        created_at: newPaymentForm.created_at || null
+      })
+    })
+    
+    const data = await response.json()
+    if (response.ok) {
+      toastStore.success('Оплата успешно зафиксирована!')
+      showRecordPaymentModal.value = false
+      // Reset form
+      newPaymentForm.user_id = ''
+      newPaymentForm.amount = ''
+      newPaymentForm.created_at = ''
+      // Re-fetch data
+      await fetchPayments()
+      await fetchRestaurants() // to update paid_amount in settlements
+    } else {
+      toastStore.error(data.message || 'Ошибка сохранения оплаты')
+    }
+  } catch (err) {
+    console.error(err)
+    toastStore.error('Не удалось сохранить оплату')
+  } finally {
+    isSavingPayment.value = false
+  }
+}
+
+const exportReportToCSV = () => {
+  const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')
+  const restName = selectedReportRestaurant.value === 'all' ? 'Все_рестораны' : selectedReportRestaurant.value
+  const monthName = selectedReportMonth.value === 'all' ? 'Все_периоды' : selectedReportMonth.value.replace(' ', '_')
+  
+  let csvContent = "\uFEFF"
+  csvContent += `ОТЧЕТ ПО ЗАКУПКАМ И ОПЛАТАМ ПО ДНЯМ\n`
+  csvContent += `Ресторан: ${selectedReportRestaurant.value === 'all' ? 'Все рестораны' : selectedReportRestaurant.value}\n`
+  csvContent += `Период: ${selectedReportMonth.value === 'all' ? 'Все периоды' : selectedReportMonth.value}\n\n`
+  
+  const dailyHeaders = ['Дата', 'Месяц', 'Год', 'Кол-во накладных', 'Сумма закупок, KZT', 'Оплата, KZT', 'Остаток, KZT']
+  csvContent += dailyHeaders.join(';') + '\n'
+  
+  dailyReportRows.value.forEach(row => {
+    csvContent += [
+      row.dateFormatted,
+      row.month,
+      row.year,
+      row.orderCount,
+      row.purchases,
+      row.payments,
+      row.balance
+    ].join(';') + '\n'
+  })
+  
+  csvContent += `\n\nИТОГО ПО МЕСЯЦУ\n`
+  const monthlyHeaders = ['Месяц', 'Год', 'Кол-во накладных', 'Общие закупки, KZT', 'Общие оплаты, KZT', 'Остаток долга, KZT']
+  csvContent += monthlyHeaders.join(';') + '\n'
+  
+  monthlySummaryRows.value.forEach(row => {
+    csvContent += [
+      row.month,
+      row.year,
+      row.orderCount,
+      row.purchases,
+      row.payments,
+      row.debt
+    ].join(';') + '\n'
+  })
+  
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement("a")
+  const url = URL.createObjectURL(blob)
+  link.setAttribute("href", url)
+  link.setAttribute("download", `Отчет_закупки_${restName}_${monthName}_${date}.csv`)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  
+  toastStore.success('Отчет CSV успешно скачан!')
+}
+
+const generateReportPDF = async () => {
+  if (!reportPdfTemplateRef.value) return
+  isGeneratingReportPDF.value = true
+  
+  try {
+    const html2pdf = (await import('html2pdf.js')).default
+    const element = reportPdfTemplateRef.value
+    
+    const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')
+    const restName = selectedReportRestaurant.value === 'all' ? 'Все_рестораны' : selectedReportRestaurant.value
+    const monthName = selectedReportMonth.value === 'all' ? 'Все_периоды' : selectedReportMonth.value.replace(' ', '_')
+    
+    const options = {
+      margin: [0.4, 0.4, 0.4, 0.4],
+      filename: `Отчет_закупки_${restName}_${monthName}_${date}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    }
+    
+    await html2pdf()
+      .from(element)
+      .set(options)
+      .save()
+      
+    toastStore.success('PDF отчет успешно скачан!')
+  } catch (err) {
+    console.error('Error generating report PDF:', err)
+    toastStore.error('Не удалось сгенерировать PDF отчет')
+  } finally {
+    isGeneratingReportPDF.value = false
+  }
+}
+
 onMounted(() => {
   fetchRestaurants()
   fetchProducts()
   fetchOrders()
+  fetchPayments()
 })
 
 onUnmounted(() => {
@@ -1252,13 +2040,13 @@ const saveProductEdit = async (prodId) => {
       }
       editingProductId.value = null
       await fetchOrders()
-      alert('Товар успешно обновлен!')
+      toastStore.success('Товар успешно обновлен!')
     } else {
-      alert(data.message || 'Ошибка обновления')
+      toastStore.error(data.message || 'Ошибка обновления')
     }
   } catch (err) {
     console.error(err)
-    alert('Не удалось сохранить изменения')
+    toastStore.error('Не удалось сохранить изменения')
   }
 }
 
@@ -1382,19 +2170,19 @@ const updateLimit = async (userId, limit) => {
     })
     const data = await response.json()
     if (response.ok) {
-      alert(data.message)
+      toastStore.success(data.message)
     } else {
-      alert(data.message || 'Ошибка обновления')
+      toastStore.error(data.message || 'Ошибка обновления')
     }
   } catch (err) {
     console.error(err)
-    alert('Не удалось обновить лимит')
+    toastStore.error('Не удалось обновить лимит')
   }
 }
 
 const updateDiscount = async (userId, discount) => {
   if (discount === undefined || isNaN(discount) || discount < 0 || discount > 100) {
-    alert('Некорректный процент скидки (должен быть от 0 до 100)')
+    toastStore.warning('Некорректный процент скидки (должен быть от 0 до 100)')
     return
   }
   try {
@@ -1408,13 +2196,13 @@ const updateDiscount = async (userId, discount) => {
     })
     const data = await response.json()
     if (response.ok) {
-      alert(data.message)
+      toastStore.success(data.message)
     } else {
-      alert(data.message || 'Ошибка обновления')
+      toastStore.error(data.message || 'Ошибка обновления')
     }
   } catch (err) {
     console.error(err)
-    alert('Не удалось обновить скидку')
+    toastStore.error('Не удалось обновить скидку')
   }
 }
 
@@ -1429,14 +2217,14 @@ const deleteRestaurant = async (userId, name) => {
     })
     const data = await response.json()
     if (response.ok) {
-      alert(data.message)
+      toastStore.success(data.message)
       restaurants.value = restaurants.value.filter(r => r.id !== userId)
     } else {
-      alert(data.message || 'Ошибка удаления')
+      toastStore.error(data.message || 'Ошибка удаления')
     }
   } catch (err) {
     console.error(err)
-    alert('Не удалось удалить ресторан')
+    toastStore.error('Не удалось удалить ресторан')
   }
 }
 
@@ -1451,9 +2239,14 @@ const deleteProduct = async (productId, name) => {
     })
     if (response.ok) {
       products.value = products.value.filter(p => p.id !== productId)
+      toastStore.success(`Товар "${name}" успешно удален!`)
+    } else {
+      const data = await response.json()
+      toastStore.error(data.message || 'Ошибка при удалении товара')
     }
   } catch (err) {
     console.error(err)
+    toastStore.error('Не удалось удалить товар')
   }
 }
 
@@ -1519,11 +2312,131 @@ const saveInvoiceChanges = async () => {
         }
       }
       activeInvoice.value = null
+      toastStore.success('Накладная успешно сохранена!')
+    } else {
+      toastStore.error(data.message || 'Ошибка сохранения')
     }
   } catch (err) {
     console.error(err)
+    toastStore.error('Не удалось сохранить изменения')
   } finally {
     isSavingInvoice.value = false
+  }
+}
+
+const totalShipped = computed(() => {
+  return restaurants.value.reduce((sum, r) => sum + (parseFloat(r.shipped_amount) || 0), 0)
+})
+
+const totalPaid = computed(() => {
+  return restaurants.value.reduce((sum, r) => sum + (parseFloat(r.paid_amount) || 0), 0)
+})
+
+const totalDebt = computed(() => {
+  return totalShipped.value - totalPaid.value
+})
+
+const totalOverdue = computed(() => {
+  return restaurants.value.reduce((sum, r) => sum + (parseFloat(r.overdue_amount) || 0), 0)
+})
+
+const saveDebts = async (userId, shipped, paid, overdue) => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/users/${userId}/debts`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        shipped_amount: shipped || 0,
+        paid_amount: paid || 0,
+        overdue_amount: overdue || 0
+      })
+    })
+    const data = await response.json()
+    if (response.ok) {
+      toastStore.success('Данные взаиморасчетов сохранены!')
+      const idx = restaurants.value.findIndex(r => r.id === userId)
+      if (idx !== -1) {
+        restaurants.value[idx].shipped_amount = parseFloat(shipped) || 0
+        restaurants.value[idx].paid_amount = parseFloat(paid) || 0
+        restaurants.value[idx].overdue_amount = parseFloat(overdue) || 0
+      }
+    } else {
+      toastStore.error(data.message || 'Ошибка обновления')
+    }
+  } catch (err) {
+    console.error(err)
+    toastStore.error('Не удалось обновить взаиморасчеты')
+  }
+}
+
+const exportToCSV = () => {
+  const headers = ['Покупатель', 'Отгружено, KZT', 'Оплачено, KZT', 'Текущая задолженность, KZT', 'Просроченная задолженность, KZT']
+  const rows = restaurants.value.map(res => [
+    res.name,
+    res.shipped_amount,
+    res.paid_amount,
+    res.shipped_amount - res.paid_amount,
+    res.overdue_amount
+  ])
+  rows.push([
+    'ИТОГО',
+    totalShipped.value,
+    totalPaid.value,
+    totalDebt.value,
+    totalOverdue.value
+  ])
+  
+  const csvContent = "\uFEFF" + [
+    headers.join(';'),
+    ...rows.map(e => e.join(';'))
+  ].join('\n')
+  
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement("a")
+  const url = URL.createObjectURL(blob)
+  link.setAttribute("href", url)
+  
+  const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')
+  link.setAttribute("download", `Отчет_взаиморасчеты_${date}.csv`)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  
+  toastStore.success('Отчет CSV успешно скачан!')
+}
+
+const generateDebtsPDF = async () => {
+  if (!debtsPdfTemplateRef.value) return
+  isGeneratingDebtsPDF.value = true
+  
+  try {
+    const html2pdf = (await import('html2pdf.js')).default
+    const element = debtsPdfTemplateRef.value
+    
+    const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')
+    const options = {
+      margin: [0.4, 0.4, 0.4, 0.4],
+      filename: `Отчет_взаиморасчеты_${date}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    }
+    
+    await html2pdf()
+      .from(element)
+      .set(options)
+      .save()
+      
+    toastStore.success('PDF отчет успешно скачан!')
+  } catch (err) {
+    console.error('Error generating debts PDF:', err)
+    toastStore.error('Не удалось сгенерировать PDF отчет')
+  } finally {
+    isGeneratingDebtsPDF.value = false
   }
 }
 </script>
@@ -2508,5 +3421,141 @@ const saveInvoiceChanges = async () => {
 
 .admin-container {
   max-width: 1400px !important;
+}
+
+.debts-summary-card {
+  margin-top: 2rem;
+  background: var(--white);
+  padding: 1.5rem 2rem;
+  border-radius: 1.5rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f1f5f9;
+  max-width: 400px;
+}
+
+.debts-summary-card h3 {
+  font-size: 1.1rem;
+  color: var(--primary);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.debts-summary-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.debts-summary-list li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.summary-label {
+  color: var(--gray);
+}
+
+.summary-value {
+  font-weight: 700;
+}
+
+.text-success {
+  color: #16a34a !important;
+}
+
+.text-danger {
+  color: #dc2626 !important;
+}
+
+.debts-table td input {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .debts-table input.limit-input {
+    width: 100% !important;
+    max-width: 120px !important;
+  }
+}
+
+/* Debts PDF Report Styles */
+.pdf-debts-report {
+  font-family: 'Arial', sans-serif;
+  color: #000;
+  background: #fff;
+  padding: 20px;
+  width: 710px;
+  box-sizing: border-box;
+}
+.pdf-report-title {
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+.pdf-report-meta {
+  font-size: 10px;
+  margin-bottom: 5px;
+}
+.pdf-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  margin-bottom: 25px;
+}
+.pdf-report-table th, .pdf-report-table td {
+  border: 1px solid #000;
+  font-size: 9px;
+  padding: 5px;
+  text-align: left;
+}
+.pdf-report-table th {
+  background-color: #f3f4f6;
+  font-weight: bold;
+  text-align: center;
+}
+.pdf-report-total-row td {
+  font-weight: bold;
+  background-color: #f9fafb;
+}
+.pdf-report-signatures {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 40px;
+  font-size: 10px;
+}
+.sig-block {
+  width: 45%;
+}
+.sig-block p {
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+.sig-line {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+.sig-line .line {
+  font-family: monospace;
+}
+
+/* Debts Table Total Row Styles */
+.debts-table-total-row {
+  background-color: #f8fafc;
+  font-weight: 700;
+  border-top: 2px solid #cbd5e1;
+}
+.debts-table-total-row td {
+  font-weight: 700;
+  color: var(--primary) !important;
+  font-size: 1rem;
 }
 </style>

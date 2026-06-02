@@ -112,6 +112,9 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { MapPin, Mail, Clock, Phone } from 'lucide-vue-next'
+import { useToastStore } from '@/stores/toast'
+
+const toastStore = useToastStore()
 
 const submitted = ref(false)
 const isSubmitting = ref(false)
@@ -148,12 +151,13 @@ const handleSubmit = async () => {
 
     if (response.ok) {
       submitted.value = true
+      toastStore.success('Заявка успешно отправлена!')
     } else {
-      alert('Произошла ошибка при отправке заявки. Пожалуйста, попробуйте позже.')
+      toastStore.error('Произошла ошибка при отправке заявки. Пожалуйста, попробуйте позже.')
     }
   } catch (error) {
     console.error('Ошибка отправки формы:', error)
-    alert('Произошла ошибка при отправке заявки. Пожалуйста, проверьте подключение и попробуйте позже.')
+    toastStore.error('Произошла ошибка при отправке заявки. Пожалуйста, проверьте подключение и попробуйте позже.')
   } finally {
     isSubmitting.value = false
   }

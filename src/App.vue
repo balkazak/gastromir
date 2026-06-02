@@ -12,6 +12,7 @@
 
     <Footer v-if="route.name !== 'register' && route.name !== 'login'" />
     <CartModal />
+    <ToastContainer />
     
     <!-- Floating WhatsApp Button -->
     <a 
@@ -30,6 +31,7 @@
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
 import CartModal from './components/CartModal.vue'
+import ToastContainer from './components/ToastContainer.vue'
 import { ShoppingCart } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
 import { useRoute } from 'vue-router'
