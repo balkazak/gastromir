@@ -5,7 +5,17 @@
       <div class="modal-content" v-motion-pop>
         <div class="modal-header">
           <h2>Корзина</h2>
-          <button @click="cartStore.closeModal" class="close-btn"><X /></button>
+          <div class="header-actions">
+            <button 
+              v-if="cartStore.items.length > 0" 
+              @click="cartStore.clearCart" 
+              class="clear-all-btn" 
+              title="Очистить корзину"
+            >
+              <Trash2 :size="16" /> Очистить всё
+            </button>
+            <button @click="cartStore.closeModal" class="close-btn"><X /></button>
+          </div>
         </div>
 
         <div v-if="cartStore.items.length > 0" class="modal-body">
@@ -129,7 +139,7 @@
               <button 
                 class="btn btn-primary btn-block" 
                 @click="sendToEmail" 
-                :disabled="isOverLimit || !orderData.customerName || !orderData.phone || isSendingEmail || !isDateValid"
+                :disabled="isSendingEmail"
               >
                 {{ isSendingEmail ? 'Отправка...' : 'Отправить заказ' }}
               </button>
@@ -137,7 +147,6 @@
               <button 
                 class="btn btn-whatsapp btn-block" 
                 @click="sendToWhatsApp" 
-                :disabled="isOverLimit || !orderData.customerName || !orderData.phone || !isDateValid"
               >
                 Отправить в WhatsApp
               </button>
@@ -145,7 +154,7 @@
               <button 
                 class="btn btn-secondary btn-block" 
                 @click="generatePDFInvoice" 
-                :disabled="!orderData.customerName || !orderData.address || !orderData.phone || isGeneratingPDF || !isDateValid"
+                :disabled="isGeneratingPDF"
               >
                 {{ isGeneratingPDF ? 'Генерация PDF...' : 'Скачать накладную (PDF)' }}
               </button>
@@ -788,12 +797,48 @@ const placeOrderInDatabase = async () => {
   }
 }
 
+// Add validation helper
+const validateOrderForm = (requireAddress = true, checkLimit = true) => {
+  if (!orderData.customerName || !orderData.customerName.trim()) {
+    toastStore.error('Пожалуйста, заполните название ресторана/клиента')
+    return false
+  }
+  if (!orderData.phone || !orderData.phone.trim()) {
+    toastStore.error('Пожалуйста, укажите контактный телефон')
+    return false
+  }
+  const digits = orderData.phone.replace(/\D/g, '')
+  if (digits.length < 11) {
+    toastStore.error('Пожалуйста, введите корректный номер телефона (11 цифр)')
+    return false
+  }
+  if (requireAddress && (!orderData.address || !orderData.address.trim())) {
+    toastStore.error('Пожалуйста, заполните адрес доставки')
+    return false
+  }
+  if (!orderData.deliveryDate || orderData.deliveryDate.length !== 10) {
+    toastStore.error('Пожалуйста, введите дату доставки в формате ДД.ММ.ГГГГ')
+    return false
+  }
+  if (!isDateValid.value) {
+    toastStore.error('Пожалуйста, укажите корректную дату доставки (не в прошлом)')
+    return false
+  }
+  if (checkLimit && isOverLimit.value) {
+    toastStore.error(`Лимит превышен! Сумма заказа (${formatPrice(discountedTotalPrice.value)} ₸) превышает ваш лимит кредитования (${formatPrice(authStore.user?.order_limit)} ₸)`)
+    return false
+  }
+  return true
+}
+
 const sendToWhatsApp = async () => {
   if (!authStore.isAuthenticated) {
     cartStore.closeModal()
     router.push('/login')
     return
   }
+
+  if (!validateOrderForm(true, true)) return
 
   const newWindow = window.open('', '_blank')
 
@@ -832,6 +877,8 @@ const sendToEmail = async () => {
     router.push('/login')
     return
   }
+
+  if (!validateOrderForm(true, true)) return
 
   isSendingEmail.value = true
   const saved = await placeOrderInDatabase()
@@ -907,6 +954,9 @@ const generatePDFInvoice = async () => {
     return
   }
   if (!pdfTemplateRef.value) return
+
+  if (!validateOrderForm(true, false)) return
+
   isGeneratingPDF.value = true
 
   try {
@@ -1231,6 +1281,32 @@ const generatePDFInvoice = async () => {
 
 .empty-cart p {
   margin: 1.5rem 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.clear-all-btn {
+  background: none;
+  border: none;
+  color: var(--gray);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: var(--transition);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.clear-all-btn:hover {
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.05);
 }
 
 .close-btn {

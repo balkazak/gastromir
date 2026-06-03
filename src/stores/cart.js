@@ -82,6 +82,8 @@ export const useCartStore = defineStore('cart', () => {
     items.value = []
   }
 
+  const isFastOrderOpen = ref(false)
+
   const toggleModal = () => {
     isModalOpen.value = !isModalOpen.value
   }
@@ -94,9 +96,22 @@ export const useCartStore = defineStore('cart', () => {
     isModalOpen.value = false
   }
 
+  const toggleFastOrder = () => {
+    isFastOrderOpen.value = !isFastOrderOpen.value
+  }
+
+  const openFastOrder = () => {
+    isFastOrderOpen.value = true
+  }
+
+  const closeFastOrder = () => {
+    isFastOrderOpen.value = false
+  }
+
   return {
     items,
     isModalOpen,
+    isFastOrderOpen,
     totalItems,
     totalPrice,
     hasWeightItems,
@@ -108,6 +123,9 @@ export const useCartStore = defineStore('cart', () => {
     clearCart,
     toggleModal,
     openModal,
-    closeModal
+    closeModal,
+    toggleFastOrder,
+    openFastOrder,
+    closeFastOrder
   }
 })

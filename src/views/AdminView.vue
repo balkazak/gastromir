@@ -108,7 +108,10 @@
               <h2>Взаиморасчеты (дебиторская задолженность)</h2>
               <p>Управляйте отгрузками, оплатами и просроченной задолженностью ресторанов</p>
             </div>
-            <div class="search-filters-box debts-actions-box" style="display: flex; gap: 0.75rem;">
+            <div class="search-filters-box debts-actions-box" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              <button @click="showRecordPaymentModal = true" class="btn btn-secondary" style="background-color: var(--primary); border-color: var(--primary); display: flex; align-items: center; gap: 0.5rem; color: #fff;">
+                <Plus :size="18" /> Внести оплату
+              </button>
               <button @click="exportToCSV" class="btn btn-secondary" style="background-color: #10b981; border-color: #10b981; display: flex; align-items: center; gap: 0.5rem; color: #fff;">
                 <FileText :size="18" /> Экспорт в Excel (CSV)
               </button>
@@ -183,13 +186,23 @@
                     </td>
                     
                     <td data-label="Действия" style="text-align: right;">
-                      <button 
-                        @click="saveDebts(res.id, res.shipped_amount, res.paid_amount, res.overdue_amount)" 
-                        class="btn-save-limit" 
-                        title="Сохранить взаиморасчеты"
-                      >
-                        <Check :size="16" />
-                      </button>
+                      <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
+                        <button 
+                          @click="openPaymentsHistory(res)" 
+                          class="btn-edit-row" 
+                          title="История платежей"
+                          style="background: rgba(37, 99, 235, 0.1); color: var(--accent); border-color: rgba(37, 99, 235, 0.2); padding: 0.4rem 0.6rem; border-radius: 8px; font-size: 0.85rem;"
+                        >
+                          <History :size="14" /> История оплат
+                        </button>
+                        <button 
+                          @click="saveDebts(res.id, res.shipped_amount, res.paid_amount, res.overdue_amount)" 
+                          class="btn-save-limit" 
+                          title="Сохранить взаиморасчеты"
+                        >
+                          <Check :size="16" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
 
@@ -256,10 +269,7 @@
                 <option v-for="m in uniqueReportMonths" :key="m" :value="m">{{ m }}</option>
               </select>
 
-              <!-- Actions -->
-              <button @click="showRecordPaymentModal = true" class="btn btn-secondary" style="background-color: var(--primary); border-color: var(--primary); display: flex; align-items: center; gap: 0.5rem; color: #fff;">
-                <Plus :size="18" /> Внести оплату
-              </button>
+
 
               <button @click="exportReportToCSV" class="btn btn-secondary" style="background-color: #10b981; border-color: #10b981; display: flex; align-items: center; gap: 0.5rem; color: #fff;">
                 <FileText :size="18" /> Экспорт в Excel (CSV)
@@ -768,6 +778,74 @@
       </div>
     </Transition>
 
+    <!-- Payments History Modal -->
+    <Transition name="fade">
+      <div v-if="showPaymentsHistoryModal" class="details-modal-overlay" @click.self="showPaymentsHistoryModal = false">
+        <div class="details-modal" v-motion-pop style="max-width: 700px;">
+          <div class="details-modal-header">
+            <h3>История оплат: {{ selectedHistoryRestaurant?.name }}</h3>
+            <button @click="showPaymentsHistoryModal = false" class="close-btn"><X /></button>
+          </div>
+          <div class="details-modal-body">
+            <div v-if="restaurantPaymentsList.length === 0" class="empty-state" style="padding: 3rem 1rem; border: none; box-shadow: none;">
+              <Wallet :size="36" style="margin-bottom: 1rem; opacity: 0.5;" />
+              <p>История оплат пуста</p>
+            </div>
+            <table v-else class="modal-invoice-table">
+              <thead>
+                <tr>
+                  <th>Дата платежа</th>
+                  <th style="text-align: right; width: 200px;">Сумма (₸)</th>
+                  <th style="text-align: right; width: 180px;">Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="pay in restaurantPaymentsList" :key="pay.id">
+                  <!-- Inline edit mode for payment -->
+                  <template v-if="editingPaymentId === pay.id">
+                    <td>
+                      <input type="datetime-local" v-model="editPaymentForm.created_at" class="inline-edit-input" />
+                    </td>
+                    <td style="text-align: right;">
+                      <input type="number" step="0.01" min="0.01" v-model.number="editPaymentForm.amount" class="inline-edit-input" style="text-align: right;" />
+                    </td>
+                    <td style="text-align: right;">
+                      <div class="edit-actions-row">
+                        <button @click="savePaymentEdit(pay.id)" class="btn-action-save" title="Сохранить">
+                          <Check :size="14" />
+                        </button>
+                        <button @click="cancelPaymentEdit" class="btn-action-cancel" title="Отмена">
+                          <X :size="14" />
+                        </button>
+                      </div>
+                    </td>
+                  </template>
+                  <!-- Read/Normal state for payment -->
+                  <template v-else>
+                    <td class="font-bold">{{ formatDate(pay.created_at) }}</td>
+                    <td style="text-align: right;" class="text-success font-bold">{{ formatPrice(pay.amount) }} ₸</td>
+                    <td style="text-align: right;">
+                      <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
+                        <button @click="startPaymentEdit(pay)" class="btn-edit-row" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; height: auto;">
+                          <Edit3 :size="14" /> Изменить
+                        </button>
+                        <button @click="deletePayment(pay.id)" class="btn-delete" title="Удалить платеж" style="padding: 0.25rem;">
+                          <Trash2 :size="16" />
+                        </button>
+                      </div>
+                    </td>
+                  </template>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="details-modal-footer">
+            <button @click="showPaymentsHistoryModal = false" class="btn-cancel">Закрыть</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <div class="pdf-offscreen-container" v-if="activeInvoice">
       <div ref="pdfTemplateRef" class="pdf-invoice-f32">
         <div class="f32-appendix">
@@ -1184,7 +1262,7 @@
 import { ref, computed, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
-import { ShieldCheck, Users, DollarSign, Calendar, Eye, Trash2, Check, Search, ClipboardList, X, Edit3, ArrowUpDown, Plus, FileText, Download, Wallet, TrendingUp } from 'lucide-vue-next'
+import { ShieldCheck, Users, DollarSign, Calendar, Eye, Trash2, Check, Search, ClipboardList, X, Edit3, ArrowUpDown, Plus, FileText, Download, Wallet, TrendingUp, History } from 'lucide-vue-next'
 import printImg from '@/assets/docs/print.png'
 import signatureImg from '@/assets/docs/signature.png'
 
@@ -1547,6 +1625,102 @@ const showRecordPaymentModal = ref(false)
 const isSavingPayment = ref(false)
 const isGeneratingReportPDF = ref(false)
 const reportPdfTemplateRef = ref(null)
+
+const showPaymentsHistoryModal = ref(false)
+const selectedHistoryRestaurant = ref(null)
+const editingPaymentId = ref(null)
+const editPaymentForm = reactive({
+  amount: '',
+  created_at: ''
+})
+
+const restaurantPaymentsList = computed(() => {
+  if (!selectedHistoryRestaurant.value) return []
+  return payments.value.filter(p => p.user_id === selectedHistoryRestaurant.value.id)
+})
+
+const openPaymentsHistory = (restaurant) => {
+  selectedHistoryRestaurant.value = restaurant
+  showPaymentsHistoryModal.value = true
+}
+
+const startPaymentEdit = (payment) => {
+  editingPaymentId.value = payment.id
+  let dateObj = payment.created_at ? new Date(payment.created_at) : new Date()
+  const tzOffset = dateObj.getTimezoneOffset() * 60000
+  const localISOTime = (new Date(dateObj.getTime() - tzOffset)).toISOString().slice(0, 16)
+  
+  editPaymentForm.amount = payment.amount
+  editPaymentForm.created_at = localISOTime
+}
+
+const cancelPaymentEdit = () => {
+  editingPaymentId.value = null
+  editPaymentForm.amount = ''
+  editPaymentForm.created_at = ''
+}
+
+const savePaymentEdit = async (paymentId) => {
+  if (!editPaymentForm.amount || editPaymentForm.amount <= 0) {
+    toastStore.warning('Пожалуйста, введите корректную сумму оплаты.')
+    return
+  }
+  
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/payments/${paymentId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        amount: parseFloat(editPaymentForm.amount),
+        created_at: editPaymentForm.created_at || null,
+        user_id: selectedHistoryRestaurant.value?.id
+      })
+    })
+    
+    const data = await response.json()
+    if (response.ok) {
+      toastStore.success('Оплата успешно обновлена!')
+      editingPaymentId.value = null
+      await fetchPayments()
+      await fetchRestaurants() // refresh client balance totals
+    } else {
+      toastStore.error(data.message || 'Ошибка при обновлении оплаты')
+    }
+  } catch (err) {
+    console.error(err)
+    toastStore.error('Не удалось обновить оплату')
+  }
+}
+
+const deletePayment = async (paymentId) => {
+  if (!confirm('Вы действительно хотите удалить этот платеж?')) {
+    return
+  }
+  
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/payments/${paymentId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    
+    const data = await response.json()
+    if (response.ok) {
+      toastStore.success('Оплата успешно удалена!')
+      await fetchPayments()
+      await fetchRestaurants() // refresh client balance totals
+    } else {
+      toastStore.error(data.message || 'Ошибка при удалении оплаты')
+    }
+  } catch (err) {
+    console.error(err)
+    toastStore.error('Не удалось удалить оплату')
+  }
+}
 
 const newPaymentForm = reactive({
   user_id: '',

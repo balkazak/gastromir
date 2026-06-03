@@ -1,15 +1,18 @@
 <template>
   <nav :class="{ 'scrolled': isScrolled }">
-    <div class="container nav-content">
+    <div class="nav-container nav-content">
       <router-link to="/" class="logo">
         <img src="@/assets/logo.png" alt="GASTROMIR Logo" class="logo-img" />
       </router-link>
 
       <div class="nav-links" :class="{ 'active': isMobileMenuOpen }">
+        <router-link to="/restaurant-order" class="blink-link" @click="isMobileMenuOpen = false">
+          <Zap class="zap-icon" :size="16" />Заказ в <span class="blink-text">1 клик</span>
+        </router-link>
         <router-link to="/catalog" @click="isMobileMenuOpen = false">Каталог</router-link>
         <router-link to="/process" @click="isMobileMenuOpen = false">Как это работает</router-link>
         <router-link to="/about" @click="isMobileMenuOpen = false">О нас</router-link>
-        <router-link to="/social-mission" @click="isMobileMenuOpen = false">Соц инициатива <br> «Мейірім Тарелкесі»</router-link>
+        <router-link to="/social-mission" @click="isMobileMenuOpen = false">Соц инициатива «Мейірім Тарелкесі»</router-link>
         <router-link to="/contacts" @click="isMobileMenuOpen = false">Контакты</router-link>
         
         <template v-if="authStore.isAuthenticated">
@@ -47,7 +50,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Menu, X, ShoppingCart, User, LogOut } from 'lucide-vue-next'
+import { Menu, X, ShoppingCart, User, LogOut, Zap } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
@@ -125,6 +128,7 @@ nav.scrolled {
   font-size: 0.95rem;
   opacity: 0.8;
   text-align: center;
+  white-space: nowrap;
 }
 
 .nav-links a:hover {
@@ -322,6 +326,69 @@ nav.scrolled {
   }
   .admin-link {
     font-size: 0.8rem;
+  }
+}
+
+.blink-link {
+  font-weight: 700 !important;
+  color: var(--secondary) !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.35rem;
+  opacity: 1 !important;
+  white-space: nowrap;
+}
+
+.blink-text {
+  display: inline-block;
+  animation: glow-pulse 1.5s infinite ease-in-out;
+  font-weight: 800;
+  padding: 0 2px;
+}
+
+.zap-icon {
+  animation: pulse-zap 1.5s infinite ease-in-out;
+  color: var(--secondary);
+}
+
+@keyframes glow-pulse {
+  0% {
+    color: var(--secondary);
+    text-shadow: 0 0 4px rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    color: #fbbf24;
+    text-shadow: 0 0 12px rgba(245, 158, 11, 0.8), 0 0 20px rgba(245, 158, 11, 0.4);
+    transform: scale(1.05);
+  }
+  100% {
+    color: var(--secondary);
+    text-shadow: 0 0 4px rgba(245, 158, 11, 0.4);
+  }
+}
+
+@keyframes pulse-zap {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.2) rotate(15deg);
+    color: #fbbf24;
+    opacity: 1;
+  }
+}
+
+.nav-container {
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+@media (max-width: 1200px) {
+  .nav-links {
+    gap: 1rem;
   }
 }
 </style>
