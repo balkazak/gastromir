@@ -291,7 +291,8 @@ const uniqueCategories = computed(() => {
     'Приправы и специи',
     'Сиропы',
     'Чай-кофе',
-    'Ягоды и овощи с/м'
+    'Ягоды и овощи с/м',
+    'Хоз.товары'
   ]
   return cats.sort((a, b) => {
     let idxA = categoryOrder.indexOf(a)
