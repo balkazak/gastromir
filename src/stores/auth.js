@@ -9,7 +9,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+  const apiUrl = import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'
 
   // Helper for requests
   const getHeaders = () => {

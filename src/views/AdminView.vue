@@ -1441,7 +1441,7 @@ const submitAddProduct = async () => {
       return
     }
 
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/products`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/products`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1521,7 +1521,7 @@ const loadingOrders = ref(true)
 const fetchRestaurants = async () => {
   try {
     loadingUsers.value = true
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/users`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/users`, {
       headers: {
         'Authorization': `Bearer ${authStore.token}`
       }
@@ -1539,7 +1539,7 @@ const fetchRestaurants = async () => {
 const fetchProducts = async () => {
   try {
     loadingProducts.value = true
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/products`)
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/products`)
     if (response.ok) {
       products.value = await response.json()
     }
@@ -1556,7 +1556,7 @@ const fetchProducts = async () => {
 const fetchOrders = async () => {
   try {
     loadingOrders.value = true
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/orders`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/orders`, {
       headers: {
         'Authorization': `Bearer ${authStore.token}`
       }
@@ -1667,7 +1667,7 @@ const savePaymentEdit = async (paymentId) => {
   }
   
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/payments/${paymentId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/payments/${paymentId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -1701,7 +1701,7 @@ const deletePayment = async (paymentId) => {
   }
   
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/payments/${paymentId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/payments/${paymentId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${authStore.token}`
@@ -1731,7 +1731,7 @@ const newPaymentForm = reactive({
 const fetchPayments = async () => {
   try {
     loadingPayments.value = true
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/payments`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/payments`, {
       headers: {
         'Authorization': `Bearer ${authStore.token}`
       }
@@ -1950,7 +1950,7 @@ const submitAddPayment = async () => {
   
   try {
     isSavingPayment.value = true
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/payments`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/payments`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -2197,7 +2197,7 @@ const cancelProductEdit = () => {
 
 const saveProductEdit = async (prodId) => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/products/${prodId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/products/${prodId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -2334,7 +2334,7 @@ const toggleInvoiceSort = (field) => {
 
 const updateLimit = async (userId, limit) => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/users/${userId}/limit`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/users/${userId}/limit`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -2360,7 +2360,7 @@ const updateDiscount = async (userId, discount) => {
     return
   }
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/users/${userId}/discount`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/users/${userId}/discount`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -2383,7 +2383,7 @@ const updateDiscount = async (userId, discount) => {
 const deleteRestaurant = async (userId, name) => {
   if (!confirm(`Вы действительно хотите безвозвратно удалить ресторан "${name}"?`)) return
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/users/${userId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/users/${userId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${authStore.token}`
@@ -2405,7 +2405,7 @@ const deleteRestaurant = async (userId, name) => {
 const deleteProduct = async (productId, name) => {
   if (!confirm(`Вы действительно хотите удалить товар "${name}"?`)) return
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/products/${productId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/products/${productId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${authStore.token}`
@@ -2462,7 +2462,7 @@ const saveInvoiceChanges = async () => {
   if (isSavingInvoice.value) return
   isSavingInvoice.value = true
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/orders/${activeInvoice.value.id}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/orders/${activeInvoice.value.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -2516,7 +2516,7 @@ const totalOverdue = computed(() => {
 
 const saveDebts = async (userId, shipped, paid, overdue) => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/users/${userId}/debts`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/users/${userId}/debts`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

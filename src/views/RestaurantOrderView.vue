@@ -337,7 +337,7 @@ const chatHistory = ref([
 
 const fetchProducts = async () => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/products`)
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/products`)
     if (response.ok) {
       products.value = await response.json()
     } else {

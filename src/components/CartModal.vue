@@ -608,7 +608,7 @@ const pastOrdersCount = ref(0)
 const fetchPastOrdersCount = async () => {
   if (!authStore.token) return
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/orders`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/orders`, {
       headers: {
         'Authorization': `Bearer ${authStore.token}`
       }
@@ -772,7 +772,7 @@ const formatPrice = (price) => {
 
 const placeOrderInDatabase = async () => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/orders`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/orders`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

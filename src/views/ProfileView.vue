@@ -1097,7 +1097,7 @@ const handleUpdateProfile = async () => {
 const fetchOrders = async () => {
   try {
     loading.value = true
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/orders`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/orders`, {
       headers: {
         'Authorization': `Bearer ${authStore.token}`
       }
@@ -1115,7 +1115,7 @@ const fetchOrders = async () => {
 const fetchPayments = async () => {
   try {
     loadingPayments.value = true
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/payments`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/payments`, {
       headers: {
         'Authorization': `Bearer ${authStore.token}`
       }
