@@ -54,6 +54,9 @@
                   :disabled="isProcessing"
                   rows="10"
                 ></textarea>
+                <div style="font-size: 0.8rem; color: #f59e0b; margin-top: 0.5rem; font-weight: bold;">
+                  ⚠️ Важно: Указывайте количество строго после дефиса (-) (например: чай Greenfield 100 пак - 2 шт)
+                </div>
               </div>
 
               <div class="chat-actions">
@@ -95,173 +98,298 @@
               </div>
 
               <!-- Loading State -->
-              <div v-else-if="parsedItems.length === 0 && isProcessing" class="loading-state-results">
-                <span class="loader"></span>
-                <p>AI агент сопоставляет товары с каталогом продукции...</p>
-              </div>
+              <div v-else-if="parsedItems.length > 0">
+                <div class="desktop-results-view">
+                  <div class="table-responsive">
+                    <table class="results-table">
+                      <thead>
+                        <tr>
+                          <th width="50" class="center-col"><input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" /></th>
+                          <th>Товар в Gastromir</th>
+                          <th width="130" class="center-col">Кол-во</th>
+                          <th width="135" class="right-col">Стоимость</th>
+                          <th width="60" class="center-col"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="item in parsedItems" :key="item.id" :class="{ 'disabled-row': !item.enabled, 'active-row-z': item.isDropdownOpen || item.showSuggestions }">
+                          <td class="selection-cell center-col" data-label="Выбрать">
+                            <input type="checkbox" v-model="item.enabled" />
+                          </td>
 
-              <!-- Mapped List View -->
-              <div v-else class="results-container">
-                <div class="table-responsive">
-                  <table class="results-table">
-                    <thead>
-                      <tr>
-                        <th width="50" class="center-col"><input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" /></th>
-                        <th>Товар в Gastromir</th>
-                        <th width="130" class="center-col">Кол-во</th>
-                        <th width="135" class="right-col">Стоимость</th>
-                        <th width="60" class="center-col"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="item in parsedItems" :key="item.id" :class="{ 'disabled-row': !item.enabled, 'active-row-z': item.isDropdownOpen || item.showSuggestions }">
-                        <!-- Checkbox selection -->
-                        <td class="selection-cell center-col" data-label="Выбрать">
-                          <input type="checkbox" v-model="item.enabled" />
-                        </td>
-
-                        <!-- Matched Product Dropdown Selector / Manual Input -->
-                        <td class="product-match-col" :class="{ 'active-dropdown-cell': item.isDropdownOpen || item.showSuggestions }" data-label="Товар в Gastromir">
-                          <div class="match-inputs">
-                            <div class="product-selector-wrapper">
-                              <!-- Custom Select Dropdown -->
-                              <div 
-                                v-if="item.candidateProducts.length > 0 && !item.showSearchInput"
-                                class="custom-select-container"
-                              >
+                          <td class="product-match-col" :class="{ 'active-dropdown-cell': item.isDropdownOpen || item.showSuggestions }" data-label="Товар в Gastromir">
+                            <div class="match-inputs">
+                              <div class="product-selector-wrapper">
                                 <div 
-                                  class="custom-select-trigger" 
-                                  @click.stop="toggleDropdown(item)"
-                                  :class="{ 'opened': item.isDropdownOpen }"
+                                  v-if="item.candidateProducts.length > 0 && !item.showSearchInput"
+                                  class="custom-select-container"
                                 >
-                                  <div class="trigger-selected-info">
-                                    <span class="trigger-name">{{ item.selectedProductName || 'Выберите товар...' }}</span>
-                                    <span class="trigger-meta" v-if="item.matchedProduct">
-                                      ({{ formatPrice(item.matchedProduct.price) }} ₸/{{ item.matchedProduct.unit }})
-                                    </span>
+                                  <div 
+                                    class="custom-select-trigger" 
+                                    @click.stop="toggleDropdown(item)"
+                                    :class="{ 'opened': item.isDropdownOpen }"
+                                  >
+                                    <div class="trigger-selected-info">
+                                      <span class="trigger-name">{{ item.selectedProductName || 'Выберите товар...' }}</span>
+                                      <span class="trigger-meta" v-if="item.matchedProduct">
+                                        ({{ formatPrice(item.matchedProduct.price) }} ₸/{{ item.matchedProduct.unit }})
+                                      </span>
+                                    </div>
+                                    <ChevronDown :size="16" class="arrow-icon" />
                                   </div>
-                                  <ChevronDown :size="16" class="arrow-icon" />
+
+                                  <div class="custom-select-dropdown" v-if="item.isDropdownOpen">
+                                    <div 
+                                      v-for="p in item.candidateProducts" 
+                                      :key="p.id"
+                                      class="custom-select-option"
+                                      :class="{ 'selected': item.selectedProductName === p.name }"
+                                      @click="selectCustomOption(item, p)"
+                                    >
+                                      <div class="option-details">
+                                        <span class="option-name">{{ p.name }}</span>
+                                        <div class="option-meta">
+                                          <span class="option-price">{{ formatPrice(p.price) }} ₸ / {{ p.unit }}</span>
+                                          <span class="option-category">{{ p.category }}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    <div class="custom-select-option search-trigger" @click="selectCustomOptionSearch(item)">
+                                      <span class="option-name">🔍 Искать другой товар в каталоге...</span>
+                                    </div>
+                                  </div>
                                 </div>
 
-                                <div class="custom-select-dropdown" v-if="item.isDropdownOpen">
+                                <button 
+                                  v-if="item.candidateProducts.length > 0 && !item.showSearchInput"
+                                  @click="resetToSearch(item)"
+                                  class="btn-clear-search"
+                                  title="Ввести свой вариант"
+                                >
+                                  <X :size="14" />
+                                </button>
+
+                                <div v-if="item.showSearchInput || item.candidateProducts.length === 0" class="manual-input-row-wrapper">
+                                  <div class="manual-input-row">
+                                    <input 
+                                      type="text" 
+                                      v-model="item.manualSearchQuery" 
+                                      @input="onSearchInput(item)"
+                                      @focus="item.showSuggestions = true"
+                                      @change="onManualSearchChange(item)"
+                                      placeholder="Введите название..."
+                                      class="manual-search"
+                                    />
+                                    <button 
+                                      @click="clearManualSearch(item)" 
+                                      class="btn-clear-search"
+                                      title="Очистить или закрыть поиск"
+                                    >
+                                      <X :size="14" />
+                                    </button>
+                                  </div>
+                                  
                                   <div 
-                                    v-for="p in item.candidateProducts" 
-                                    :key="p.id"
-                                    class="custom-select-option"
-                                    :class="{ 'selected': item.selectedProductName === p.name }"
-                                    @click="selectCustomOption(item, p)"
+                                    class="search-suggestions-dropdown" 
+                                    v-if="item.showSuggestions && getSearchSuggestions(item.manualSearchQuery).length > 0"
                                   >
-                                    <div class="option-details">
-                                      <span class="option-name">{{ p.name }}</span>
-                                      <div class="option-meta">
-                                        <span class="option-price">{{ formatPrice(p.price) }} ₸ / {{ p.unit }}</span>
-                                        <span class="option-category">{{ p.category }}</span>
+                                    <div 
+                                      v-for="p in getSearchSuggestions(item.manualSearchQuery)" 
+                                      :key="p.id"
+                                      class="suggestion-option"
+                                      @click="selectSuggestion(item, p)"
+                                    >
+                                      <span class="suggestion-name">{{ p.name }}</span>
+                                      <div class="suggestion-meta">
+                                        <span class="suggestion-price">{{ formatPrice(p.price) }} ₸ / {{ p.unit }}</span>
+                                        <span class="suggestion-category">{{ p.category }}</span>
                                       </div>
                                     </div>
                                   </div>
-                                  
-                                  <div class="custom-select-option search-trigger" @click="selectCustomOptionSearch(item)">
-                                    <span class="option-name">🔍 Искать другой товар в каталоге...</span>
-                                  </div>
                                 </div>
                               </div>
 
-                              <!-- Cross (X) button to reset select and open search input -->
-                              <button 
-                                v-if="item.candidateProducts.length > 0 && !item.showSearchInput"
-                                @click="resetToSearch(item)"
-                                class="btn-clear-search"
-                                title="Ввести свой вариант"
-                              >
-                                <X :size="14" />
-                              </button>
-
-                              <!-- Manual Lookup Field with clear cross (X) button -->
-                              <div v-if="item.showSearchInput || item.candidateProducts.length === 0" class="manual-input-row-wrapper">
-                                <div class="manual-input-row">
-                                  <input 
-                                    type="text" 
-                                    v-model="item.manualSearchQuery" 
-                                    @input="onSearchInput(item)"
-                                    @focus="item.showSuggestions = true"
-                                    @change="onManualSearchChange(item)"
-                                    placeholder="Введите название..."
-                                    class="manual-search"
-                                  />
-                                  <button 
-                                    @click="clearManualSearch(item)" 
-                                    class="btn-clear-search"
-                                    title="Очистить или закрыть поиск"
-                                  >
-                                    <X :size="14" />
-                                  </button>
-                                </div>
-                                
-                                <!-- Search Suggestions Dropdown -->
-                                <div 
-                                  class="search-suggestions-dropdown" 
-                                  v-if="item.showSuggestions && getSearchSuggestions(item.manualSearchQuery).length > 0"
-                                >
-                                  <div 
-                                    v-for="p in getSearchSuggestions(item.manualSearchQuery)" 
-                                    :key="p.id"
-                                    class="suggestion-option"
-                                    @click="selectSuggestion(item, p)"
-                                  >
-                                    <span class="suggestion-name">{{ p.name }}</span>
-                                    <div class="suggestion-meta">
-                                      <span class="suggestion-price">{{ formatPrice(p.price) }} ₸ / {{ p.unit }}</span>
-                                      <span class="suggestion-category">{{ p.category }}</span>
-                                    </div>
-                                  </div>
-                                </div>
+                              <div class="raw-query-subtitle">
+                                <span>Запрос: <strong>{{ item.raw }}</strong></span>
+                                <span class="parsed-spec" v-if="item.extractedQty || item.extractedUnit">
+                                  ({{ item.extractedQty }} {{ item.extractedUnit }})
+                                </span>
+                                <span :class="['status-dot', item.status]" :title="getStatusText(item.status)"></span>
                               </div>
-                            </div>
-
-                            <!-- Muted Subtitle showing Raw User Query and Match Status -->
-                            <div class="raw-query-subtitle">
-                              <span>Запрос: <strong>{{ item.raw }}</strong></span>
-                              <span class="parsed-spec" v-if="item.extractedQty || item.extractedUnit">
-                                ({{ item.extractedQty }} {{ item.extractedUnit }})
+                              
+                              <span v-if="item.matchedProduct" class="catalog-details">
+                                Категория: {{ item.matchedProduct.category }} | Производитель: {{ item.matchedProduct.manufacturer }}
                               </span>
-                              <span :class="['status-dot', item.status]" :title="getStatusText(item.status)"></span>
+                            </div>
+                          </td>
+
+                          <td class="quantity-cell center-col" data-label="Кол-во">
+                            <div class="quantity-control" v-if="item.matchedProduct">
+                              <button @click="adjustQty(item, -1)" :disabled="item.quantity <= 1">-</button>
+                              <input type="number" v-model.number="item.quantity" min="1" @change="validateQty(item)" />
+                              <button @click="adjustQty(item, 1)">+</button>
+                              <span class="item-unit">{{ item.matchedProduct.unit }}</span>
+                            </div>
+                            <span v-else class="text-muted">—</span>
+                          </td>
+
+                          <td class="price-col right-col" data-label="Стоимость">
+                            <template v-if="item.matchedProduct">
+                              <span class="total-item-price">{{ formatPrice(item.matchedProduct.price * item.quantity) }} ₸</span>
+                              <span class="price-per-unit">{{ formatPrice(item.matchedProduct.price) }} ₸/{{ item.matchedProduct.unit }}</span>
+                            </template>
+                            <span v-else class="text-muted">—</span>
+                          </td>
+
+                          <td class="actions-cell center-col" data-label="Удалить">
+                            <button @click="removeRow(item.id)" class="btn-row-delete" title="Удалить строку">
+                              <Trash2 :size="16" />
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="mobile-results-view">
+                  <div 
+                    v-for="item in parsedItems" 
+                    :key="item.id" 
+                    class="mobile-result-card"
+                    :class="{ 'disabled-card': !item.enabled, 'active-card-z': item.isDropdownOpen || item.showSuggestions }"
+                  >
+                    <div class="card-mobile-header">
+                      <label class="mobile-checkbox-label">
+                        <input type="checkbox" v-model="item.enabled" />
+                        <span class="raw-query-badge">Запрос: {{ item.raw }}</span>
+                      </label>
+                      <button @click="removeRow(item.id)" class="btn-row-delete" title="Удалить строку">
+                        <Trash2 :size="16" />
+                      </button>
+                    </div>
+
+                    <div class="card-mobile-body">
+                      <div class="product-selector-wrapper">
+                        <div 
+                          v-if="item.candidateProducts.length > 0 && !item.showSearchInput"
+                          class="custom-select-container"
+                        >
+                          <div 
+                            class="custom-select-trigger" 
+                            @click.stop="toggleDropdown(item)"
+                            :class="{ 'opened': item.isDropdownOpen }"
+                          >
+                            <div class="trigger-selected-info">
+                              <span class="trigger-name">{{ item.selectedProductName || 'Выберите товар...' }}</span>
+                              <span class="trigger-meta" v-if="item.matchedProduct">
+                                ({{ formatPrice(item.matchedProduct.price) }} ₸/{{ item.matchedProduct.unit }})
+                              </span>
+                            </div>
+                            <ChevronDown :size="16" class="arrow-icon" />
+                          </div>
+
+                          <div class="custom-select-dropdown" v-if="item.isDropdownOpen">
+                            <div 
+                              v-for="p in item.candidateProducts" 
+                              :key="p.id"
+                              class="custom-select-option"
+                              :class="{ 'selected': item.selectedProductName === p.name }"
+                              @click="selectCustomOption(item, p)"
+                            >
+                              <div class="option-details">
+                                <span class="option-name">{{ p.name }}</span>
+                                <div class="option-meta">
+                                  <span class="option-price">{{ formatPrice(p.price) }} ₸ / {{ p.unit }}</span>
+                                  <span class="option-category">{{ p.category }}</span>
+                                </div>
+                              </div>
                             </div>
                             
-                            <span v-if="item.matchedProduct" class="catalog-details">
-                              Категория: {{ item.matchedProduct.category }} | Производитель: {{ item.matchedProduct.manufacturer }}
-                            </span>
+                            <div class="custom-select-option search-trigger" @click="selectCustomOptionSearch(item)">
+                              <span class="option-name">🔍 Искать другой товар в каталоге...</span>
+                            </div>
                           </div>
-                        </td>
+                        </div>
 
-                        <!-- Quantity Selector -->
-                        <td class="quantity-cell center-col" data-label="Кол-во">
-                          <div class="quantity-control" v-if="item.matchedProduct">
-                            <button @click="adjustQty(item, -1)" :disabled="item.quantity <= 1">-</button>
-                            <input type="number" v-model.number="item.quantity" min="1" @change="validateQty(item)" />
-                            <button @click="adjustQty(item, 1)">+</button>
-                            <span class="item-unit">{{ item.matchedProduct.unit }}</span>
+                        <button 
+                          v-if="item.candidateProducts.length > 0 && !item.showSearchInput"
+                          @click="resetToSearch(item)"
+                          class="btn-clear-search"
+                          title="Ввести свой вариант"
+                        >
+                          <X :size="14" />
+                        </button>
+
+                        <div v-if="item.showSearchInput || item.candidateProducts.length === 0" class="manual-input-row-wrapper">
+                          <div class="manual-input-row">
+                            <input 
+                              type="text" 
+                              v-model="item.manualSearchQuery" 
+                              @input="onSearchInput(item)"
+                              @focus="item.showSuggestions = true"
+                              @change="onManualSearchChange(item)"
+                              placeholder="Введите название..."
+                              class="manual-search"
+                            />
+                            <button 
+                              @click="clearManualSearch(item)" 
+                              class="btn-clear-search"
+                              title="Очистить или закрыть поиск"
+                            >
+                              <X :size="14" />
+                            </button>
                           </div>
-                          <span v-else class="text-muted">—</span>
-                        </td>
+                          
+                          <div 
+                            class="search-suggestions-dropdown" 
+                            v-if="item.showSuggestions && getSearchSuggestions(item.manualSearchQuery).length > 0"
+                          >
+                            <div 
+                              v-for="p in getSearchSuggestions(item.manualSearchQuery)" 
+                              :key="p.id"
+                              class="suggestion-option"
+                              @click="selectSuggestion(item, p)"
+                            >
+                              <span class="suggestion-name">{{ p.name }}</span>
+                              <div class="suggestion-meta">
+                                <span class="suggestion-price">{{ formatPrice(p.price) }} ₸ / {{ p.unit }}</span>
+                                <span class="suggestion-category">{{ p.category }}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
 
-                        <!-- Total Cost -->
-                        <td class="price-col right-col" data-label="Стоимость">
-                          <template v-if="item.matchedProduct">
-                            <span class="total-item-price">{{ formatPrice(item.matchedProduct.price * item.quantity) }} ₸</span>
-                            <span class="price-per-unit">{{ formatPrice(item.matchedProduct.price) }} ₸/{{ item.matchedProduct.unit }}</span>
-                          </template>
-                          <span v-else class="text-muted">—</span>
-                        </td>
+                      <div v-if="item.matchedProduct" class="mobile-catalog-details">
+                        <span>Категория: {{ item.matchedProduct.category }}</span>
+                        <span>Производитель: {{ item.matchedProduct.manufacturer }}</span>
+                      </div>
+                    </div>
 
-                        <!-- Action Column: Delete Row Trash Button -->
-                        <td class="actions-cell center-col" data-label="Удалить">
-                          <button @click="removeRow(item.id)" class="btn-row-delete" title="Удалить строку">
-                            <Trash2 :size="16" />
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                    <div class="card-mobile-footer" v-if="item.matchedProduct">
+                      <div class="qty-and-price-row">
+                        <div class="mobile-price-per-unit">
+                          <span>Цена:</span>
+                          <strong>{{ formatPrice(item.matchedProduct.price) }} ₸/{{ item.matchedProduct.unit }}</strong>
+                        </div>
+                        <div class="quantity-control">
+                          <button @click="adjustQty(item, -1)" :disabled="item.quantity <= 1">-</button>
+                          <input type="number" v-model.number="item.quantity" min="1" @change="validateQty(item)" />
+                          <button @click="adjustQty(item, 1)">+</button>
+                          <span class="item-unit">{{ item.matchedProduct.unit }}</span>
+                        </div>
+                      </div>
+                      <div class="mobile-total-row">
+                        <span>Итого стоимость:</span>
+                        <strong class="total-price-badge">{{ formatPrice(item.matchedProduct.price * item.quantity) }} ₸</strong>
+                      </div>
+                    </div>
+                    <div class="card-mobile-footer empty" v-else>
+                      <span class="no-product-warning">Товар не выбран</span>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Bottom Summary Section -->
@@ -330,7 +458,7 @@ const chatHistory = ref([
   {
     id: 1,
     sender: 'agent',
-    text: 'Приветствую! Я Gastromir AI Агент по закупкам. Вставьте список продуктов, которые вам нужны. Я автоматически разберу строки, распознаю количество и найду совпадения в каталоге товаров.',
+    text: 'Приветствую! Я Gastromir AI Агент по закупкам. Вставьте список продуктов, которые вам нужны. Я автоматически разберу строки, распознаю количество и найду совпадения в каталоге товаров. Пожалуйста, указывайте количество строго после знака дефиса (-) (например: Greenfield 100 пак - 2 пачки), чтобы числа в названиях товаров не сбивали распознавание количества.',
     time: formatTime(new Date())
   }
 ])
@@ -553,7 +681,7 @@ const processList = async () => {
     const rawLine = lines[i].trim()
     if (!rawLine) continue
 
-    const qtyMatch = rawLine.match(/[-—\s]+(\d+([.,]\d+)?)\s*(кг|гр|грамм|г|шт|пач|пачек|пачки|уп|уп\.|коробка|кор|мешок|ящик|качан|качана|качанов|бутылка|бут|пакет|пак)?\b/i)
+    const qtyMatch = rawLine.match(/\s*[-—]\s*(\d+([.,]\d+)?)\s*(кг|гр|грамм|г|шт|пач|пачек|пачки|уп|уп\.|коробка|кор|мешок|ящик|качан|качана|качанов|бутылка|бут|пакет|пак)?\b/i)
 
     let query = rawLine
     let quantity = 1
@@ -566,17 +694,6 @@ const processList = async () => {
       const matchIndex = rawLine.lastIndexOf(fullMatch)
       if (matchIndex !== -1) {
         query = rawLine.substring(0, matchIndex).trim()
-      }
-    } else {
-      const unitMatch = rawLine.match(/\s+(мешок|ящик|коробка|пачка|уп|качан)\b/i)
-      if (unitMatch) {
-        const fullMatch = unitMatch[0]
-        quantity = 1
-        unit = unitMatch[1]
-        const matchIndex = rawLine.lastIndexOf(fullMatch)
-        if (matchIndex !== -1) {
-          query = rawLine.substring(0, matchIndex).trim()
-        }
       }
     }
 

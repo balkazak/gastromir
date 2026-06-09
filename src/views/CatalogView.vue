@@ -5,6 +5,12 @@
         <h1>Наш <span>ассортимент</span></h1>
         <p>Более 1000 позиций по актуальным ценам. Заказывайте в один клик.</p>
         
+        <div style="margin-top: 1.5rem; display: flex; justify-content: center;">
+          <button @click="downloadCatalogPDF" class="btn btn-secondary" :disabled="isGeneratingPDF" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; font-weight: 700; border-radius: 9999px; font-size: 1rem;">
+            <Download :size="18" /> {{ isGeneratingPDF ? 'Генерация PDF...' : 'Скачать прайс (PDF)' }}
+          </button>
+        </div>
+
         <div class="search-bar">
           <Search class="search-icon" />
           <input 
@@ -136,19 +142,92 @@
       </div>
       <button @click="cartStore.openModal" class="btn btn-secondary">Оформить заказ</button>
     </div>
+
+    <div style="position: absolute; left: -9999px; top: -9999px; overflow: hidden; width: 720px;">
+      <div ref="catalogPdfTemplateRef" style="font-family: 'Arial', sans-serif; padding: 30px; background: white; color: black; box-sizing: border-box; width: 720px;">
+        <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 15px;">
+          <img :src="logoImg" alt="GASTROMIR" style="max-height: 80px; width: auto; margin-bottom: 10px;" />
+          <h2 style="margin: 0; font-size: 18px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.05em; color: #0B1221;">Каталог и прайс-лист</h2>
+          <p style="margin: 5px 0 0 0; font-size: 11px; color: #555;">Дата формирования: {{ new Date().toLocaleDateString('ru-RU') }}</p>
+        </div>
+
+        <div v-for="(categoryProducts, catName) in pdfGroupedProducts" :key="catName" style="margin-bottom: 25px; page-break-inside: avoid;">
+          <h3 style="background-color: #f1f5f9; padding: 6px 10px; margin: 0 0 10px 0; font-size: 13px; font-weight: bold; border-left: 4px solid #F59E0B; text-transform: uppercase; color: #0B1221;">
+            {{ catName }}
+          </h3>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+            <thead>
+              <tr style="background-color: #f8fafc; border-bottom: 1.5px solid #000;">
+                <th style="padding: 6px; font-size: 9px; font-weight: bold; text-align: left; width: 50%;">Наименование товара</th>
+                <th style="padding: 6px; font-size: 9px; font-weight: bold; text-align: left; width: 20%;">Производитель</th>
+                <th style="padding: 6px; font-size: 9px; font-weight: bold; text-align: center; width: 12%;">Ед. изм.</th>
+                <th style="padding: 6px; font-size: 9px; font-weight: bold; text-align: right; width: 18%;">Цена (KZT)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="prod in categoryProducts" :key="prod.id" style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 6px; font-size: 9px; text-align: left; font-weight: 600;">{{ prod.name }}</td>
+                <td style="padding: 6px; font-size: 9px; text-align: left; color: #444;">{{ prod.manufacturer }}</td>
+                <td style="padding: 6px; font-size: 9px; text-align: center;">{{ prod.unit }}</td>
+                <td style="padding: 6px; font-size: 9px; text-align: right; font-weight: bold;">{{ formatPrice(prod.price) }} ₸</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { Search, ShoppingCart, Check, PackageX, Info } from 'lucide-vue-next'
+import { Search, ShoppingCart, Check, PackageX, Info, Download } from 'lucide-vue-next'
 import { useCartStore, isWeightProduct } from '@/stores/cart'
+import logoImg from '@/assets/logo.png'
 
 const cartStore = useCartStore()
 const searchQuery = ref('')
 const activeCategory = ref('all')
 const productsRef = ref(null)
 const categoriesBarRef = ref(null)
+
+const isGeneratingPDF = ref(false)
+const catalogPdfTemplateRef = ref(null)
+
+const pdfGroupedProducts = computed(() => {
+  const groups = {}
+  products.value.forEach(p => {
+    if (!groups[p.category]) {
+      groups[p.category] = []
+    }
+    groups[p.category].push(p)
+  })
+  return groups
+})
+
+const downloadCatalogPDF = async () => {
+  isGeneratingPDF.value = true
+  try {
+    const html2pdf = (await import('html2pdf.js')).default
+    const element = catalogPdfTemplateRef.value
+    const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')
+    const options = {
+      margin: [0.4, 0.4, 0.4, 0.4],
+      filename: `Каталог_товаров_GASTROMIR_${date}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    }
+    await html2pdf()
+      .from(element)
+      .set(options)
+      .save()
+  } catch (err) {
+    console.error('Error generating catalog PDF:', err)
+  } finally {
+    isGeneratingPDF.value = false
+  }
+}
 
 // Mouse drag scroll handlers for categories bar
 let isDown = false

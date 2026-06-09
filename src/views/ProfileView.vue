@@ -101,9 +101,32 @@
 
         <!-- Tab 1: Invoices List -->
         <div v-if="activeTab === 'invoices'" class="tab-pane animate-fade">
-          <div class="section-title">
-            <h2>История <span>накладных</span></h2>
-            <p>Все ваши заказы, сгруппированные по месяцам</p>
+          <div class="price-header-row" style="margin-bottom: 2rem; display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;">
+            <div class="card-header" style="margin-bottom: 0;">
+              <h2>История <span>накладных</span></h2>
+              <p>Все ваши накладные с возможностью поиска, фильтрации и скачивания PDF</p>
+            </div>
+            
+            <div class="search-filters-box debts-actions-box" style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; width: 100%; max-width: 600px;">
+              <input 
+                type="text" 
+                v-model="searchInvoiceQuery" 
+                placeholder="Поиск по № накладной или товару..." 
+                class="admin-select-filter" 
+                style="flex: 1; min-width: 200px; padding-right: 1rem;"
+              />
+              <VueDatePicker 
+                v-model="invoiceDateRange" 
+                range 
+                :enable-time-picker="false" 
+                :time-config="{ enableTimePicker: false }"
+                :locale="ru" 
+                placeholder="Выберите период" 
+                auto-apply 
+                key="profile-invoices-datepicker"
+                style="width: 220px;"
+              />
+            </div>
           </div>
 
           <div v-if="loading" class="loading-state">
@@ -111,52 +134,63 @@
             <p>Загрузка истории накладных...</p>
           </div>
 
-          <div v-else-if="Object.keys(groupedOrders).length === 0" class="empty-state" v-motion-pop>
+          <div v-else-if="orders.length === 0" class="empty-state" v-motion-pop>
             <ClipboardList :size="64" />
             <h3>Накладных пока нет</h3>
             <p>Сделайте свой первый заказ в каталоге товаров!</p>
             <router-link to="/catalog" class="btn btn-secondary">Перейти в каталог</router-link>
           </div>
 
-          <div v-else class="invoices-timeline">
-            <div 
-              v-for="(orders, month) in groupedOrders" 
-              :key="month" 
-              class="month-group"
-              v-motion-slide-visible-once-bottom
-            >
-              <h3 class="month-title"><Calendar :size="18" /> {{ month }}</h3>
-              
-              <div class="orders-grid">
-                <div v-for="order in orders" :key="order.id" class="invoice-card">
-                  <div class="invoice-card-header">
-                    <div>
-                      <span class="invoice-num">Накладная №{{ order.id }}</span>
-                      <span class="invoice-date">{{ formatDate(order.created_at) }}</span>
-                    </div>
-                    <span class="invoice-price">{{ formatPrice(order.total_price) }} ₸</span>
-                  </div>
+          <div v-else-if="filteredOrders.length === 0" class="empty-state">
+            <ClipboardList :size="48" />
+            <p>Накладные по вашему запросу не найдены</p>
+          </div>
 
-                  <div class="invoice-items-preview">
-                    <div v-for="(item, index) in order.items.slice(0, 3)" :key="index" class="preview-item">
-                      <span>{{ item.name }}</span>
-                      <span>{{ item.quantity }} {{ item.unit }}</span>
-                    </div>
-                    <div v-if="order.items.length > 3" class="preview-more">
-                      и еще {{ order.items.length - 3 }} товар(ов)...
-                    </div>
-                  </div>
-
-                  <div class="invoice-card-actions">
-                    <button @click="showInvoiceDetails(order)" class="btn-details">
-                      <Eye :size="16" /> Посмотреть детали
-                    </button>
-                    <button @click="repeatOrder(order)" class="btn btn-secondary btn-repeat">
-                      <RotateCcw :size="16" /> Повторить и Дополнить заказ
-                    </button>
-                  </div>
-                </div>
-              </div>
+          <div v-else>
+            <div class="table-responsive">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>№ Накладной</th>
+                    <th>Дата составления</th>
+                    <th>Краткий состав</th>
+                    <th style="text-align: right;">Сумма с НДС</th>
+                    <th style="text-align: center;">Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="order in filteredOrders" :key="order.id">
+                    <td data-label="№ Накладной" class="font-bold">
+                      № {{ getRestaurantPrefix(authStore.user?.name) }}-{{ String(getRestaurantOrderNumber(order)).padStart(2, '0') }}
+                    </td>
+                    <td data-label="Дата составления">{{ formatDate(order.created_at) }}</td>
+                    <td data-label="Краткий состав" style="max-width: 350px;">
+                      <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
+                        <span v-for="(item, index) in order.items.slice(0, 2)" :key="index" style="display: inline-block; font-size: 0.8rem; background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 6px; color: var(--primary-light);">
+                          {{ item.name }} ({{ item.quantity }} {{ item.unit }})
+                        </span>
+                        <span v-if="order.items.length > 2" style="font-size: 0.8rem; color: var(--gray); align-self: center;">
+                          и еще {{ order.items.length - 2 }}...
+                        </span>
+                      </div>
+                    </td>
+                    <td data-label="Сумма с НДС" style="text-align: right;" class="font-bold">{{ formatPrice(order.total_price) }} ₸</td>
+                    <td data-label="Действия" style="text-align: center;">
+                      <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center; flex-wrap: wrap;">
+                        <button @click="showInvoiceDetails(order)" class="btn btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                          <Eye :size="14" /> Детали
+                        </button>
+                        <button @click="downloadPDFInvoiceDirectly(order)" class="btn btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                          <Download :size="14" /> PDF
+                        </button>
+                        <button @click="repeatOrder(order)" class="btn btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.25rem; border-color: #10b981; color: #10b981; background: transparent;">
+                          <RotateCcw :size="14" /> Повторить
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -170,16 +204,22 @@
             </div>
             
             <div class="search-filters-box debts-actions-box" style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
-              <!-- Select Month Dropdown -->
-              <select v-model="selectedReportMonth" class="admin-select-filter">
-                <option value="all">Все периоды</option>
-                <option v-for="m in uniqueReportMonths" :key="m" :value="m">{{ m }}</option>
-              </select>
+              <VueDatePicker 
+                v-model="reportDateRange" 
+                range 
+                :enable-time-picker="false" 
+                :time-config="{ enableTimePicker: false }"
+                :locale="ru" 
+                placeholder="Выберите период" 
+                auto-apply 
+                key="profile-reports-datepicker"
+                style="width: 220px;"
+              />
 
               <!-- Actions -->
-              <button @click="exportReportToCSV" class="btn btn-secondary" style="background-color: #10b981; border-color: #10b981; display: flex; align-items: center; gap: 0.5rem; color: #fff;">
+              <!-- <button @click="exportReportToCSV" class="btn btn-secondary" style="background-color: #10b981; border-color: #10b981; display: flex; align-items: center; gap: 0.5rem; color: #fff;">
                 <FileText :size="18" /> Экспорт в Excel (CSV)
-              </button>
+              </button> -->
 
               <button @click="generateReportPDF" class="btn btn-primary" :disabled="isGeneratingReportPDF" style="display: flex; align-items: center; gap: 0.5rem;">
                 <Download :size="18" /> {{ isGeneratingReportPDF ? 'Генерация...' : 'Скачать PDF отчет' }}
@@ -208,8 +248,6 @@
                     <th>Год</th>
                     <th style="text-align: center;">Кол-во накладных</th>
                     <th style="text-align: right;">Сумма закупок, ₸</th>
-                    <th style="text-align: right;">Оплата, ₸</th>
-                    <th style="text-align: right;">Остаток, ₸</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -219,8 +257,6 @@
                     <td data-label="Год">{{ row.year }}</td>
                     <td data-label="Кол-во накладных" style="text-align: center;">{{ row.orderCount }}</td>
                     <td data-label="Сумма закупок, ₸" style="text-align: right;" class="font-bold">{{ formatPrice(row.purchases) }} ₸</td>
-                    <td data-label="Оплата, ₸" style="text-align: right;" class="text-success font-bold">{{ formatPrice(row.payments) }} ₸</td>
-                    <td data-label="Остаток, ₸" style="text-align: right;" class="font-bold" :class="{ 'text-danger': row.balance > 0 }">{{ formatPrice(row.balance) }} ₸</td>
                   </tr>
                 </tbody>
               </table>
@@ -241,8 +277,6 @@
                     <th>Год</th>
                     <th style="text-align: center;">Кол-во накладных</th>
                     <th style="text-align: right;">Общие закупки, ₸</th>
-                    <th style="text-align: right;">Общие оплаты, ₸</th>
-                    <th style="text-align: right;">Остаток долга, ₸</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -251,8 +285,6 @@
                     <td data-label="Год">{{ row.year }}</td>
                     <td data-label="Кол-во накладных" style="text-align: center;">{{ row.orderCount }}</td>
                     <td data-label="Общие закупки, ₸" style="text-align: right;" class="font-bold">{{ formatPrice(row.purchases) }} ₸</td>
-                    <td data-label="Общие оплаты, ₸" style="text-align: right;" class="text-success font-bold">{{ formatPrice(row.payments) }} ₸</td>
-                    <td data-label="Остаток долга, ₸" style="text-align: right;" class="font-bold" :class="{ 'text-danger': row.debt > 0 }">{{ formatPrice(row.debt) }} ₸</td>
                   </tr>
                 </tbody>
               </table>
@@ -264,18 +296,40 @@
 
     <!-- Detailed Invoice Modal -->
     <Transition name="fade">
-      <div v-if="activeInvoice" class="details-modal-overlay" @click.self="activeInvoice = null">
+      <div v-if="activeInvoice" class="details-modal-overlay" @click.self="isEditingInvoice ? cancelEditingInvoice() : activeInvoice = null">
         <div class="details-modal" v-motion-pop>
           <div class="details-modal-header">
-            <h3>Накладная №{{ activeInvoice.id }}</h3>
-            <button @click="activeInvoice = null" class="close-btn"><X /></button>
+            <h3>{{ isEditingInvoice ? 'Редактирование накладной' : 'Детали накладной' }} №{{ activeInvoice.id }}</h3>
+            <button @click="isEditingInvoice ? cancelEditingInvoice() : activeInvoice = null" class="close-btn"><X /></button>
           </div>
           <div class="details-modal-body">
-            <div class="invoice-meta-info">
+            <div class="invoice-meta-info" style="margin-bottom: 1.5rem;">
               <p><strong>Дата заказа:</strong> {{ formatDate(activeInvoice.created_at) }}</p>
               <p><strong>Получатель:</strong> {{ authStore.user?.name }}</p>
               <p><strong>Электронная почта:</strong> {{ authStore.user?.email }}</p>
             </div>
+
+            <div v-if="isEditingInvoice" style="margin-bottom: 1.5rem; position: relative;">
+              <label style="display: block; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase; font-size: 0.85rem;">Добавить товар в накладную</label>
+              <input 
+                type="text" 
+                v-model="productSearchQuery" 
+                placeholder="Введите название товара..." 
+                style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 0.95rem;"
+              />
+              <div v-if="filteredProductsToSelect.length > 0" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 10; margin-top: 0.25rem; max-height: 200px; overflow-y: auto;">
+                <div 
+                  v-for="prod in filteredProductsToSelect" 
+                  :key="prod.id" 
+                  @click="addProductToInvoice(prod)"
+                  style="padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center;"
+                >
+                  <span style="font-weight: 600; font-size: 0.9rem;">{{ prod.name }}</span>
+                  <span style="font-size: 0.85rem; color: var(--gray);">{{ formatPrice(prod.price) }} ₸ / {{ prod.unit }}</span>
+                </div>
+              </div>
+            </div>
+
             <table class="modal-invoice-table">
               <thead>
                 <tr>
@@ -283,9 +337,10 @@
                   <th style="text-align: center;">Кол-во</th>
                   <th style="text-align: right;">Цена</th>
                   <th style="text-align: right;">Сумма</th>
+                  <th v-if="isEditingInvoice" style="width: 50px;"></th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody v-if="!isEditingInvoice">
                 <tr v-for="item in activeInvoice.items" :key="item.id">
                   <td data-label="Товар">{{ item.name }}</td>
                   <td data-label="Кол-во" style="text-align: center;">{{ item.quantity }} {{ item.unit }}</td>
@@ -307,15 +362,66 @@
                   <td style="text-align: right;" class="total-amount-cell"><strong>{{ formatPrice(activeInvoice.total_price) }} ₸</strong></td>
                 </tr>
               </tbody>
+              <tbody v-else>
+                <tr v-for="item in editableItems" :key="item.id">
+                  <td data-label="Товар">{{ item.name }}</td>
+                  <td data-label="Кол-во" style="text-align: center;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; justify-content: center;">
+                      <button type="button" @click="decreaseQty(item)" style="border: 1px solid #cbd5e1; background: #fff; width: 24px; height: 24px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
+                        <Minus :size="12" />
+                      </button>
+                      <span style="font-weight: bold; width: 30px; text-align: center;">{{ item.quantity }}</span>
+                      <button type="button" @click="increaseQty(item)" style="border: 1px solid #cbd5e1; background: #fff; width: 24px; height: 24px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
+                        <Plus :size="12" />
+                      </button>
+                      <span style="font-size: 0.85rem; color: var(--gray);">{{ item.unit }}</span>
+                    </div>
+                  </td>
+                  <td data-label="Цена" style="text-align: right;">{{ formatPrice(item.price) }} ₸</td>
+                  <td data-label="Сумма" style="text-align: right;">{{ formatPrice(item.price * item.quantity) }} ₸</td>
+                  <td style="text-align: center;">
+                    <button type="button" @click="removeProductFromInvoice(item)" style="color: #ef4444; border: none; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
+                      <Trash2 :size="16" />
+                    </button>
+                  </td>
+                </tr>
+                <template v-if="activeInvoice.discount && parseFloat(activeInvoice.discount) > 0">
+                  <tr class="modal-subtotal-row" style="font-size: 0.95rem; color: var(--gray);">
+                    <td colspan="4" style="text-align: right; border-bottom: none; padding-top: 0.5rem; padding-bottom: 0.25rem;">Сумма без скидки:</td>
+                    <td style="text-align: right; border-bottom: none; padding-top: 0.5rem; padding-bottom: 0.25rem;">{{ formatPrice(editableOriginalPrice) }} ₸</td>
+                  </tr>
+                  <tr class="modal-discount-row" style="font-size: 0.95rem; color: #ef4444;">
+                    <td colspan="4" style="text-align: right; border-bottom: none; padding-top: 0.25rem; padding-bottom: 0.25rem;">Скидка ({{ parseFloat(activeInvoice.discount) }}%):</td>
+                    <td style="text-align: right; border-bottom: none; padding-top: 0.25rem; padding-bottom: 0.25rem;">-{{ formatPrice(editableOriginalPrice - editableTotalPrice) }} ₸</td>
+                  </tr>
+                </template>
+                <tr class="modal-total-row">
+                  <td colspan="4" class="total-label-cell"><strong>Итого к оплате:</strong></td>
+                  <td style="text-align: right;" class="total-amount-cell"><strong>{{ formatPrice(editableTotalPrice) }} ₸</strong></td>
+                </tr>
+              </tbody>
             </table>
           </div>
           <div class="details-modal-footer" style="display: flex; gap: 1rem; flex-direction: column;">
-            <button @click="generatePDFInvoice(activeInvoice)" class="btn btn-primary btn-block" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;" :disabled="isGeneratingPDF">
-              <FileText :size="18" /> {{ isGeneratingPDF ? 'Генерация PDF...' : 'Скачать накладную (PDF)' }}
-            </button>
-            <button @click="repeatOrder(activeInvoice)" class="btn btn-secondary btn-block" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0;">
-              <RotateCcw :size="18" /> Повторить и Дополнить заказ
-            </button>
+            <template v-if="!isEditingInvoice">
+              <button @click="startEditingInvoice" class="btn btn-secondary btn-block" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-color: var(--secondary); color: var(--secondary); background: transparent;">
+                <Edit3 :size="18" /> Редактировать накладную
+              </button>
+              <button @click="generatePDFInvoice(activeInvoice)" class="btn btn-primary btn-block" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0;" :disabled="isGeneratingPDF">
+                <FileText :size="18" /> {{ isGeneratingPDF ? 'Генерация PDF...' : 'Скачать накладную (PDF)' }}
+              </button>
+              <button @click="repeatOrder(activeInvoice)" class="btn btn-secondary btn-block" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0;">
+                <RotateCcw :size="18" /> Повторить и Дополнить заказ
+              </button>
+            </template>
+            <template v-else>
+              <button @click="saveEditedInvoice" class="btn btn-primary btn-block" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                Сохранить изменения
+              </button>
+              <button @click="cancelEditingInvoice" class="btn btn-secondary btn-block" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0; background: transparent;">
+                Отмена
+              </button>
+            </template>
           </div>
         </div>
       </div>
@@ -742,7 +848,7 @@
     <div ref="reportPdfTemplateRef" class="pdf-debts-report" style="width: 710px; padding: 20px; font-family: 'Arial', sans-serif;">
       <h2 class="pdf-report-title">Отчет по закупкам и оплатам по дням</h2>
       <p class="pdf-report-meta"><strong>Покупатель:</strong> {{ authStore.user?.name || 'Ресторан' }}</p>
-      <p class="pdf-report-meta"><strong>Период:</strong> {{ selectedReportMonth === 'all' ? 'Все периоды' : selectedReportMonth }}</p>
+      <p class="pdf-report-meta"><strong>Период:</strong> {{ selectedReportMonthText }}</p>
       <p class="pdf-report-meta"><strong>Дата выгрузки:</strong> {{ formatDateOnly(new Date()) }}</p>
 
       <!-- Daily Table -->
@@ -754,8 +860,6 @@
             <th>Год</th>
             <th style="text-align: center;">Накладные</th>
             <th style="text-align: right;">Закупки, ₸</th>
-            <th style="text-align: right;">Оплаты, ₸</th>
-            <th style="text-align: right;">Остаток, ₸</th>
           </tr>
         </thead>
         <tbody>
@@ -765,8 +869,6 @@
             <td>{{ row.year }}</td>
             <td style="text-align: center;">{{ row.orderCount }}</td>
             <td style="text-align: right;">{{ formatPrice(row.purchases) }}</td>
-            <td style="text-align: right; color: #16a34a;">{{ formatPrice(row.payments) }}</td>
-            <td style="text-align: right; font-weight: bold;">{{ formatPrice(row.balance) }}</td>
           </tr>
         </tbody>
       </table>
@@ -782,8 +884,6 @@
             <th>Год</th>
             <th style="text-align: center;">Накладные</th>
             <th style="text-align: right;">Общие закупки, ₸</th>
-            <th style="text-align: right;">Общие оплаты, ₸</th>
-            <th style="text-align: right;">Остаток долга, ₸</th>
           </tr>
         </thead>
         <tbody>
@@ -792,8 +892,6 @@
             <td>{{ row.year }}</td>
             <td style="text-align: center;">{{ row.orderCount }}</td>
             <td style="text-align: right; font-weight: bold;">{{ formatPrice(row.purchases) }}</td>
-            <td style="text-align: right; color: #16a34a; font-weight: bold;">{{ formatPrice(row.payments) }}</td>
-            <td style="text-align: right; font-weight: bold; color: #dc2626;">{{ formatPrice(row.debt) }}</td>
           </tr>
         </tbody>
       </table>
@@ -820,14 +918,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { VueDatePicker } from '@vuepic/vue-datepicker'
+import '@vuepic/vue-datepicker/dist/main.css'
+import { ru } from 'date-fns/locale'
 import printImg from '@/assets/docs/print.png'
 import signatureImg from '@/assets/docs/signature.png'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import { useToastStore } from '@/stores/toast'
-import { User, Calendar, Eye, RotateCcw, ClipboardList, X, Phone, MapPin, Edit3, FileText, Landmark, Hash, Globe, CreditCard, TrendingUp, Download } from 'lucide-vue-next'
+import { User, Calendar, Eye, RotateCcw, ClipboardList, X, Phone, MapPin, Edit3, FileText, Landmark, Hash, Globe, CreditCard, TrendingUp, Download, Plus, Minus, Trash2 } from 'lucide-vue-next'
 import { formatPhone } from '@/utils/format'
 
 const authStore = useAuthStore()
@@ -841,11 +942,177 @@ const activeInvoice = ref(null)
 const pdfTemplateRef = ref(null)
 const isGeneratingPDF = ref(false)
 
-// Tabs navigation state
 const activeTab = ref('invoices')
 
-// Report state
-const selectedReportMonth = ref('all')
+const searchInvoiceQuery = ref('')
+const invoiceDateRange = ref(null)
+
+const isEditingInvoice = ref(false)
+const editableItems = ref([])
+const allProducts = ref([])
+const productSearchQuery = ref('')
+
+const fetchAllProducts = async () => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/products`)
+    if (response.ok) {
+      allProducts.value = await response.json()
+    }
+  } catch (err) {
+    console.error('Failed to fetch products:', err)
+  }
+}
+
+const startEditingInvoice = async () => {
+  if (!allProducts.value.length) {
+    await fetchAllProducts()
+  }
+  editableItems.value = activeInvoice.value.items.map(item => ({ ...item }))
+  isEditingInvoice.value = true
+}
+
+const cancelEditingInvoice = () => {
+  isEditingInvoice.value = false
+  editableItems.value = []
+  productSearchQuery.value = ''
+}
+
+const addProductToInvoice = (product) => {
+  const existing = editableItems.value.find(item => item.id === product.id)
+  if (existing) {
+    existing.quantity += 1
+  } else {
+    editableItems.value.push({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      unit: product.unit || 'шт',
+      category: product.category,
+      manufacturer: product.manufacturer || 'Не указан',
+      quantity: 1
+    })
+  }
+  productSearchQuery.value = ''
+}
+
+const decreaseQty = (item) => {
+  if (item.quantity > 1) {
+    item.quantity -= 1
+  } else {
+    removeProductFromInvoice(item)
+  }
+}
+
+const increaseQty = (item) => {
+  item.quantity += 1
+}
+
+const removeProductFromInvoice = (item) => {
+  editableItems.value = editableItems.value.filter(i => i.id !== item.id)
+}
+
+const editableOriginalPrice = computed(() => {
+  return editableItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0)
+})
+
+const editableTotalPrice = computed(() => {
+  const discount = parseFloat(activeInvoice.value?.discount || 0)
+  return Math.round((editableOriginalPrice.value * (1 - discount / 100)) * 100) / 100
+})
+
+const filteredProductsToSelect = computed(() => {
+  if (!productSearchQuery.value.trim()) return []
+  const q = productSearchQuery.value.toLowerCase()
+  return allProducts.value.filter(p => p.name.toLowerCase().includes(q)).slice(0, 5)
+})
+
+const saveEditedInvoice = async () => {
+  if (editableItems.value.length === 0) {
+    toastStore.error('Накладная не может быть пустой')
+    return
+  }
+
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/orders/${activeInvoice.value.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        items: editableItems.value,
+        totalPrice: editableTotalPrice.value,
+        discount: parseFloat(activeInvoice.value.discount || 0),
+        originalPrice: editableOriginalPrice.value
+      })
+    })
+
+    const data = await response.json()
+    if (response.ok) {
+      toastStore.success('Накладная успешно обновлена')
+      const idx = orders.value.findIndex(o => o.id === activeInvoice.value.id)
+      if (idx !== -1) {
+        orders.value[idx] = data.order
+      }
+      activeInvoice.value = data.order
+      isEditingInvoice.value = false
+    } else {
+      toastStore.error(data.message || 'Ошибка при сохранении накладной')
+    }
+  } catch (err) {
+    console.error('Failed to update order:', err)
+    toastStore.error('Сетевая ошибка при сохранении накладной')
+  }
+}
+
+const downloadPDFInvoiceDirectly = async (order) => {
+  activeInvoice.value = order
+  await nextTick()
+  await generatePDFInvoice(order)
+  activeInvoice.value = null
+}
+
+const filteredOrders = computed(() => {
+  let list = [...orders.value]
+  if (invoiceDateRange.value && invoiceDateRange.value.length === 2) {
+    const [start, end] = invoiceDateRange.value
+    if (start && end) {
+      const startTime = new Date(start).setHours(0, 0, 0, 0)
+      const endTime = new Date(end).setHours(23, 59, 59, 999)
+      list = list.filter(order => {
+        const orderTime = new Date(order.created_at).getTime()
+        return orderTime >= startTime && orderTime <= endTime
+      })
+    }
+  }
+  if (searchInvoiceQuery.value.trim()) {
+    const q = searchInvoiceQuery.value.toLowerCase().trim()
+    list = list.filter(order => {
+      const orderNum = `${getRestaurantPrefix(authStore.user?.name)}-${String(getRestaurantOrderNumber(order)).padStart(2, '0')}`
+      const matchesNum = order.id.toString().includes(q) || orderNum.toLowerCase().includes(q)
+      const matchesProducts = order.items.some(item => item.name.toLowerCase().includes(q))
+      return matchesNum || matchesProducts
+    })
+  }
+  return list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+})
+
+const reportDateRange = ref(null)
+
+const selectedReportMonthText = computed(() => {
+  if (!reportDateRange.value || reportDateRange.value.length < 2) return 'Все периоды'
+  const [start, end] = reportDateRange.value
+  if (!start || !end) return 'Все периоды'
+  return `${formatDateOnly(start)} - ${formatDateOnly(end)}`
+})
+
+const selectedReportMonthFileText = computed(() => {
+  if (!reportDateRange.value || reportDateRange.value.length < 2) return 'Все_периоды'
+  const [start, end] = reportDateRange.value
+  if (!start || !end) return 'Все_периоды'
+  return `${formatDateOnly(start).replace(/\./g, '_')}_по_${formatDateOnly(end).replace(/\./g, '_')}`
+})
+
 const payments = ref([])
 const loadingPayments = ref(false)
 const isGeneratingReportPDF = ref(false)
@@ -975,9 +1242,15 @@ const generatePDFInvoice = async (order) => {
     const currentOrderNum = `${getRestaurantPrefix(authStore.user?.name)}-${String(getRestaurantOrderNumber(order)).padStart(2, '0')}`
     const element = pdfTemplateRef.value
 
+    const d = new Date(order.created_at)
+    const day = String(d.getDate()).padStart(2, '0')
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const year = d.getFullYear()
+    const formattedDate = `${day}.${month}.${year}`
+
     const options = {
       margin: [0.3, 0.3, 0.3, 0.3],
-      filename: `Накладная_Форма_3-2_${currentOrderNum}.pdf`,
+      filename: `${formattedDate}_Накладная_Форма_3-2_${currentOrderNum}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
@@ -1208,12 +1481,16 @@ const dailyReportRows = computed(() => {
     }
   })
 
-  // Apply month filter on the final rows
-  if (selectedReportMonth.value !== 'all') {
-    return rows.filter(row => {
-      const monthYearText = `${row.month} ${row.year}`
-      return monthYearText === selectedReportMonth.value
-    })
+  if (reportDateRange.value && reportDateRange.value.length === 2) {
+    const [start, end] = reportDateRange.value
+    if (start && end) {
+      const startTime = new Date(start).setHours(0, 0, 0, 0)
+      const endTime = new Date(end).setHours(23, 59, 59, 999)
+      return rows.filter(row => {
+        const rowTime = new Date(row.date).getTime()
+        return rowTime >= startTime && rowTime <= endTime
+      })
+    }
   }
 
   return rows
@@ -1281,9 +1558,27 @@ const monthlySummaryRows = computed(() => {
     }
   })
 
-  // Apply month filter if selected
-  if (selectedReportMonth.value !== 'all') {
-    return rows.filter(row => `${row.month} ${row.year}` === selectedReportMonth.value)
+  if (reportDateRange.value && reportDateRange.value.length === 2) {
+    const [start, end] = reportDateRange.value
+    if (start && end) {
+      const startYear = new Date(start).getFullYear()
+      const startMonth = new Date(start).getMonth()
+      const endYear = new Date(end).getFullYear()
+      const endMonth = new Date(end).getMonth()
+      return rows.filter(row => {
+        const rowYear = parseInt(row.year)
+        const monthNames = [
+          'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+          'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+        ]
+        const rowMonthIndex = monthNames.indexOf(row.month)
+        if (rowMonthIndex === -1) return true
+        const rowTime = new Date(rowYear, rowMonthIndex, 1).getTime()
+        const compareStart = new Date(startYear, startMonth, 1).getTime()
+        const compareEnd = new Date(endYear, endMonth, 1).getTime()
+        return rowTime >= compareStart && rowTime <= compareEnd
+      })
+    }
   }
 
   return rows
@@ -1308,14 +1603,14 @@ const uniqueReportMonths = computed(() => {
 const exportReportToCSV = () => {
   const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')
   const restName = (authStore.user?.name || 'Ресторан').replace(/\s+/g, '_')
-  const monthName = selectedReportMonth.value === 'all' ? 'Все_периоды' : selectedReportMonth.value.replace(' ', '_')
+  const monthName = selectedReportMonthFileText.value
   
   let csvContent = "\uFEFF"
   csvContent += `ОТЧЕТ ПО ЗАКУПКАМ И ОПЛАТАМ ПО ДНЯМ\n`
   csvContent += `Ресторан: ${authStore.user?.name || ''}\n`
-  csvContent += `Период: ${selectedReportMonth.value === 'all' ? 'Все периоды' : selectedReportMonth.value}\n\n`
+  csvContent += `Период: ${selectedReportMonthText.value}\n\n`
   
-  const dailyHeaders = ['Дата', 'Месяц', 'Год', 'Кол-во накладных', 'Сумма закупок, KZT', 'Оплата, KZT', 'Остаток, KZT']
+  const dailyHeaders = ['Дата', 'Месяц', 'Год', 'Кол-во накладных', 'Сумма закупок, KZT']
   csvContent += dailyHeaders.join(';') + '\n'
   
   dailyReportRows.value.forEach(row => {
@@ -1324,14 +1619,12 @@ const exportReportToCSV = () => {
       row.month,
       row.year,
       row.orderCount,
-      row.purchases,
-      row.payments,
-      row.balance
+      row.purchases
     ].join(';') + '\n'
   })
   
   csvContent += `\n\nИТОГО ПО МЕСЯЦУ\n`
-  const monthlyHeaders = ['Месяц', 'Год', 'Кол-во накладных', 'Общие закупки, KZT', 'Общие оплаты, KZT', 'Остаток долга, KZT']
+  const monthlyHeaders = ['Месяц', 'Год', 'Кол-во накладных', 'Общие закупки, KZT']
   csvContent += monthlyHeaders.join(';') + '\n'
   
   monthlySummaryRows.value.forEach(row => {
@@ -1339,9 +1632,7 @@ const exportReportToCSV = () => {
       row.month,
       row.year,
       row.orderCount,
-      row.purchases,
-      row.payments,
-      row.debt
+      row.purchases
     ].join(';') + '\n'
   })
   
@@ -1368,7 +1659,7 @@ const generateReportPDF = async () => {
     
     const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')
     const restName = (authStore.user?.name || 'Ресторан').replace(/\s+/g, '_')
-    const monthName = selectedReportMonth.value === 'all' ? 'Все_периоды' : selectedReportMonth.value.replace(' ', '_')
+    const monthName = selectedReportMonthFileText.value
     
     const options = {
       margin: [0.4, 0.4, 0.4, 0.4],

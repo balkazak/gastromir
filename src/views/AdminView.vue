@@ -112,9 +112,9 @@
               <button @click="showRecordPaymentModal = true" class="btn btn-secondary" style="background-color: var(--primary); border-color: var(--primary); display: flex; align-items: center; gap: 0.5rem; color: #fff;">
                 <Plus :size="18" /> Внести оплату
               </button>
-              <button @click="exportToCSV" class="btn btn-secondary" style="background-color: #10b981; border-color: #10b981; display: flex; align-items: center; gap: 0.5rem; color: #fff;">
+              <!-- <button @click="exportToCSV" class="btn btn-secondary" style="background-color: #10b981; border-color: #10b981; display: flex; align-items: center; gap: 0.5rem; color: #fff;">
                 <FileText :size="18" /> Экспорт в Excel (CSV)
-              </button>
+              </button> -->
               <button @click="generateDebtsPDF" class="btn btn-primary" :disabled="isGeneratingDebtsPDF" style="display: flex; align-items: center; gap: 0.5rem;">
                 <Download :size="18" /> {{ isGeneratingDebtsPDF ? 'Генерация...' : 'Скачать PDF отчет' }}
               </button>
@@ -132,75 +132,105 @@
           </div>
 
           <div v-else>
+            <div class="filters-row" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center; background: rgba(255, 255, 255, 0.05); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); flex-wrap: wrap; justify-content: space-between;">
+              <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; flex: 1;">
+                <span style="font-weight: 600; font-size: 0.9rem; color: var(--gray);">Фильтр по ресторанам:</span>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                  <button 
+                    v-for="res in restaurants" 
+                    :key="res.id"
+                    @click="toggleRestaurantFilter(res.id)"
+                    class="btn-filter-tag"
+                    :class="{ active: selectedRestaurantIds.includes(res.id) }"
+                    style="padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; border: 1px solid rgba(255,255,255,0.15); cursor: pointer; transition: all 0.2s;"
+                  >
+                    {{ res.name }}
+                  </button>
+                  <button 
+                    v-if="selectedRestaurantIds.length > 0"
+                    @click="selectedRestaurantIds = []"
+                    style="padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; border: 1px solid #ef4444; color: #ef4444; background: transparent; cursor: pointer;"
+                  >
+                    Сбросить
+                  </button>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-weight: 600; font-size: 0.9rem; color: var(--gray); white-space: nowrap;">Период сверки:</span>
+                <VueDatePicker 
+                  v-model="debtsDateRange" 
+                  range 
+                  :enable-time-picker="false" 
+                  :time-config="{ enableTimePicker: false }"
+                  :locale="ru" 
+                  placeholder="Выберите период" 
+                  auto-apply 
+                  style="width: 220px;"
+                />
+              </div>
+            </div>
+
             <div class="table-responsive">
               <table class="admin-table debts-table">
                 <thead>
                   <tr>
                     <th>Покупатель</th>
-                    <th style="width: 200px;">Отгружено, ₸</th>
-                    <th style="width: 200px;">Оплачено, ₸</th>
-                    <th>Текущая задолженность, ₸</th>
-                    <th style="width: 200px;">Просроченная задолженность, ₸</th>
-                    <th style="text-align: right; width: 100px;">Действия</th>
+                    <th style="text-align: right;">Отгружено, ₸</th>
+                    <th style="text-align: right;">Оплачено, ₸</th>
+                    <th style="text-align: right;">Текущая задолженность, ₸</th>
+                    <th style="text-align: right; width: 330px;">Действия</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="res in restaurants" :key="res.id">
+                  <tr v-for="res in filteredRestaurants" :key="res.id">
                     <td data-label="Покупатель" class="font-bold">{{ res.name }}</td>
                     
-                    <td data-label="Отгружено, ₸">
-                      <div class="limit-edit-wrapper">
-                        <input 
-                          type="number" 
-                          v-model.number="res.shipped_amount" 
-                          class="limit-input"
-                          placeholder="0"
-                        />
-                      </div>
+                    <td data-label="Отгружено, ₸" style="text-align: right;">
+                      {{ formatPrice(res.shipped_amount) }} ₸
                     </td>
                     
-                    <td data-label="Оплачено, ₸">
-                      <div class="limit-edit-wrapper">
-                        <input 
-                          type="number" 
-                          v-model.number="res.paid_amount" 
-                          class="limit-input"
-                          placeholder="0"
-                        />
-                      </div>
+                    <td data-label="Оплачено, ₸" style="text-align: right;" class="text-success font-bold">
+                      {{ formatPrice(res.paid_amount) }} ₸
                     </td>
                     
-                    <td data-label="Текущая задолженность, ₸" class="font-bold" :class="{ 'text-danger': (res.shipped_amount - res.paid_amount) > 0 }">
+                    <td data-label="Текущая задолженность, ₸" style="text-align: right;" class="font-bold" :class="{ 'text-danger': (res.shipped_amount - res.paid_amount) > 0 }">
                       {{ formatPrice(res.shipped_amount - res.paid_amount) }} ₸
                     </td>
                     
-                    <td data-label="Просроченная задолженность, ₸">
-                      <div class="limit-edit-wrapper">
-                        <input 
-                          type="number" 
-                          v-model.number="res.overdue_amount" 
-                          class="limit-input"
-                          placeholder="0"
-                        />
-                      </div>
-                    </td>
-                    
                     <td data-label="Действия" style="text-align: right;">
-                      <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
+                      <div style="display: flex; gap: 0.4rem; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+                        <button 
+                          @click="recordPaymentForRestaurant(res)" 
+                          class="btn-action-payment" 
+                          title="Внести оплату"
+                          style="background: #10b981; color: white; border: none; padding: 0.35rem 0.65rem; border-radius: 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer;"
+                        >
+                          <Plus :size="12" style="display: inline; vertical-align: middle;" /> Оплата
+                        </button>
+                        <button 
+                          @click="openEditDebts(res)" 
+                          class="btn-action-edit" 
+                          title="Редактировать цифры"
+                          style="background: #f59e0b; color: white; border: none; padding: 0.35rem 0.65rem; border-radius: 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer;"
+                        >
+                          <Edit3 :size="12" style="display: inline; vertical-align: middle;" /> Редактировать
+                        </button>
+                        <button 
+                          @click="generateActSverkiPDF(res)" 
+                          class="btn-action-pdf" 
+                          title="Скачать Акт сверки"
+                          style="background: #2563eb; color: white; border: none; padding: 0.35rem 0.65rem; border-radius: 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer;"
+                          :disabled="isGeneratingActPDF"
+                        >
+                          <Download :size="12" style="display: inline; vertical-align: middle;" /> Акт сверки
+                        </button>
                         <button 
                           @click="openPaymentsHistory(res)" 
                           class="btn-edit-row" 
                           title="История платежей"
-                          style="background: rgba(37, 99, 235, 0.1); color: var(--accent); border-color: rgba(37, 99, 235, 0.2); padding: 0.4rem 0.6rem; border-radius: 8px; font-size: 0.85rem;"
+                          style="background: rgba(37, 99, 235, 0.1); color: var(--accent); border-color: rgba(37, 99, 235, 0.2); padding: 0.35rem 0.65rem; border-radius: 8px; font-size: 0.75rem;"
                         >
-                          <History :size="14" /> История оплат
-                        </button>
-                        <button 
-                          @click="saveDebts(res.id, res.shipped_amount, res.paid_amount, res.overdue_amount)" 
-                          class="btn-save-limit" 
-                          title="Сохранить взаиморасчеты"
-                        >
-                          <Check :size="16" />
+                          <History :size="12" style="display: inline; vertical-align: middle;" /> История оплат
                         </button>
                       </div>
                     </td>
@@ -209,13 +239,10 @@
                   <!-- Total Row inside the table -->
                   <tr class="debts-table-total-row">
                     <td data-label="Покупатель" class="font-bold">ИТОГО:</td>
-                    <td data-label="Отгружено, ₸" class="font-bold">{{ formatPrice(totalShipped) }} ₸</td>
-                    <td data-label="Оплачено, ₸" class="font-bold text-success">{{ formatPrice(totalPaid) }} ₸</td>
-                    <td data-label="Текущая задолженность, ₸" class="font-bold" :class="{ 'text-danger': totalDebt > 0 }">
+                    <td data-label="Отгружено, ₸" style="text-align: right;" class="font-bold">{{ formatPrice(totalShipped) }} ₸</td>
+                    <td data-label="Оплачено, ₸" style="text-align: right;" class="font-bold text-success">{{ formatPrice(totalPaid) }} ₸</td>
+                    <td data-label="Текущая задолженность, ₸" style="text-align: right;" class="font-bold" :class="{ 'text-danger': totalDebt > 0 }">
                       {{ formatPrice(totalDebt) }} ₸
-                    </td>
-                    <td data-label="Просроченная задолженность, ₸" class="font-bold" :class="{ 'text-danger': totalOverdue > 0 }">
-                      {{ formatPrice(totalOverdue) }} ₸
                     </td>
                     <td></td>
                   </tr>
@@ -239,10 +266,6 @@
                   <span class="summary-label">Долг:</span>
                   <span class="summary-value" :class="{ 'text-danger': totalDebt > 0 }">{{ formatPrice(totalDebt) }} ₸</span>
                 </li>
-                <li>
-                  <span class="summary-label">Просрочка:</span>
-                  <span class="summary-value" :class="{ 'text-danger': totalOverdue > 0 }">{{ formatPrice(totalOverdue) }} ₸</span>
-                </li>
               </ul>
             </div>
           </div>
@@ -263,17 +286,23 @@
                 <option v-for="res in restaurants" :key="res.id" :value="res.name">{{ res.name }}</option>
               </select>
 
-              <!-- Select Month Dropdown -->
-              <select v-model="selectedReportMonth" class="admin-select-filter">
-                <option value="all">Все периоды</option>
-                <option v-for="m in uniqueReportMonths" :key="m" :value="m">{{ m }}</option>
-              </select>
+              <VueDatePicker 
+                v-model="reportDateRange" 
+                range 
+                :enable-time-picker="false" 
+                :time-config="{ enableTimePicker: false }"
+                :locale="ru" 
+                placeholder="Выберите период" 
+                auto-apply 
+                key="reports-datepicker"
+                style="width: 220px;"
+              />
 
 
 
-              <button @click="exportReportToCSV" class="btn btn-secondary" style="background-color: #10b981; border-color: #10b981; display: flex; align-items: center; gap: 0.5rem; color: #fff;">
+              <!-- <button @click="exportReportToCSV" class="btn btn-secondary" style="background-color: #10b981; border-color: #10b981; display: flex; align-items: center; gap: 0.5rem; color: #fff;">
                 <FileText :size="18" /> Экспорт в Excel (CSV)
-              </button>
+              </button> -->
 
               <button @click="generateReportPDF" class="btn btn-primary" :disabled="isGeneratingReportPDF" style="display: flex; align-items: center; gap: 0.5rem;">
                 <Download :size="18" /> {{ isGeneratingReportPDF ? 'Генерация...' : 'Скачать PDF отчет' }}
@@ -301,8 +330,8 @@
                     <th>Месяц</th>
                     <th>Год</th>
                     <th style="text-align: center;">Кол-во накладных</th>
-                    <th style="text-align: right;">Сумма закупок, ₸</th>
-                    <th style="text-align: right;">Оплата, ₸</th>
+                    <th style="text-align: right;">Реализация, ₸</th>
+                    <th style="text-align: right;">Выплата, ₸</th>
                     <th style="text-align: right;">Остаток, ₸</th>
                   </tr>
                 </thead>
@@ -312,8 +341,8 @@
                     <td data-label="Месяц">{{ row.month }}</td>
                     <td data-label="Год">{{ row.year }}</td>
                     <td data-label="Кол-во накладных" style="text-align: center;">{{ row.orderCount }}</td>
-                    <td data-label="Сумма закупок, ₸" style="text-align: right;" class="font-bold">{{ formatPrice(row.purchases) }} ₸</td>
-                    <td data-label="Оплата, ₸" style="text-align: right;" class="text-success font-bold">{{ formatPrice(row.payments) }} ₸</td>
+                    <td data-label="Реализация, ₸" style="text-align: right;" class="font-bold">{{ formatPrice(row.purchases) }} ₸</td>
+                    <td data-label="Выплата, ₸" style="text-align: right;" class="text-success font-bold">{{ formatPrice(row.payments) }} ₸</td>
                     <td data-label="Остаток, ₸" style="text-align: right;" class="font-bold" :class="{ 'text-danger': row.balance > 0 }">{{ formatPrice(row.balance) }} ₸</td>
                   </tr>
                 </tbody>
@@ -334,9 +363,9 @@
                     <th>Месяц</th>
                     <th>Год</th>
                     <th style="text-align: center;">Кол-во накладных</th>
-                    <th style="text-align: right;">Общие закупки, ₸</th>
-                    <th style="text-align: right;">Общие оплаты, ₸</th>
-                    <th style="text-align: right;">Остаток долга, ₸</th>
+                    <th style="text-align: right;">Реализация, ₸</th>
+                    <th style="text-align: right;">Выплата, ₸</th>
+                    <th style="text-align: right;">Остаток, ₸</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -344,9 +373,9 @@
                     <td data-label="Месяц" class="font-bold">{{ row.month }}</td>
                     <td data-label="Год">{{ row.year }}</td>
                     <td data-label="Кол-во накладных" style="text-align: center;">{{ row.orderCount }}</td>
-                    <td data-label="Общие закупки, ₸" style="text-align: right;" class="font-bold">{{ formatPrice(row.purchases) }} ₸</td>
-                    <td data-label="Общие оплаты, ₸" style="text-align: right;" class="text-success font-bold">{{ formatPrice(row.payments) }} ₸</td>
-                    <td data-label="Остаток долга, ₸" style="text-align: right;" class="font-bold" :class="{ 'text-danger': row.debt > 0 }">{{ formatPrice(row.debt) }} ₸</td>
+                    <td data-label="Реализация, ₸" style="text-align: right;" class="font-bold">{{ formatPrice(row.purchases) }} ₸</td>
+                    <td data-label="Выплата, ₸" style="text-align: right;" class="text-success font-bold">{{ formatPrice(row.payments) }} ₸</td>
+                    <td data-label="Остаток, ₸" style="text-align: right;" class="font-bold" :class="{ 'text-danger': row.debt > 0 }">{{ formatPrice(row.debt) }} ₸</td>
                   </tr>
                 </tbody>
               </table>
@@ -520,11 +549,17 @@
                 <option v-for="res in uniqueInvoiceRestaurants" :key="res" :value="res">{{ res }}</option>
               </select>
 
-              <!-- Month filter -->
-              <select v-model="selectedMonth" class="admin-select-filter">
-                <option value="all">Все месяцы</option>
-                <option v-for="m in uniqueInvoiceMonths" :key="m" :value="m">{{ m }}</option>
-              </select>
+              <VueDatePicker 
+                v-model="invoicesDateRange" 
+                range 
+                :enable-time-picker="false" 
+                :time-config="{ enableTimePicker: false }"
+                :locale="ru" 
+                placeholder="Выберите период" 
+                auto-apply 
+                key="invoices-datepicker"
+                style="width: 220px;"
+              />
             </div>
           </div>
 
@@ -763,7 +798,15 @@
               <!-- Custom Date (Optional) -->
               <div class="form-group" style="margin-top: 1rem;">
                 <label for="payment-date">Дата платежа (по умолчанию: сегодня)</label>
-                <input id="payment-date" type="datetime-local" v-model="newPaymentForm.created_at" class="limit-input" style="width: 100%; font-weight: normal; margin-top: 0.5rem;" />
+                <VueDatePicker
+                  v-model="newPaymentDatePicker"
+                  :enable-time-picker="true"
+                  :locale="ru"
+                  placeholder="Выберите дату и время"
+                  auto-apply
+                  key="payment-datepicker"
+                  style="margin-top: 0.5rem;"
+                />
               </div>
 
               <div class="form-actions" style="margin-top: 1.5rem;">
@@ -841,6 +884,41 @@
           </div>
           <div class="details-modal-footer">
             <button @click="showPaymentsHistoryModal = false" class="btn-cancel">Закрыть</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Edit Debts Modal -->
+    <Transition name="fade">
+      <div v-if="showEditDebtsModal" class="details-modal-overlay" @click.self="showEditDebtsModal = false">
+        <div class="details-modal" v-motion-pop>
+          <div class="details-modal-header">
+            <h3>Редактировать взаиморасчеты: {{ selectedDebtRestaurant?.name }}</h3>
+            <button @click="showEditDebtsModal = false" class="close-btn"><X /></button>
+          </div>
+          <div class="details-modal-body">
+            <form @submit.prevent="saveEditedDebts" class="add-product-form">
+              <div class="form-group">
+                <label for="edit-shipped">Отгружено (₸)</label>
+                <input id="edit-shipped" type="number" step="0.01" v-model.number="editDebtForm.shipped_amount" required class="limit-input" style="width: 100%; font-weight: normal; margin-top: 0.5rem;" />
+              </div>
+
+              <div class="form-group" style="margin-top: 1rem;">
+                <label for="edit-paid">Оплачено (₸)</label>
+                <input id="edit-paid" type="number" step="0.01" v-model.number="editDebtForm.paid_amount" required class="limit-input" style="width: 100%; font-weight: normal; margin-top: 0.5rem;" />
+              </div>
+
+              <div class="form-group" style="margin-top: 1rem;">
+                <label for="edit-overdue">Просроченная задолженность (₸)</label>
+                <input id="edit-overdue" type="number" step="0.01" v-model.number="editDebtForm.overdue_amount" required class="limit-input" style="width: 100%; font-weight: normal; margin-top: 0.5rem;" />
+              </div>
+
+              <div class="form-actions" style="margin-top: 1.5rem;">
+                <button type="button" @click="showEditDebtsModal = false" class="btn-cancel">Отмена</button>
+                <button type="submit" class="btn-submit">Сохранить изменения</button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
@@ -1121,6 +1199,213 @@
       </div>
     </div>
 
+    <div class="pdf-offscreen-container" v-if="selectedActRestaurant">
+      <div ref="actPdfTemplateRef" style="width: 710px; padding: 20px; font-family: 'Arial', sans-serif; font-size: 8px; color: #000; background: #fff; line-height: 1.3;">
+        <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">Акт сверки</div>
+        <div style="text-align: center; font-size: 10px; margin-bottom: 15px; color: #ef4444; font-weight: bold;">
+          взаимных расчетов за период {{ getActPeriodText() }}
+        </div>
+        
+        <div style="margin-bottom: 10px; line-height: 1.4; font-size: 9px;">
+          между <strong>ИП ИБРАЕВ "GASTROMIR"</strong><br />
+          и <strong>{{ selectedActRestaurant?.name }}</strong>
+        </div>
+
+        <div style="margin-bottom: 15px; text-align: justify; line-height: 1.4; font-size: 9px;">
+          Мы, нижеподписавшиеся, ИП ИБРАЕВ "GASTROMIR" с одной стороны, и {{ selectedActRestaurant?.name }} с другой стороны, составили настоящий акт сверки в том, что состояние взаимных расчетов по данным учета следующее:
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; border: 1.5px solid #000; margin-bottom: 12px; font-size: 8px;">
+          <tr>
+            <td style="width: 50%; border: 1px solid #000; padding: 5px; font-size: 8px; vertical-align: top; text-align: left; line-height: 1.3;">
+              <div style="font-weight: bold; font-size: 8.5px; margin-bottom: 3px; border-bottom: 1px solid #000; padding-bottom: 1px; color: #000;">ПОСТАВЩИК (СТОРОНА 1):</div>
+              <div><strong>ИП ИБРАЕВ "GASTROMIR"</strong></div>
+              <div><strong>БИН (ИИН):</strong> 820727351424</div>
+              <div><strong>Банк:</strong> АО "Kaspi Bank"</div>
+              <div><strong>БИК:</strong> CASPKZKA &nbsp;&nbsp;&nbsp;&nbsp; <strong>КБе:</strong> 19</div>
+              <div><strong>Номер счета (ИИК):</strong> KZ96722S000053776272</div>
+              <div><strong>Адрес:</strong> г. Астана, ул. Григория Потанина, д. 2, кв./офис 26</div>
+            </td>
+            <td style="width: 50%; border: 1px solid #000; padding: 5px; font-size: 8px; vertical-align: top; text-align: left; line-height: 1.3;">
+              <div style="font-weight: bold; font-size: 8.5px; margin-bottom: 3px; border-bottom: 1px solid #000; padding-bottom: 1px; color: #000;">ПОКУПАТЕЛЬ (СТОРОНА 2):</div>
+              <div><strong>Компания:</strong> {{ selectedActRestaurant?.name || '-' }}</div>
+              <div><strong>БИН (ИИН):</strong> {{ selectedActRestaurant?.bin_iin || '-' }}</div>
+              <div><strong>Банк:</strong> {{ selectedActRestaurant?.bank || '-' }}</div>
+              <div><strong>БИК:</strong> {{ selectedActRestaurant?.bic || '-' }} &nbsp;&nbsp;&nbsp;&nbsp; <strong>КБе:</strong> {{ selectedActRestaurant?.kbe || '-' }}</div>
+              <div><strong>Номер счета (ИИК):</strong> {{ selectedActRestaurant?.account_number || '-' }}</div>
+              <div><strong>Адрес:</strong> {{ selectedActRestaurant?.address || '-' }}</div>
+            </td>
+          </tr>
+        </table>
+
+        <table style="width: 100%; border-collapse: collapse; border: 1.5px solid #000; margin-bottom: 15px; font-size: 8px;">
+          <thead>
+            <tr>
+              <th rowspan="2" style="border: 1px solid #000; padding: 4px; text-align: center; width: 44%; background-color: #f3f4f6;">Текст записи</th>
+              <th colspan="2" style="border: 1px solid #000; padding: 4px; text-align: center; width: 28%; background-color: #f3f4f6;">По данным ИП ИБРАЕВ "GASTROMIR", KZT</th>
+              <th colspan="2" style="border: 1px solid #000; padding: 4px; text-align: center; width: 28%; background-color: #f3f4f6;">По данным {{ selectedActRestaurant?.name }}, KZT</th>
+            </tr>
+            <tr>
+              <th style="border: 1px solid #000; padding: 4px; text-align: center; background-color: #f8fafc;">Дебет</th>
+              <th style="border: 1px solid #000; padding: 4px; text-align: center; background-color: #f8fafc;">Кредит</th>
+              <th style="border: 1px solid #000; padding: 4px; text-align: center; background-color: #f8fafc;">Дебет</th>
+              <th style="border: 1px solid #000; padding: 4px; text-align: center; background-color: #f8fafc;">Кредит</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">
+                Сальдо на начало {{ getActStartDateText() }}
+              </td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">
+                {{ actBalances.start >= 0 ? formatPrice(actBalances.start) : '' }}
+              </td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">
+                {{ actBalances.start < 0 ? formatPrice(-actBalances.start) : '' }}
+              </td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">
+                {{ actBalances.start < 0 ? formatPrice(-actBalances.start) : '' }}
+              </td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">
+                {{ actBalances.start >= 0 ? formatPrice(actBalances.start) : '' }}
+              </td>
+            </tr>
+
+            <tr v-for="tx in actTransactions" :key="tx.id">
+              <td style="border: 1px solid #000; padding: 4px; line-height: 1.2;">
+                {{ tx.label }}
+              </td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right;">
+                {{ tx.type === 'order' ? formatPrice(tx.amount) : '' }}
+              </td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right;">
+                {{ tx.type === 'payment' ? formatPrice(tx.amount) : '' }}
+              </td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right;">
+                {{ tx.type === 'payment' ? formatPrice(tx.amount) : '' }}
+              </td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right;">
+                {{ tx.type === 'order' ? formatPrice(tx.amount) : '' }}
+              </td>
+            </tr>
+
+            <tr>
+              <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">Обороты за период</td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">
+                {{ formatPrice(actTurnovers.shipped) }}
+              </td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">
+                {{ formatPrice(actTurnovers.paid) }}
+              </td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">
+                {{ formatPrice(actTurnovers.paid) }}
+              </td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">
+                {{ formatPrice(actTurnovers.shipped) }}
+              </td>
+            </tr>
+
+            <tr>
+              <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">
+                Сальдо на конец {{ getActEndDateText() }}
+              </td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">
+                {{ actBalances.end >= 0 ? formatPrice(actBalances.end) : '' }}
+              </td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">
+                {{ actBalances.end < 0 ? formatPrice(-actBalances.end) : '' }}
+              </td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">
+                {{ actBalances.end < 0 ? formatPrice(-actBalances.end) : '' }}
+              </td>
+              <td style="border: 1px solid #000; padding: 4px; text-align: right; font-weight: bold;">
+                {{ actBalances.end >= 0 ? formatPrice(actBalances.end) : '' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top: 15px; margin-bottom: 25px; line-height: 1.5; font-size: 9px;">
+          По данным ИП ИБРАЕВ "GASTROMIR"<br />
+          на {{ getActEndDateText() }} задолженность в пользу
+          <span style="border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; font-weight: bold;">
+            {{ actBalances.end >= 0 ? 'ИП ИБРАЕВ "GASTROMIR"' : selectedActRestaurant?.name }}
+          </span>
+          в размере
+          <span style="border-bottom: 1px solid #000; display: inline-block; padding: 0 4px; font-weight: bold;">
+            {{ formatPrice(Math.abs(actBalances.end)) }} KZT
+          </span>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; border: none; margin-top: 30px;">
+          <tr>
+            <td style="width: 48%; border: none; padding: 0; vertical-align: top;">
+              <table style="width: 100%; border-collapse: collapse; border: none;">
+                <tr>
+                  <td colspan="5" style="border: none; font-size: 8px; padding-bottom: 10px;">
+                    <strong>От ИП ИБРАЕВ "GASTROMIR"</strong>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 30%; text-align: center; padding: 0; line-height: 1;">Руководитель</td>
+                  <td style="border: none; width: 5%; padding: 0;"></td>
+                  <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 25%; padding: 0; position: relative; text-align: center; height: 20px;">
+                    <img :src="signatureImg" style="position: absolute; left: 50%; transform: translateX(-50%); top: -30px; width: 70px; height: auto; pointer-events: none;" />
+                  </td>
+                  <td style="border: none; width: 5%; padding: 0;"></td>
+                  <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 35%; text-align: center; padding: 0; line-height: 1;">Ибраев Б. А.</td>
+                </tr>
+                <tr>
+                  <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">должность</td>
+                  <td style="border: none; padding: 0;"></td>
+                  <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">подпись</td>
+                  <td style="border: none; padding: 0;"></td>
+                  <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">расшифровка подписи</td>
+                </tr>
+                <tr>
+                  <td style="border: none; font-size: 8px; padding: 10px 0 3px 0; font-weight: bold; position: relative; height: 60px;">
+                    М.П.
+                    <img :src="printImg" style="position: absolute; left: 10px; top: 0px; width: 95px; height: 95px; opacity: 0.85; pointer-events: none;" />
+                  </td>
+                  <td colspan="4" style="border: none;"></td>
+                </tr>
+              </table>
+            </td>
+
+            <td style="width: 4%; border: none; padding: 0;"></td>
+
+            <td style="width: 48%; border: none; padding: 0; vertical-align: top;">
+              <table style="width: 100%; border-collapse: collapse; border: none;">
+                <tr>
+                  <td colspan="5" style="border: none; font-size: 8px; padding-bottom: 10px;">
+                    <strong>От {{ selectedActRestaurant?.name }}</strong>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 30%; text-align: center; padding: 0; line-height: 1;">Руководитель</td>
+                  <td style="border: none; width: 5%; padding: 0;"></td>
+                  <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 25%; padding: 0; position: relative; text-align: center; height: 20px;"></td>
+                  <td style="border: none; width: 5%; padding: 0;"></td>
+                  <td style="border: none; border-bottom: 1px solid #000; font-size: 8px; width: 35%; text-align: center; padding: 0; line-height: 1;"></td>
+                </tr>
+                <tr>
+                  <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">должность</td>
+                  <td style="border: none; padding: 0;"></td>
+                  <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">подпись</td>
+                  <td style="border: none; padding: 0;"></td>
+                  <td style="border: none; font-size: 5px; color: #555; text-align: center; font-style: italic; padding: 0; line-height: 1.2;">расшифровка подписи</td>
+                </tr>
+                <tr>
+                  <td style="border: none; font-size: 8px; padding: 10px 0 3px 0; font-weight: bold; height: 60px;">М.П.</td>
+                  <td colspan="4" style="border: none;"></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
     <!-- Debts Report PDF Template -->
     <div class="pdf-offscreen-container">
       <div ref="debtsPdfTemplateRef" class="pdf-debts-report">
@@ -1181,7 +1466,7 @@
       <div ref="reportPdfTemplateRef" class="pdf-debts-report" style="width: 710px; padding: 20px; font-family: 'Arial', sans-serif;">
         <h2 class="pdf-report-title">Отчет по закупкам и оплатам по дням</h2>
         <p class="pdf-report-meta"><strong>Покупатель:</strong> {{ selectedReportRestaurant === 'all' ? 'Все рестораны' : selectedReportRestaurant }}</p>
-        <p class="pdf-report-meta"><strong>Период:</strong> {{ selectedReportMonth === 'all' ? 'Все периоды' : selectedReportMonth }}</p>
+        <p class="pdf-report-meta"><strong>Период:</strong> {{ selectedReportMonthText }}</p>
         <p class="pdf-report-meta"><strong>Дата выгрузки:</strong> {{ formatDateOnly(new Date()) }}</p>
 
         <!-- Daily Table -->
@@ -1260,6 +1545,9 @@
 
 <script setup>
 import { ref, computed, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { VueDatePicker } from '@vuepic/vue-datepicker'
+import '@vuepic/vue-datepicker/dist/main.css'
+import { ru } from 'date-fns/locale'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { ShieldCheck, Users, DollarSign, Calendar, Eye, Trash2, Check, Search, ClipboardList, X, Edit3, ArrowUpDown, Plus, FileText, Download, Wallet, TrendingUp, History } from 'lucide-vue-next'
@@ -1274,6 +1562,13 @@ const debtsPdfTemplateRef = ref(null)
 const isGeneratingPDF = ref(false)
 const isGeneratingDebtsPDF = ref(false)
 const isSavingInvoice = ref(false)
+
+const debtsDateRange = ref(null)
+const invoicesDateRange = ref(null)
+const reportDateRange = ref(null)
+const selectedActRestaurant = ref(null)
+const isGeneratingActPDF = ref(false)
+const actPdfTemplateRef = ref(null)
 
 const numberToWordsRu = (n) => {
   n = Math.round(parseFloat(n))
@@ -1389,9 +1684,15 @@ const generatePDFInvoice = async (order) => {
       throw new Error('PDF template element not found in DOM')
     }
 
+    const d = new Date(order.created_at)
+    const day = String(d.getDate()).padStart(2, '0')
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const year = d.getFullYear()
+    const formattedDate = `${day}.${month}.${year}`
+
     const options = {
       margin: [0.3, 0.3, 0.3, 0.3],
-      filename: `Накладная_Форма_3-2_${currentOrderNum}.pdf`,
+      filename: `${formattedDate}_Накладная_Форма_3-2_${currentOrderNum}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
@@ -1510,6 +1811,45 @@ const editProductForm = reactive({
 
 // Loaders & State Refs
 const restaurants = ref([])
+const selectedRestaurantIds = ref([])
+const filteredRestaurants = computed(() => {
+  let list = restaurants.value
+  if (selectedRestaurantIds.value.length > 0) {
+    list = list.filter(r => selectedRestaurantIds.value.includes(r.id))
+  }
+  if (debtsDateRange.value && debtsDateRange.value[0] && debtsDateRange.value[1]) {
+    const start = new Date(debtsDateRange.value[0])
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(debtsDateRange.value[1])
+    end.setHours(23, 59, 59, 999)
+    return list.map(res => {
+      const resOrders = orders.value.filter(o => o.restaurant_name === res.name)
+      const shippedInPeriod = resOrders.filter(o => {
+        const d = new Date(o.created_at)
+        return d >= start && d <= end
+      }).reduce((sum, o) => sum + (parseFloat(o.total_price) || 0), 0)
+      const resPayments = payments.value.filter(p => p.user_id === res.id)
+      const paidInPeriod = resPayments.filter(p => {
+        const d = new Date(p.created_at)
+        return d >= start && d <= end
+      }).reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0)
+      return {
+        ...res,
+        shipped_amount: shippedInPeriod,
+        paid_amount: paidInPeriod
+      }
+    })
+  }
+  return list
+})
+const toggleRestaurantFilter = (id) => {
+  const index = selectedRestaurantIds.value.indexOf(id)
+  if (index === -1) {
+    selectedRestaurantIds.value.push(id)
+  } else {
+    selectedRestaurantIds.value.splice(index, 1)
+  }
+}
 const loadingUsers = ref(true)
 
 const products = ref([])
@@ -1620,7 +1960,12 @@ watch([productSearch, filterCategory, filterManufacturer, sortField, sortOrder],
 const payments = ref([])
 const loadingPayments = ref(false)
 const selectedReportRestaurant = ref('all')
-const selectedReportMonth = ref('all')
+const selectedReportMonthText = computed(() => {
+  if (reportDateRange.value && reportDateRange.value[0] && reportDateRange.value[1]) {
+    return `с ${formatDateOnly(reportDateRange.value[0])} по ${formatDateOnly(reportDateRange.value[1])}`
+  }
+  return 'Все периоды'
+})
 const showRecordPaymentModal = ref(false)
 const isSavingPayment = ref(false)
 const isGeneratingReportPDF = ref(false)
@@ -1728,6 +2073,51 @@ const newPaymentForm = reactive({
   created_at: ''
 })
 
+const newPaymentDatePicker = ref(null)
+
+watch(newPaymentDatePicker, (val) => {
+  if (val) {
+    newPaymentForm.created_at = new Date(val).toISOString()
+  } else {
+    newPaymentForm.created_at = ''
+  }
+})
+
+const showEditDebtsModal = ref(false)
+const selectedDebtRestaurant = ref(null)
+const editDebtForm = reactive({
+  shipped_amount: 0,
+  paid_amount: 0,
+  overdue_amount: 0
+})
+
+const openEditDebts = (res) => {
+  selectedDebtRestaurant.value = res
+  editDebtForm.shipped_amount = res.shipped_amount
+  editDebtForm.paid_amount = res.paid_amount
+  editDebtForm.overdue_amount = res.overdue_amount
+  showEditDebtsModal.value = true
+}
+
+const saveEditedDebts = async () => {
+  if (!selectedDebtRestaurant.value) return
+  await saveDebts(
+    selectedDebtRestaurant.value.id,
+    editDebtForm.shipped_amount,
+    editDebtForm.paid_amount,
+    editDebtForm.overdue_amount
+  )
+  showEditDebtsModal.value = false
+}
+
+const recordPaymentForRestaurant = (res) => {
+  newPaymentForm.user_id = res.id
+  newPaymentForm.amount = ''
+  newPaymentForm.created_at = ''
+  newPaymentDatePicker.value = null
+  showRecordPaymentModal.value = true
+}
+
 const fetchPayments = async () => {
   try {
     loadingPayments.value = true
@@ -1762,6 +2152,14 @@ const getRussianMonthName = (dateStr) => {
     'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
   ]
   return months[d.getMonth()]
+}
+
+const getMonthIndexFromRussianName = (name) => {
+  const months = [
+    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+  ]
+  return months.indexOf(name)
 }
 
 // Compute daily report rows
@@ -1832,11 +2230,14 @@ const dailyReportRows = computed(() => {
     }
   })
 
-  // Apply month filter on the final rows (so running balance is computed correctly over history first!)
-  if (selectedReportMonth.value !== 'all') {
+  if (reportDateRange.value && reportDateRange.value[0] && reportDateRange.value[1]) {
+    const start = new Date(reportDateRange.value[0])
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(reportDateRange.value[1])
+    end.setHours(23, 59, 59, 999)
     return rows.filter(row => {
-      const monthYearText = `${row.month} ${row.year}`
-      return monthYearText === selectedReportMonth.value
+      const d = new Date(row.date)
+      return d >= start && d <= end
     })
   }
 
@@ -1917,9 +2318,16 @@ const monthlySummaryRows = computed(() => {
     }
   })
 
-  // Apply month filter if selected
-  if (selectedReportMonth.value !== 'all') {
-    return rows.filter(row => `${row.month} ${row.year}` === selectedReportMonth.value)
+  if (reportDateRange.value && reportDateRange.value[0] && reportDateRange.value[1]) {
+    const start = new Date(reportDateRange.value[0])
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(reportDateRange.value[1])
+    end.setHours(23, 59, 59, 999)
+    return rows.filter(row => {
+      const startOfMonth = new Date(parseInt(row.year, 10), getMonthIndexFromRussianName(row.month), 1)
+      const endOfMonth = new Date(parseInt(row.year, 10), getMonthIndexFromRussianName(row.month) + 1, 0, 23, 59, 59, 999)
+      return endOfMonth >= start && startOfMonth <= end
+    })
   }
 
   return rows
@@ -1967,10 +2375,10 @@ const submitAddPayment = async () => {
     if (response.ok) {
       toastStore.success('Оплата успешно зафиксирована!')
       showRecordPaymentModal.value = false
-      // Reset form
       newPaymentForm.user_id = ''
       newPaymentForm.amount = ''
       newPaymentForm.created_at = ''
+      newPaymentDatePicker.value = null
       // Re-fetch data
       await fetchPayments()
       await fetchRestaurants() // to update paid_amount in settlements
@@ -1988,12 +2396,14 @@ const submitAddPayment = async () => {
 const exportReportToCSV = () => {
   const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')
   const restName = selectedReportRestaurant.value === 'all' ? 'Все_рестораны' : selectedReportRestaurant.value
-  const monthName = selectedReportMonth.value === 'all' ? 'Все_периоды' : selectedReportMonth.value.replace(' ', '_')
+  const monthName = (reportDateRange.value && reportDateRange.value[0] && reportDateRange.value[1])
+    ? `${formatDateOnly(reportDateRange.value[0])}_по_${formatDateOnly(reportDateRange.value[1])}`
+    : 'Все_периоды'
   
   let csvContent = "\uFEFF"
   csvContent += `ОТЧЕТ ПО ЗАКУПКАМ И ОПЛАТАМ ПО ДНЯМ\n`
   csvContent += `Ресторан: ${selectedReportRestaurant.value === 'all' ? 'Все рестораны' : selectedReportRestaurant.value}\n`
-  csvContent += `Период: ${selectedReportMonth.value === 'all' ? 'Все периоды' : selectedReportMonth.value}\n\n`
+  csvContent += `Период: ${selectedReportMonthText.value}\n\n`
   
   const dailyHeaders = ['Дата', 'Месяц', 'Год', 'Кол-во накладных', 'Сумма закупок, KZT', 'Оплата, KZT', 'Остаток, KZT']
   csvContent += dailyHeaders.join(';') + '\n'
@@ -2048,7 +2458,9 @@ const generateReportPDF = async () => {
     
     const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')
     const restName = selectedReportRestaurant.value === 'all' ? 'Все_рестораны' : selectedReportRestaurant.value
-    const monthName = selectedReportMonth.value === 'all' ? 'Все_периоды' : selectedReportMonth.value.replace(' ', '_')
+    const monthName = (reportDateRange.value && reportDateRange.value[0] && reportDateRange.value[1])
+      ? `${formatDateOnly(reportDateRange.value[0])}_по_${formatDateOnly(reportDateRange.value[1])}`
+      : 'Все_периоды'
     
     const options = {
       margin: [0.4, 0.4, 0.4, 0.4],
@@ -2069,6 +2481,168 @@ const generateReportPDF = async () => {
     toastStore.error('Не удалось сгенерировать PDF отчет')
   } finally {
     isGeneratingReportPDF.value = false
+  }
+}
+
+const getActPeriodText = () => {
+  if (debtsDateRange.value && debtsDateRange.value[0] && debtsDateRange.value[1]) {
+    const start = formatDateOnly(debtsDateRange.value[0])
+    const end = formatDateOnly(debtsDateRange.value[1])
+    return `с ${start} по ${end}`
+  }
+  return 'за весь период'
+}
+
+const getActStartDateText = () => {
+  if (debtsDateRange.value && debtsDateRange.value[0]) {
+    return formatDateOnly(debtsDateRange.value[0])
+  }
+  return '01.01.2023 г.'
+}
+
+const getActEndDateText = () => {
+  if (debtsDateRange.value && debtsDateRange.value[1]) {
+    return formatDateOnly(debtsDateRange.value[1])
+  }
+  return formatDateOnly(new Date())
+}
+
+const actTransactions = computed(() => {
+  if (!selectedActRestaurant.value) return []
+  
+  const res = selectedActRestaurant.value
+  const resOrders = orders.value.filter(o => o.restaurant_name === res.name)
+  const resPayments = payments.value.filter(p => p.user_id === res.id)
+
+  const txs = [
+    ...resOrders.map(o => ({
+      id: `order-${o.id}`,
+      date: new Date(o.created_at),
+      type: 'order',
+      label: `Накладная на отпуск запасов № ${getRestaurantPrefix(o.restaurant_name)}-${String(getAdminRestaurantOrderNumber(o)).padStart(2, '0')} от ${formatDateOnly(o.created_at)}`,
+      amount: parseFloat(o.total_price) || 0
+    })),
+    ...resPayments.map(p => ({
+      id: `payment-${p.id}`,
+      date: new Date(p.created_at),
+      type: 'payment',
+      label: `Оплата по платежному поручению от ${formatDateOnly(p.created_at)}`,
+      amount: parseFloat(p.amount) || 0
+    }))
+  ]
+
+  txs.sort((a, b) => a.date - b.date)
+
+  if (debtsDateRange.value && debtsDateRange.value[0] && debtsDateRange.value[1]) {
+    const start = new Date(debtsDateRange.value[0])
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(debtsDateRange.value[1])
+    end.setHours(23, 59, 59, 999)
+
+    return txs.filter(tx => tx.date >= start && tx.date <= end)
+  }
+
+  return txs
+})
+
+const actBalances = computed(() => {
+  if (!selectedActRestaurant.value) return { start: 0, end: 0 }
+  
+  const res = selectedActRestaurant.value
+  const resOrders = orders.value.filter(o => o.restaurant_name === res.name)
+  const resPayments = payments.value.filter(p => p.user_id === res.id)
+
+  const txs = [
+    ...resOrders.map(o => ({
+      date: new Date(o.created_at),
+      type: 'order',
+      amount: parseFloat(o.total_price) || 0
+    })),
+    ...resPayments.map(p => ({
+      date: new Date(p.created_at),
+      type: 'payment',
+      amount: parseFloat(p.amount) || 0
+    }))
+  ]
+
+  txs.sort((a, b) => a.date - b.date)
+
+  let startBalance = 0
+  if (debtsDateRange.value && debtsDateRange.value[0]) {
+    const startLimit = new Date(debtsDateRange.value[0])
+    startLimit.setHours(0, 0, 0, 0)
+    
+    const beforeTxs = txs.filter(tx => tx.date < startLimit)
+    const shippedBefore = beforeTxs.filter(tx => tx.type === 'order').reduce((sum, tx) => sum + tx.amount, 0)
+    const paidBefore = beforeTxs.filter(tx => tx.type === 'payment').reduce((sum, tx) => sum + tx.amount, 0)
+    startBalance = shippedBefore - paidBefore
+  }
+
+  const activeTxs = debtsDateRange.value && debtsDateRange.value[0] && debtsDateRange.value[1] 
+    ? txs.filter(tx => {
+        const start = new Date(debtsDateRange.value[0])
+        start.setHours(0, 0, 0, 0)
+        const end = new Date(debtsDateRange.value[1])
+        end.setHours(23, 59, 59, 999)
+        return tx.date >= start && tx.date <= end
+      })
+    : txs
+
+  const shippedInPeriod = activeTxs.filter(tx => tx.type === 'order').reduce((sum, tx) => sum + tx.amount, 0)
+  const paidInPeriod = activeTxs.filter(tx => tx.type === 'payment').reduce((sum, tx) => sum + tx.amount, 0)
+  const endBalance = startBalance + shippedInPeriod - paidInPeriod
+
+  return {
+    start: startBalance,
+    end: endBalance
+  }
+})
+
+const actTurnovers = computed(() => {
+  const txs = actTransactions.value
+  const shipped = txs.filter(tx => tx.type === 'order').reduce((sum, tx) => sum + tx.amount, 0)
+  const paid = txs.filter(tx => tx.type === 'payment').reduce((sum, tx) => sum + tx.amount, 0)
+  return {
+    shipped,
+    paid
+  }
+})
+
+const generateActSverkiPDF = async (res) => {
+  if (!res) return
+  selectedActRestaurant.value = res
+  isGeneratingActPDF.value = true
+  await nextTick()
+
+  try {
+    const html2pdf = (await import('html2pdf.js')).default
+    const element = actPdfTemplateRef.value
+
+    if (!element) {
+      throw new Error('Act PDF template element not found in DOM')
+    }
+
+    const dateStr = new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')
+    const options = {
+      margin: [0.3, 0.3, 0.3, 0.3],
+      filename: `Акт_сверки_${res.name.replace(/\s+/g, '_')}_${dateStr}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    }
+
+    await html2pdf()
+      .from(element)
+      .set(options)
+      .save()
+      
+    toastStore.success('Акт сверки успешно скачан!')
+  } catch (err) {
+    console.error('Error generating Act PDF:', err)
+    toastStore.error('Не удалось сгенерировать Акт сверки.')
+  } finally {
+    isGeneratingActPDF.value = false
+    selectedActRestaurant.value = null
   }
 }
 
@@ -2284,13 +2858,14 @@ const filteredOrders = computed(() => {
     list = list.filter(order => order.restaurant_name === filterRestaurant.value)
   }
 
-  // Month filter
-  if (selectedMonth.value !== 'all') {
+  if (invoicesDateRange.value && invoicesDateRange.value[0] && invoicesDateRange.value[1]) {
+    const start = new Date(invoicesDateRange.value[0])
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(invoicesDateRange.value[1])
+    end.setHours(23, 59, 59, 999)
     list = list.filter(order => {
-      const date = new Date(order.created_at)
-      const monthYear = date.toLocaleString('ru-RU', { month: 'long', year: 'numeric' })
-      const capitalized = monthYear.charAt(0).toUpperCase() + monthYear.slice(1)
-      return capitalized === selectedMonth.value
+      const d = new Date(order.created_at)
+      return d >= start && d <= end
     })
   }
 
@@ -2499,11 +3074,11 @@ const saveInvoiceChanges = async () => {
 }
 
 const totalShipped = computed(() => {
-  return restaurants.value.reduce((sum, r) => sum + (parseFloat(r.shipped_amount) || 0), 0)
+  return filteredRestaurants.value.reduce((sum, r) => sum + (parseFloat(r.shipped_amount) || 0), 0)
 })
 
 const totalPaid = computed(() => {
-  return restaurants.value.reduce((sum, r) => sum + (parseFloat(r.paid_amount) || 0), 0)
+  return filteredRestaurants.value.reduce((sum, r) => sum + (parseFloat(r.paid_amount) || 0), 0)
 })
 
 const totalDebt = computed(() => {
@@ -2511,7 +3086,7 @@ const totalDebt = computed(() => {
 })
 
 const totalOverdue = computed(() => {
-  return restaurants.value.reduce((sum, r) => sum + (parseFloat(r.overdue_amount) || 0), 0)
+  return filteredRestaurants.value.reduce((sum, r) => sum + (parseFloat(r.overdue_amount) || 0), 0)
 })
 
 const saveDebts = async (userId, shipped, paid, overdue) => {
@@ -3731,5 +4306,16 @@ const generateDebtsPDF = async () => {
   font-weight: 700;
   color: var(--primary) !important;
   font-size: 1rem;
+}
+
+.btn-filter-tag {
+  background: rgba(11, 18, 33, 0.05);
+  color: var(--primary-light);
+}
+
+.btn-filter-tag.active {
+  background: var(--secondary) !important;
+  color: var(--white) !important;
+  border-color: var(--secondary) !important;
 }
 </style>
