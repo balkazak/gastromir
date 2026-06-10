@@ -620,6 +620,9 @@
                       <button @click="showInvoiceDetails(order)" class="btn-inspect" title="Просмотреть">
                         <Eye :size="18" />
                       </button>
+                      <button @click="deleteOrder(order.id)" class="btn-delete" title="Удалить накладную">
+                        <Trash2 :size="18" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -655,7 +658,16 @@
               </thead>
               <tbody>
                 <tr v-for="item in activeInvoice.items" :key="item.id">
-                  <td data-label="Товар">{{ item.name }}</td>
+                  <td data-label="Товар">
+                    <input 
+                      type="text" 
+                      v-model="item.name" 
+                      class="invoice-name-input" 
+                      style="width: 100%; border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px 8px; font-size: 0.85rem; outline: none; transition: border-color 0.2s;"
+                      onfocus="this.style.borderColor='#3b82f6'"
+                      onblur="this.style.borderColor='#e2e8f0'"
+                    />
+                  </td>
                   <td data-label="Кол-во" style="text-align: center;">
                     <div class="invoice-qty-edit">
                       <input 
@@ -2998,6 +3010,30 @@ const deleteProduct = async (productId, name) => {
     toastStore.error('Не удалось удалить товар')
   }
 }
+
+const deleteOrder = async (orderId) => {
+  if (!confirm(`Вы действительно хотите удалить накладную № ${orderId}?`)) return
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/orders/${orderId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    const data = await response.json()
+    if (response.ok) {
+      toastStore.success(data.message)
+      orders.value = orders.value.filter(o => o.id !== orderId)
+      await fetchRestaurants()
+    } else {
+      toastStore.error(data.message || 'Ошибка при удалении накладной')
+    }
+  } catch (err) {
+    console.error(err)
+    toastStore.error('Не удалось удалить накладную')
+  }
+}
+
 
 const formatDate = (dateStr) => {
   const date = new Date(dateStr)

@@ -132,7 +132,7 @@
             </div>
             
             <div v-else-if="isOverLimit" class="limit-warning-box">
-              ⚠️ Сумма заказа ({{ formatPrice(discountedTotalPrice) }} ₸) превышает ваш лимит ({{ formatPrice(authStore.user?.order_limit) }} ₸). Уберите товары или обратитесь к администратору.
+              ⚠️ Общая сумма накладных с учетом нового заказа ({{ formatPrice((authStore.user?.total_orders_sum || 0) + discountedTotalPrice) }} ₸) превышает ваш установленный лимит ({{ formatPrice(authStore.user?.order_limit) }} ₸). Предыдущие заказы: {{ formatPrice(authStore.user?.total_orders_sum || 0) }} ₸. Уберите товары или обратитесь к администратору.
             </div>
             
             <div class="footer-actions" v-if="authStore.isAuthenticated">
@@ -709,7 +709,8 @@ const isOverLimit = computed(() => {
   if (!authStore.isAuthenticated) return false
   if (authStore.user?.role === 'admin') return false
   const limit = authStore.user?.order_limit || 500000.00
-  return discountedTotalPrice.value > limit
+  const existingSum = authStore.user?.total_orders_sum || 0
+  return (existingSum + discountedTotalPrice.value) > limit
 })
 
 const onDateInput = (event) => {
@@ -789,6 +790,7 @@ const placeOrderInDatabase = async () => {
     if (!response.ok) {
       throw new Error(data.message || 'Ошибка сохранения заказа в бэкенд')
     }
+    await authStore.fetchUser()
     return true
   } catch (err) {
     console.error(err)
@@ -825,7 +827,8 @@ const validateOrderForm = (requireAddress = true, checkLimit = true) => {
     return false
   }
   if (checkLimit && isOverLimit.value) {
-    toastStore.error(`Лимит превышен! Сумма заказа (${formatPrice(discountedTotalPrice.value)} ₸) превышает ваш лимит кредитования (${formatPrice(authStore.user?.order_limit)} ₸)`)
+    const totalWithNewOrder = (authStore.user?.total_orders_sum || 0) + discountedTotalPrice.value
+    toastStore.error(`Лимит превышен! Общая сумма накладных (${formatPrice(totalWithNewOrder)} ₸) превышает ваш лимит кредитования (${formatPrice(authStore.user?.order_limit)} ₸)`)
     return false
   }
   return true

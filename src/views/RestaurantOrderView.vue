@@ -54,7 +54,7 @@
                   :disabled="isProcessing"
                   rows="10"
                 ></textarea>
-                <div style="font-size: 0.8rem; color: #f59e0b; margin-top: 0.5rem; font-weight: bold;">
+                <div class="input-warning-text">
                   ⚠️ Важно: Указывайте количество строго после дефиса (-) (например: чай Greenfield 100 пак - 2 шт)
                 </div>
               </div>
@@ -434,7 +434,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { Sparkles, Trash2, Zap, Bot, ShoppingCart, X, ChevronDown } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
 import { useToastStore } from '@/stores/toast'
@@ -462,6 +462,16 @@ const chatHistory = ref([
     time: formatTime(new Date())
   }
 ])
+
+watch(chatHistory, () => {
+  scrollToBottom()
+}, { deep: true })
+
+watch(isProcessing, (newVal) => {
+  if (newVal) {
+    scrollToBottom()
+  }
+})
 
 const fetchProducts = async () => {
   try {
@@ -625,6 +635,13 @@ function findMatchingProducts(query) {
         score += 0.25
       }
       
+      if (normName === normQuery) {
+        score += 5.0
+      }
+      
+      const lengthDiff = Math.abs(productTokens.length - queryTokens.length)
+      score -= lengthDiff * 0.05
+      
       // Category match bonus
       for (const qToken of queryTokens) {
         if (normCategory.includes(qToken)) {
@@ -633,9 +650,7 @@ function findMatchingProducts(query) {
         }
       }
       
-      score = Math.min(score, 1.2)
-      
-      if (score >= 0.15) {
+      if (score >= 0.15 || normName === normQuery) {
         matches.push({ product, score })
       }
     }
@@ -749,6 +764,15 @@ const processList = async () => {
 
   scrollToBottom()
   toastStore.success('Список успешно распознан!')
+
+  if (window.innerWidth <= 1100) {
+    nextTick(() => {
+      const resultsEl = document.querySelector('.results-card')
+      if (resultsEl) {
+        resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    })
+  }
 }
 
 function delay(ms) {
@@ -822,6 +846,16 @@ function getSearchSuggestions(query) {
       } else {
         score += 1
       }
+      
+      if (normName === normQuery) {
+        score += 5.0
+      }
+      
+      const productTokens = normName.split(' ')
+      const queryTokens = normQuery.split(' ')
+      const lengthDiff = Math.abs(productTokens.length - queryTokens.length)
+      score -= lengthDiff * 0.05
+      
       matches.push({ product, score })
     }
   }
@@ -953,8 +987,9 @@ async function instantCheckout() {
     return
   }
 
-  if (authStore.user && totalPrice.value > authStore.user.order_limit) {
-    toastStore.error(`Лимит кредитования превышен. Максимально допустимая сумма: ${formatPrice(authStore.user.order_limit)} ₸`)
+  const existingSum = authStore.user?.total_orders_sum || 0
+  if (authStore.user && (existingSum + totalPrice.value) > authStore.user.order_limit) {
+    toastStore.error(`Лимит кредитования превышен. Максимально допустимая сумма: ${formatPrice(authStore.user.order_limit)} ₸ (уже использовано: ${formatPrice(existingSum)} ₸)`)
     return
   }
 
@@ -1165,6 +1200,13 @@ async function instantCheckout() {
 .chat-actions {
   display: flex;
   gap: 0.75rem;
+}
+
+.input-warning-text {
+  font-size: 0.8rem;
+  color: #f59e0b;
+  margin-top: 0.5rem;
+  font-weight: bold;
 }
 
 .btn-process {
@@ -1956,78 +1998,183 @@ async function instantCheckout() {
 }
 
 /* Mobile Responsiveness & Layout Refinement (Card Layout) */
+.mobile-results-view {
+  display: none;
+}
+
+/* Mobile Responsiveness & Layout Refinement */
 @media (max-width: 768px) {
-  .results-table thead {
+  .desktop-results-view {
     display: none;
   }
   
-  .results-table, 
-  .results-table tbody, 
-  .results-table tr, 
-  .results-table td {
-    display: block;
-    width: 100%;
-  }
-  
-  .results-table tr {
-    background: var(--white);
-    border: 1px solid #e2e8f0;
-    border-radius: 1.25rem;
-    padding: 1.25rem;
-    margin-bottom: 1.25rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-    transition: var(--transition);
+  .mobile-results-view {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
-  .results-table tr:hover {
-    border-color: var(--secondary);
+  .container-wide {
+    padding: 0 0.5rem !important;
   }
-  
-  .results-table td {
-    border-bottom: none;
-    padding: 0.5rem 0;
+
+  .ai-content {
+    padding-top: 1rem !important;
+    padding-bottom: 3rem !important;
+  }
+
+  .chat-card {
+    height: 580px !important;
+  }
+
+  .results-card {
+    min-height: unset !important;
+  }
+
+  .chat-input-area {
+    padding: 0.75rem !important;
+  }
+
+  .chat-input-area textarea {
+    height: 90px !important;
+    padding: 0.6rem 0.8rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  .textarea-wrapper {
+    margin-bottom: 0.5rem !important;
+  }
+
+  .input-warning-text {
+    display: none !important;
+  }
+
+  .chat-actions button, .btn-clear-text {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  .action-buttons button {
+    padding: 0.6rem 1rem !important;
+    font-size: 0.85rem !important;
+    border-radius: 9999px !important;
+  }
+
+  .mobile-result-card {
+    background: var(--white);
+    border: 1.5px solid #e2e8f0;
+    border-radius: 1rem;
+    padding: 0.85rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: border-color 0.2s ease;
+    position: relative;
+  }
+
+  .mobile-result-card.active-card-z {
+    z-index: 150 !important;
+  }
+
+  .mobile-result-card.disabled-card {
+    opacity: 0.55;
+    background-color: #f8fafc;
+  }
+
+  .card-mobile-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    text-align: left !important;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 0.4rem;
   }
-  
-  .results-table td::before {
-    content: attr(data-label);
-    font-weight: 700;
+
+  .mobile-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
     color: var(--primary);
-    font-size: 0.8rem;
-    flex-shrink: 0;
-    width: 35%;
+    min-width: 0;
+    flex: 1;
   }
 
-  .product-match-col {
-    min-width: unset;
+  .raw-query-badge {
+    background: #f1f5f9;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.35rem;
+    font-size: 0.75rem;
+    color: var(--gray);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80%;
   }
 
-  .product-match-col .match-inputs {
-    flex-grow: 1;
-    max-width: 65%;
+  .card-mobile-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
   }
 
-  .quantity-control {
-    margin: 0 0 0 auto;
+  .mobile-catalog-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.7rem;
+    color: var(--gray);
   }
 
-  .price-col {
-    min-width: unset;
-    flex-direction: row;
-    justify-content: flex-end;
-    align-items: baseline;
+  .card-mobile-footer {
+    border-top: 1px solid #f1f5f9;
+    padding-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .qty-and-price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     gap: 0.5rem;
   }
 
-  .price-col .total-item-price {
-    display: inline;
+  .mobile-price-per-unit {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.75rem;
+    color: var(--gray);
   }
 
-  .price-col .price-per-unit {
-    display: inline;
+  .mobile-price-per-unit strong {
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  .mobile-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--gray);
+  }
+
+  .total-price-badge {
+    color: var(--secondary-dark);
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .no-product-warning {
+    font-size: 0.75rem;
+    color: #ef4444;
+    font-style: italic;
+    display: block;
+    text-align: center;
   }
 }
 

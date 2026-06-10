@@ -143,36 +143,51 @@
       <button @click="cartStore.openModal" class="btn btn-secondary">Оформить заказ</button>
     </div>
 
-    <div style="position: absolute; left: -9999px; top: -9999px; overflow: hidden; width: 720px;">
-      <div ref="catalogPdfTemplateRef" style="font-family: 'Arial', sans-serif; padding: 30px; background: white; color: black; box-sizing: border-box; width: 720px;">
-        <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 15px;">
-          <img :src="logoImg" alt="GASTROMIR" style="max-height: 80px; width: auto; margin-bottom: 10px;" />
-          <h2 style="margin: 0; font-size: 18px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.05em; color: #0B1221;">Каталог и прайс-лист</h2>
-          <p style="margin: 5px 0 0 0; font-size: 11px; color: #555;">Дата формирования: {{ new Date().toLocaleDateString('ru-RU') }}</p>
+    <!-- PDF Generation Preview Overlay -->
+    <div v-if="isGeneratingPDF" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ffffff; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+      <!-- Loader Content visible to user -->
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+        <span class="loader" style="width: 48px; height: 48px; border-width: 5px; margin-bottom: 0;"></span>
+        <div style="font-weight: 600; font-size: 18px; color: #0B1221; text-align: center;">
+          Генерация PDF каталога товаров...
         </div>
+        <div style="font-size: 14px; color: #64748B; text-align: center;">
+          Пожалуйста, подождите. Это может занять несколько секунд.
+        </div>
+      </div>
 
-        <div v-for="(categoryProducts, catName) in pdfGroupedProducts" :key="catName" style="margin-bottom: 25px; page-break-inside: avoid;">
-          <h3 style="background-color: #f1f5f9; padding: 6px 10px; margin: 0 0 10px 0; font-size: 13px; font-weight: bold; border-left: 4px solid #F59E0B; text-transform: uppercase; color: #0B1221;">
-            {{ catName }}
-          </h3>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
-            <thead>
-              <tr style="background-color: #f8fafc; border-bottom: 1.5px solid #000;">
-                <th style="padding: 6px; font-size: 9px; font-weight: bold; text-align: left; width: 50%;">Наименование товара</th>
-                <th style="padding: 6px; font-size: 9px; font-weight: bold; text-align: left; width: 20%;">Производитель</th>
-                <th style="padding: 6px; font-size: 9px; font-weight: bold; text-align: center; width: 12%;">Ед. изм.</th>
-                <th style="padding: 6px; font-size: 9px; font-weight: bold; text-align: right; width: 18%;">Цена (KZT)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="prod in categoryProducts" :key="prod.id" style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 6px; font-size: 9px; text-align: left; font-weight: 600;">{{ prod.name }}</td>
-                <td style="padding: 6px; font-size: 9px; text-align: left; color: #444;">{{ prod.manufacturer }}</td>
-                <td style="padding: 6px; font-size: 9px; text-align: center;">{{ prod.unit }}</td>
-                <td style="padding: 6px; font-size: 9px; text-align: right; font-weight: bold;">{{ formatPrice(prod.price) }} ₸</td>
-              </tr>
-            </tbody>
-          </table>
+      <!-- Hidden layout container populated with data and fully sized, but hidden from user's view -->
+      <div style="position: absolute; opacity: 0; pointer-events: none; z-index: -100; left: 0; top: 0;">
+        <div ref="catalogPdfTemplateRef" style="font-family: 'Arial', sans-serif; padding: 30px; background: white; color: black; box-sizing: border-box; width: 720px; border: 1px solid #ddd; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 15px;">
+            <div style="font-size: 24px; font-weight: 800; color: #0B1221; margin-bottom: 10px; letter-spacing: 0.1em; font-family: 'Arial', sans-serif;">GASTRO<span style="color: #F59E0B;">MIR</span></div>
+            <h2 style="margin: 0; font-size: 18px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.05em; color: #0B1221;">Каталог и прайс-лист</h2>
+            <p style="margin: 5px 0 0 0; font-size: 11px; color: #555;">Дата формирования: {{ new Date().toLocaleDateString('ru-RU') }}</p>
+          </div>
+
+          <div v-for="(categoryProducts, catName) in pdfGroupedProducts" :key="catName" style="margin-bottom: 15px; page-break-inside: avoid;">
+            <h3 style="background-color: #f1f5f9; padding: 4px 8px; margin: 0 0 6px 0; font-size: 11px; font-weight: bold; border-left: 4px solid #F59E0B; text-transform: uppercase; color: #0B1221;">
+              {{ catName }}
+            </h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+              <thead>
+                <tr style="background-color: #f8fafc; border-bottom: 1.5px solid #000;">
+                  <th style="padding: 3px 5px; font-size: 8px; font-weight: bold; text-align: left; width: 50%;">Наименование товара</th>
+                  <th style="padding: 3px 5px; font-size: 8px; font-weight: bold; text-align: left; width: 20%;">Производитель</th>
+                  <th style="padding: 3px 5px; font-size: 8px; font-weight: bold; text-align: center; width: 12%;">Ед. изм.</th>
+                  <th style="padding: 3px 5px; font-size: 8px; font-weight: bold; text-align: right; width: 18%;">Цена (KZT)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="prod in categoryProducts" :key="prod.id" style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 3px 5px; font-size: 8px; text-align: left; font-weight: 600;">{{ prod.name }}</td>
+                  <td style="padding: 3px 5px; font-size: 8px; text-align: left; color: #444;">{{ prod.manufacturer }}</td>
+                  <td style="padding: 3px 5px; font-size: 8px; text-align: center;">{{ prod.unit }}</td>
+                  <td style="padding: 3px 5px; font-size: 8px; text-align: right; font-weight: bold;">{{ formatPrice(prod.price) }} ₸</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -193,10 +208,12 @@ const categoriesBarRef = ref(null)
 
 const isGeneratingPDF = ref(false)
 const catalogPdfTemplateRef = ref(null)
+const pdfProducts = ref([])
 
 const pdfGroupedProducts = computed(() => {
   const groups = {}
-  products.value.forEach(p => {
+  const list = pdfProducts.value.length > 0 ? pdfProducts.value : products.value
+  list.forEach(p => {
     if (!groups[p.category]) {
       groups[p.category] = []
     }
@@ -208,14 +225,23 @@ const pdfGroupedProducts = computed(() => {
 const downloadCatalogPDF = async () => {
   isGeneratingPDF.value = true
   try {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/products`)
+    if (response.ok) {
+      pdfProducts.value = await response.json()
+    } else {
+      pdfProducts.value = products.value
+    }
+    
+    await nextTick()
+    
     const html2pdf = (await import('html2pdf.js')).default
     const element = catalogPdfTemplateRef.value
     const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '_')
     const options = {
-      margin: [0.4, 0.4, 0.4, 0.4],
+      margin: [0.3, 0.3, 0.3, 0.3],
       filename: `Каталог_товаров_GASTROMIR_${date}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
+      html2canvas: { scale: 1.2, useCORS: true },
       jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
     }
     await html2pdf()
@@ -225,6 +251,7 @@ const downloadCatalogPDF = async () => {
   } catch (err) {
     console.error('Error generating catalog PDF:', err)
   } finally {
+    pdfProducts.value = []
     isGeneratingPDF.value = false
   }
 }
