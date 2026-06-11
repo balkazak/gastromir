@@ -605,7 +605,7 @@
               <tbody>
                 <tr v-for="order in filteredOrders" :key="order.id">
                   <td data-label="Накладная" class="font-bold">
-                    {{ getRestaurantPrefix(order.restaurant_name) }}-{{ String(getAdminRestaurantOrderNumber(order)).padStart(2, '0') }}
+                    {{ order.waybill_number || `${getRestaurantPrefix(order.restaurant_name)}-${String(getAdminRestaurantOrderNumber(order)).padStart(2, '0')}` }}
                   </td>
                   <td data-label="Ресторан">{{ order.restaurant_name }}</td>
                   <td data-label="Email">{{ order.restaurant_email }}</td>
@@ -638,11 +638,21 @@
       <div v-if="activeInvoice" class="details-modal-overlay" @click.self="activeInvoice = null">
         <div class="details-modal" v-motion-pop>
           <div class="details-modal-header">
-            <h3>Детали накладной {{ getRestaurantPrefix(activeInvoice.restaurant_name) }}-{{ String(getAdminRestaurantOrderNumber(activeInvoice)).padStart(2, '0') }}</h3>
+            <h3>Детали накладной {{ activeInvoice.waybill_number || `${getRestaurantPrefix(activeInvoice.restaurant_name)}-${String(getAdminRestaurantOrderNumber(activeInvoice)).padStart(2, '0')}` }}</h3>
             <button @click="activeInvoice = null" class="close-btn"><X /></button>
           </div>
           <div class="details-modal-body">
             <div class="invoice-meta-info">
+              <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 0.5rem;">
+                <strong>Номер накладной:</strong>
+                <input 
+                  type="text" 
+                  v-model="activeInvoice.waybill_number" 
+                  placeholder="Например: АДМ-06"
+                  class="limit-input"
+                  style="width: 150px; font-size: 0.85rem; padding: 4px 8px; margin: 0;"
+                />
+              </div>
               <p><strong>Дата накладной:</strong> {{ formatDate(activeInvoice.created_at) }}</p>
               <p><strong>Ресторан:</strong> {{ activeInvoice.restaurant_name }}</p>
               <p><strong>Электронная почта:</strong> {{ activeInvoice.restaurant_email }}</p>
@@ -974,7 +984,7 @@
             </thead>
             <tbody>
               <tr>
-                <td style="border: 1px solid #000; padding: 4px 10px; text-align: center; font-weight: bold; font-size: 9px;">{{ getRestaurantPrefix(activeInvoice.restaurant_name) }}-{{ String(getAdminRestaurantOrderNumber(activeInvoice)).padStart(2, '0') }}</td>
+                <td style="border: 1px solid #000; padding: 4px 10px; text-align: center; font-weight: bold; font-size: 9px;">{{ activeInvoice.waybill_number || `${getRestaurantPrefix(activeInvoice.restaurant_name)}-${String(getAdminRestaurantOrderNumber(activeInvoice)).padStart(2, '0')}` }}</td>
                 <td style="border: 1px solid #000; padding: 4px 10px; text-align: center; font-size: 9px;">{{ formatDateOnly(activeInvoice.created_at) }}</td>
               </tr>
             </tbody>
@@ -1023,7 +1033,7 @@
               <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px;">{{ activeInvoice.restaurant_name }}, ИИН/БИН {{ activeInvoice.restaurant_bin_iin || '—' }}, {{ activeInvoice.restaurant_address }}</td>
               <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">Ибраев Б. А.</td>
               <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">GASTROMIR Логистика</td>
-              <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">{{ getRestaurantPrefix(activeInvoice.restaurant_name) }}-{{ String(getAdminRestaurantOrderNumber(activeInvoice)).padStart(2, '0') }}, {{ formatDateOnly(activeInvoice.created_at) }}</td>
+              <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">{{ activeInvoice.waybill_number || `${getRestaurantPrefix(activeInvoice.restaurant_name)}-${String(getAdminRestaurantOrderNumber(activeInvoice)).padStart(2, '0')}` }}, {{ formatDateOnly(activeInvoice.created_at) }}</td>
             </tr>
           </tbody>
         </table>
@@ -1689,7 +1699,7 @@ const generatePDFInvoice = async (order) => {
     activeInvoice.value = JSON.parse(JSON.stringify(order))
     await nextTick()
 
-    const currentOrderNum = `${getRestaurantPrefix(order.restaurant_name)}-${String(getAdminRestaurantOrderNumber(order)).padStart(2, '0')}`
+    const currentOrderNum = order.waybill_number || `${getRestaurantPrefix(order.restaurant_name)}-${String(getAdminRestaurantOrderNumber(order)).padStart(2, '0')}`
     const element = pdfTemplateRef.value
 
     if (!element) {
@@ -2531,7 +2541,7 @@ const actTransactions = computed(() => {
       id: `order-${o.id}`,
       date: new Date(o.created_at),
       type: 'order',
-      label: `Накладная на отпуск запасов № ${getRestaurantPrefix(o.restaurant_name)}-${String(getAdminRestaurantOrderNumber(o)).padStart(2, '0')} от ${formatDateOnly(o.created_at)}`,
+      label: `Накладная на отпуск запасов № ${o.waybill_number || `${getRestaurantPrefix(o.restaurant_name)}-${String(getAdminRestaurantOrderNumber(o)).padStart(2, '0')}`} от ${formatDateOnly(o.created_at)}`,
       amount: parseFloat(o.total_price) || 0
     })),
     ...resPayments.map(p => ({
@@ -2854,7 +2864,7 @@ const filteredOrders = computed(() => {
     list = list.filter(order => {
       const idStr = `№${order.id}`
       const prefix = getRestaurantPrefix(order.restaurant_name)
-      const formattedId = `${prefix}-${String(getAdminRestaurantOrderNumber(order)).padStart(2, '0')}`
+      const formattedId = order.waybill_number || `${prefix}-${String(getAdminRestaurantOrderNumber(order)).padStart(2, '0')}`
       return (
         order.id.toString().includes(q) ||
         idStr.toLowerCase().includes(q) ||
@@ -3083,7 +3093,8 @@ const saveInvoiceChanges = async () => {
         items: activeInvoice.value.items,
         totalPrice: activeInvoice.value.total_price,
         discount: parseFloat(activeInvoice.value.discount || 0),
-        originalPrice: parseFloat(activeInvoice.value.original_price || activeInvoice.value.total_price)
+        originalPrice: parseFloat(activeInvoice.value.original_price || activeInvoice.value.total_price),
+        waybillNumber: activeInvoice.value.waybill_number
       })
     })
 

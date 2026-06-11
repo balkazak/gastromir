@@ -161,7 +161,7 @@
                 <tbody>
                   <tr v-for="order in filteredOrders" :key="order.id">
                     <td data-label="№ Накладной" class="font-bold">
-                      № {{ getRestaurantPrefix(authStore.user?.name) }}-{{ String(getRestaurantOrderNumber(order)).padStart(2, '0') }}
+                      № {{ order.waybill_number || `${getRestaurantPrefix(authStore.user?.name)}-${String(getRestaurantOrderNumber(order)).padStart(2, '0')}` }}
                     </td>
                     <td data-label="Дата составления">{{ formatDate(order.created_at) }}</td>
                     <td data-label="Краткий состав" style="max-width: 350px;">
@@ -299,7 +299,7 @@
       <div v-if="activeInvoice" class="details-modal-overlay" @click.self="isEditingInvoice ? cancelEditingInvoice() : activeInvoice = null">
         <div class="details-modal" v-motion-pop>
           <div class="details-modal-header">
-            <h3>{{ isEditingInvoice ? 'Редактирование накладной' : 'Детали накладной' }} №{{ activeInvoice.id }}</h3>
+            <h3>{{ isEditingInvoice ? 'Редактирование накладной' : 'Детали накладной' }} {{ activeInvoice.waybill_number || `№${activeInvoice.id}` }}</h3>
             <button @click="isEditingInvoice ? cancelEditingInvoice() : activeInvoice = null" class="close-btn"><X /></button>
           </div>
           <div class="details-modal-body">
@@ -595,7 +595,7 @@
           </thead>
           <tbody>
             <tr>
-              <td style="border: 1px solid #000; padding: 4px 10px; text-align: center; font-weight: bold; font-size: 9px;">{{ getRestaurantPrefix(authStore.user?.name) }}-{{ String(getRestaurantOrderNumber(activeInvoice)).padStart(2, '0') }}</td>
+              <td style="border: 1px solid #000; padding: 4px 10px; text-align: center; font-weight: bold; font-size: 9px;">{{ activeInvoice.waybill_number || `${getRestaurantPrefix(authStore.user?.name)}-${String(getRestaurantOrderNumber(activeInvoice)).padStart(2, '0')}` }}</td>
               <td style="border: 1px solid #000; padding: 4px 10px; text-align: center; font-size: 9px;">{{ formatDateOnly(activeInvoice.created_at) }}</td>
             </tr>
           </tbody>
@@ -649,7 +649,7 @@
             <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px;">{{ authStore.user?.name }}, ИИН/БИН {{ authStore.user?.bin_iin || '—' }}, {{ authStore.user?.address }}</td>
             <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">Ибраев Б. А.</td>
             <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">GASTROMIR Логистика</td>
-            <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">{{ getRestaurantPrefix(authStore.user?.name) }}-{{ String(getRestaurantOrderNumber(activeInvoice)).padStart(2, '0') }}, {{ formatDateOnly(activeInvoice.created_at) }}</td>
+            <td style="border: 1px solid #000; padding: 4px 6px; font-size: 8px; text-align: center;">{{ activeInvoice.waybill_number || `${getRestaurantPrefix(authStore.user?.name)}-${String(getRestaurantOrderNumber(activeInvoice)).padStart(2, '0')}` }}, {{ formatDateOnly(activeInvoice.created_at) }}</td>
           </tr>
         </tbody>
       </table>
@@ -1088,7 +1088,7 @@ const filteredOrders = computed(() => {
   if (searchInvoiceQuery.value.trim()) {
     const q = searchInvoiceQuery.value.toLowerCase().trim()
     list = list.filter(order => {
-      const orderNum = `${getRestaurantPrefix(authStore.user?.name)}-${String(getRestaurantOrderNumber(order)).padStart(2, '0')}`
+      const orderNum = order.waybill_number || `${getRestaurantPrefix(authStore.user?.name)}-${String(getRestaurantOrderNumber(order)).padStart(2, '0')}`
       const matchesNum = order.id.toString().includes(q) || orderNum.toLowerCase().includes(q)
       const matchesProducts = order.items.some(item => item.name.toLowerCase().includes(q))
       return matchesNum || matchesProducts
@@ -1239,7 +1239,7 @@ const generatePDFInvoice = async (order) => {
 
   try {
     const html2pdf = (await import('html2pdf.js')).default
-    const currentOrderNum = `${getRestaurantPrefix(authStore.user?.name)}-${String(getRestaurantOrderNumber(order)).padStart(2, '0')}`
+    const currentOrderNum = order.waybill_number || `${getRestaurantPrefix(authStore.user?.name)}-${String(getRestaurantOrderNumber(order)).padStart(2, '0')}`
     const element = pdfTemplateRef.value
 
     const d = new Date(order.created_at)
