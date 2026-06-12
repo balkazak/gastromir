@@ -275,7 +275,7 @@ const handleRegister = async () => {
     account_number.value
   )
   if (success) {
-    router.push('/')
+    router.push('/profile')
   }
 }
 </script>

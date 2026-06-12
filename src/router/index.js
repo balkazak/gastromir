@@ -82,7 +82,7 @@ router.beforeEach(async (to, from, next) => {
 
   // Handle access guards
   if (to.meta.guestOnly && authStore.isAuthenticated) {
-    next({ name: 'home' })
+    next({ name: 'profile' })
   } else if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login' })
   } else if (to.meta.requiresAdmin && (!authStore.isAuthenticated || authStore.user?.role !== 'admin')) {
