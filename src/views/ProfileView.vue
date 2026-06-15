@@ -1023,8 +1023,24 @@ const editableTotalPrice = computed(() => {
 const filteredProductsToSelect = computed(() => {
   if (!productSearchQuery.value.trim()) return []
   const q = productSearchQuery.value.toLowerCase()
-  return allProducts.value.filter(p => p.name.toLowerCase().includes(q)).slice(0, 5)
+  const matched = allProducts.value
+    .filter(p => p.name.toLowerCase().includes(q))
+    .map(p => {
+      const nameLower = p.name.toLowerCase()
+      let score = 0
+      if (nameLower === q) {
+        score += 100
+      } else if (nameLower.startsWith(q)) {
+        score += 50
+      } else {
+        score += 10
+      }
+      return { product: p, score }
+    })
+  matched.sort((a, b) => b.score - a.score)
+  return matched.map(m => m.product).slice(0, 15)
 })
+
 
 const saveEditedInvoice = async () => {
   if (editableItems.value.length === 0) {
