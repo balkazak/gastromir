@@ -125,34 +125,6 @@ export const useProductsStore = defineStore('products', () => {
     }
   }
 
-  const autoFindProductImage = async (id) => {
-    loading.value = true
-    error.value = null
-    try {
-      const response = await fetch(`${apiUrl}/api/admin/products/${id}/auto-image`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authStore.token}`
-        }
-      })
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to auto-find image')
-      }
-      const index = products.value.findIndex(p => p.id === id)
-      if (index !== -1) {
-        products.value[index].image_url = data.imageUrl
-      }
-      return data.imageUrl
-    } catch (err) {
-      error.value = err.message
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-
   const resetState = () => {
     products.value = []
     loading.value = false
@@ -167,7 +139,6 @@ export const useProductsStore = defineStore('products', () => {
     addProduct,
     updateProduct,
     deleteProduct,
-    autoFindProductImage,
     resetState
   }
 })

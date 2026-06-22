@@ -777,7 +777,7 @@
               </div>
               <div class="form-group">
                 <label for="new-prod-description">Описание товара</label>
-                <textarea id="new-prod-description" v-model="newProductForm.description" rows="3" placeholder="Введите описание товара..." style="width: 100%; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; background: rgba(255,255,255,0.05); color: #fff; padding: 0.75rem; outline: none;"></textarea>
+                <textarea id="new-prod-description" v-model="newProductForm.description" rows="3" placeholder="Введите описание товара..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #000; padding: 0.75rem; outline: none;"></textarea>
               </div>
               <div class="form-group">
                 <label>Изображение товара</label>
@@ -851,7 +851,7 @@
               </div>
               <div class="form-group">
                 <label for="edit-prod-description">Описание товара</label>
-                <textarea id="edit-prod-description" v-model="editProductForm.description" rows="3" placeholder="Введите описание товара..." style="width: 100%; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; background: rgba(255,255,255,0.05); color: #fff; padding: 0.75rem; outline: none;"></textarea>
+                <textarea id="edit-prod-description" v-model="editProductForm.description" rows="3" placeholder="Введите описание товара..." style="width: 100%; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #000; padding: 0.75rem; outline: none;"></textarea>
               </div>
               <div class="form-group">
                 <label>Изображение товара</label>
@@ -863,9 +863,6 @@
                   <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                     <input type="file" @change="handleImageUpload($event, 'edit')" accept="image/*" style="font-size: 0.85rem;" />
                     <div style="display: flex; gap: 0.5rem;">
-                      <button type="button" @click="autoFindImage" class="btn btn-secondary" :disabled="isFindingImage" style="padding: 4px 10px; font-size: 0.8rem;">
-                        {{ isFindingImage ? 'Поиск...' : 'Найти фото в сети' }}
-                      </button>
                       <button v-if="editProductForm.image_url" type="button" @click="removeProductImage('edit')" class="btn btn-secondary" style="background-color: #ef4444; border-color: #ef4444; color: #fff; padding: 4px 10px; font-size: 0.8rem;">Удалить фото</button>
                     </div>
                   </div>
@@ -2889,8 +2886,6 @@ const toggleSort = (field) => {
   }
 }
 
-const isFindingImage = ref(false)
-
 const startProductEdit = (product) => {
   editProductForm.id = product.id
   editProductForm.name = product.name
@@ -2928,19 +2923,6 @@ const saveProductEdit = async () => {
   }
 }
 
-const autoFindImage = async () => {
-  if (!editProductForm.id) return
-  isFindingImage.value = true
-  try {
-    const imageUrl = await productsStore.autoFindProductImage(editProductForm.id)
-    editProductForm.image_url = imageUrl
-    toastStore.success('Изображение успешно найдено!')
-  } catch (err) {
-    toastStore.error('Не удалось автоматически найти изображение')
-  } finally {
-    isFindingImage.value = false
-  }
-}
 
 const resolveImageUrl = (url) => {
   if (!url) return ''
