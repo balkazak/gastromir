@@ -431,6 +431,7 @@
               <table class="admin-table">
                 <thead>
                   <tr>
+                    <th style="width: 80px;">Фото</th>
                     <th @click="toggleSort('name')" class="sortable-header">
                       <div class="header-content">
                         Наименование <ArrowUpDown :size="14" />
@@ -452,63 +453,49 @@
                         Цена (₸) <ArrowUpDown :size="14" />
                       </div>
                     </th>
+                    <th style="width: 100px; text-align: center;">Наличие</th>
                     <th style="text-align: right; width: 170px;">Действия</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="prod in displayedProducts" :key="prod.id">
-                    <!-- Inline Editing State -->
-                    <template v-if="editingProductId === prod.id">
-                      <td data-label="Наименование">
-                        <input type="text" v-model="editProductForm.name" class="inline-edit-input" />
-                      </td>
-                      <td data-label="Категория">
-                        <select v-model="editProductForm.category" class="inline-edit-select">
-                          <option v-for="cat in uniqueCategories" :key="cat" :value="cat">{{ cat }}</option>
-                        </select>
-                      </td>
-                      <td data-label="Производитель">
-                        <input type="text" v-model="editProductForm.manufacturer" class="inline-edit-input" />
-                      </td>
-                      <td data-label="Ед. изм.">
-                        <input type="text" v-model="editProductForm.unit" class="inline-edit-input" style="width: 70px;" />
-                      </td>
-                      <td data-label="Цена (₸)">
-                        <input type="number" step="0.01" v-model.number="editProductForm.price" class="inline-edit-input" />
-                      </td>
-                      <td data-label="Действия" style="text-align: right;">
-                        <div class="edit-actions-row">
-                          <button @click="saveProductEdit(prod.id)" class="btn-action-save" title="Сохранить изменения">
-                            <Check :size="16" />
-                          </button>
-                          <button @click="cancelProductEdit" class="btn-action-cancel" title="Отмена">
-                            <X :size="16" />
-                          </button>
-                        </div>
-                      </td>
-                    </template>
-
-                    <!-- Normal State -->
-                    <template v-else>
-                      <td data-label="Наименование">{{ prod.name }}</td>
-                      <td data-label="Категория"><span class="category-pill">{{ prod.category }}</span></td>
-                      <td data-label="Производитель">{{ prod.manufacturer }}</td>
-                      <td data-label="Ед. изм.">{{ prod.unit }}</td>
-                      <td data-label="Цена (₸)" class="font-bold">{{ formatPrice(prod.price) }} ₸</td>
-                      <td data-label="Действия" style="text-align: right;">
-                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
-                          <button @click="startProductEdit(prod)" class="btn-edit-row">
-                            <Edit3 :size="18" /> Изменить
-                          </button>
-                          <button @click="deleteProduct(prod.id, prod.name)" class="btn-delete" title="Удалить товар">
-                            <Trash2 :size="18" />
-                          </button>
-                        </div>
-                      </td>
-                    </template>
+                    <td data-label="Фото">
+                      <div class="admin-product-thumb-container">
+                        <img 
+                          v-if="prod.image_url" 
+                          :src="resolveImageUrl(prod.image_url)" 
+                          class="admin-product-thumb" 
+                        />
+                        <div v-else class="admin-product-thumb-placeholder"></div>
+                      </div>
+                    </td>
+                    <td data-label="Наименование">{{ prod.name }}</td>
+                    <td data-label="Категория"><span class="category-pill">{{ prod.category }}</span></td>
+                    <td data-label="Производитель">{{ prod.manufacturer }}</td>
+                    <td data-label="Ед. изм.">{{ prod.unit }}</td>
+                    <td data-label="Цена (₸)" class="font-bold">{{ formatPrice(prod.price) }} ₸</td>
+                    <td data-label="Наличие" style="text-align: center;">
+                      <input 
+                        type="checkbox" 
+                        :checked="prod.is_in_stock" 
+                        @change="toggleProductStock(prod)" 
+                        class="stock-checkbox" 
+                      />
+                    </td>
+                    <td data-label="Действия" style="text-align: right;">
+                      <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
+                        <button @click="startProductEdit(prod)" class="btn-edit-row">
+                          <Edit3 :size="18" /> Изменить
+                        </button>
+                        <button @click="deleteProduct(prod.id, prod.name)" class="btn-delete" title="Удалить товар">
+                          <Trash2 :size="18" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 </tbody>
               </table>
+
             </div>
 
             <!-- Scroll Sentinel (Infinite Scroll Loader) -->
@@ -741,7 +728,7 @@
             <h3>Добавить новый товар</h3>
             <button @click="closeAddProductModal" class="close-btn"><X /></button>
           </div>
-          <div class="details-modal-body">
+          <div class="details-modal-body" style="max-height: 80vh; overflow-y: auto;">
             <form @submit.prevent="submitAddProduct" class="add-product-form">
               <div class="form-group">
                 <label for="new-prod-name">Наименование товара</label>
@@ -778,9 +765,32 @@
                   </select>
                 </div>
               </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="new-prod-price">Цена (₸)</label>
+                  <input id="new-prod-price" type="number" step="0.01" min="0" v-model.number="newProductForm.price" required placeholder="Например: 1200" />
+                </div>
+                <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; padding-top: 1.5rem;">
+                  <input id="new-prod-stock" type="checkbox" v-model="newProductForm.is_in_stock" style="width: auto; margin: 0;" />
+                  <label for="new-prod-stock" style="margin: 0; cursor: pointer;">Товар в наличии</label>
+                </div>
+              </div>
               <div class="form-group">
-                <label for="new-prod-price">Цена (₸)</label>
-                <input id="new-prod-price" type="number" step="0.01" min="0" v-model.number="newProductForm.price" required placeholder="Например: 1200" />
+                <label for="new-prod-description">Описание товара</label>
+                <textarea id="new-prod-description" v-model="newProductForm.description" rows="3" placeholder="Введите описание товара..." style="width: 100%; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; background: rgba(255,255,255,0.05); color: #fff; padding: 0.75rem; outline: none;"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Изображение товара</label>
+                <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                  <div class="admin-image-upload-preview">
+                    <img v-if="newProductForm.image_url" :src="resolveImageUrl(newProductForm.image_url)" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;" />
+                    <div v-else style="width: 100px; height: 100px; background: rgba(255,255,255,0.08); border: 2px dashed rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: var(--gray);">Нет фото</div>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <input type="file" @change="handleImageUpload($event, 'add')" accept="image/*" style="font-size: 0.85rem;" />
+                    <button v-if="newProductForm.image_url" type="button" @click="removeProductImage('add')" class="btn btn-secondary" style="background-color: #ef4444; border-color: #ef4444; color: #fff; padding: 4px 10px; font-size: 0.8rem;">Удалить фото</button>
+                  </div>
+                </div>
               </div>
               <div class="form-actions">
                 <button type="button" @click="closeAddProductModal" class="btn-cancel">Отмена</button>
@@ -791,6 +801,86 @@
         </div>
       </div>
     </Transition>
+
+    <Transition name="fade">
+      <div v-if="showEditProductModal" class="details-modal-overlay" @click.self="cancelProductEdit">
+        <div class="details-modal" v-motion-pop>
+          <div class="details-modal-header">
+            <h3>Редактировать товар</h3>
+            <button @click="cancelProductEdit" class="close-btn"><X /></button>
+          </div>
+          <div class="details-modal-body" style="max-height: 80vh; overflow-y: auto;">
+            <form @submit.prevent="saveProductEdit" class="add-product-form">
+              <div class="form-group">
+                <label for="edit-prod-name">Наименование товара</label>
+                <input id="edit-prod-name" type="text" v-model="editProductForm.name" required placeholder="Например: Помидоры розовые" />
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="edit-prod-category">Категория</label>
+                  <select id="edit-prod-category" v-model="editProductForm.category" required>
+                    <option v-for="cat in uniqueCategories" :key="cat" :value="cat">{{ cat }}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="edit-prod-manufacturer">Производитель / Бренд</label>
+                  <input id="edit-prod-manufacturer" type="text" v-model="editProductForm.manufacturer" required />
+                </div>
+                <div class="form-group">
+                  <label for="edit-prod-unit">Единица измерения</label>
+                  <select id="edit-prod-unit" v-model="editProductForm.unit" required>
+                    <option value="кг">кг</option>
+                    <option value="шт">шт</option>
+                    <option value="уп">уп</option>
+                    <option value="л">л</option>
+                    <option value="короб">короб</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="edit-prod-price">Цена (₸)</label>
+                  <input id="edit-prod-price" type="number" step="0.01" min="0" v-model.number="editProductForm.price" required />
+                </div>
+                <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; padding-top: 1.5rem;">
+                  <input id="edit-prod-stock" type="checkbox" v-model="editProductForm.is_in_stock" style="width: auto; margin: 0;" />
+                  <label for="edit-prod-stock" style="margin: 0; cursor: pointer;">Товар в наличии</label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="edit-prod-description">Описание товара</label>
+                <textarea id="edit-prod-description" v-model="editProductForm.description" rows="3" placeholder="Введите описание товара..." style="width: 100%; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; background: rgba(255,255,255,0.05); color: #fff; padding: 0.75rem; outline: none;"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Изображение товара</label>
+                <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                  <div class="admin-image-upload-preview">
+                    <img v-if="editProductForm.image_url" :src="resolveImageUrl(editProductForm.image_url)" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;" />
+                    <div v-else style="width: 100px; height: 100px; background: rgba(255,255,255,0.08); border: 2px dashed rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: var(--gray);">Нет фото</div>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <input type="file" @change="handleImageUpload($event, 'edit')" accept="image/*" style="font-size: 0.85rem;" />
+                    <div style="display: flex; gap: 0.5rem;">
+                      <button type="button" @click="autoFindImage" class="btn btn-secondary" :disabled="isFindingImage" style="padding: 4px 10px; font-size: 0.8rem;">
+                        {{ isFindingImage ? 'Поиск...' : 'Найти фото в сети' }}
+                      </button>
+                      <button v-if="editProductForm.image_url" type="button" @click="removeProductImage('edit')" class="btn btn-secondary" style="background-color: #ef4444; border-color: #ef4444; color: #fff; padding: 4px 10px; font-size: 0.8rem;">Удалить фото</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" @click="cancelProductEdit" class="btn-cancel">Отмена</button>
+                <button type="submit" class="btn-submit">Сохранить</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
 
     <!-- Record Payment Modal -->
     <Transition name="fade">
@@ -1572,9 +1662,12 @@ import '@vuepic/vue-datepicker/dist/main.css'
 import { ru } from 'date-fns/locale'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { useProductsStore } from '@/stores/products'
+import { resizeImage } from '@/utils/image'
 import { ShieldCheck, Users, DollarSign, Calendar, Eye, Trash2, Check, Search, ClipboardList, X, Edit3, ArrowUpDown, Plus, FileText, Download, Wallet, TrendingUp, History } from 'lucide-vue-next'
 import printImg from '@/assets/docs/print.png'
 import signatureImg from '@/assets/docs/signature.png'
+
 
 const authStore = useAuthStore()
 const toastStore = useToastStore()
@@ -1740,7 +1833,10 @@ const newProductForm = reactive({
   category: '',
   newCategory: '',
   unit: '',
-  manufacturer: ''
+  manufacturer: '',
+  is_in_stock: true,
+  image_url: null,
+  description: ''
 })
 
 const closeAddProductModal = () => {
@@ -1751,6 +1847,33 @@ const closeAddProductModal = () => {
   newProductForm.newCategory = ''
   newProductForm.unit = ''
   newProductForm.manufacturer = ''
+  newProductForm.is_in_stock = true
+  newProductForm.image_url = null
+  newProductForm.description = ''
+}
+
+const handleImageUpload = async (e, formType) => {
+  const file = e.target.files[0]
+  if (!file) return
+  try {
+    const resizedBase64 = await resizeImage(file)
+    if (formType === 'add') {
+      newProductForm.image_url = resizedBase64
+    } else {
+      editProductForm.image_url = resizedBase64
+    }
+    toastStore.success('Изображение успешно подготовлено!')
+  } catch (err) {
+    toastStore.error('Не удалось обработать изображение')
+  }
+}
+
+const removeProductImage = (formType) => {
+  if (formType === 'add') {
+    newProductForm.image_url = null
+  } else {
+    editProductForm.image_url = null
+  }
 }
 
 const submitAddProduct = async () => {
@@ -1764,34 +1887,26 @@ const submitAddProduct = async () => {
       return
     }
 
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/products`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify({
-        name: newProductForm.name,
-        price: parseFloat(newProductForm.price),
-        category: finalCategory,
-        unit: newProductForm.unit,
-        manufacturer: newProductForm.manufacturer
-      })
+    const success = await productsStore.addProduct({
+      name: newProductForm.name,
+      price: parseFloat(newProductForm.price),
+      category: finalCategory,
+      unit: newProductForm.unit,
+      manufacturer: newProductForm.manufacturer,
+      is_in_stock: newProductForm.is_in_stock,
+      image_url: newProductForm.image_url,
+      description: newProductForm.description
     })
 
-    const data = await response.json()
-    if (response.ok) {
-      products.value.push(data.product)
+    if (success) {
       closeAddProductModal()
       toastStore.success('Товар успешно добавлен!')
-    } else {
-      toastStore.error(data.message || 'Ошибка при добавлении товара')
     }
   } catch (err) {
-    console.error(err)
-    toastStore.error('Не удалось добавить товар')
+    toastStore.error(err.message || 'Ошибка при добавлении товара')
   }
 }
+
 
 const tabs = [
   { id: 'restaurants', name: 'Рестораны', icon: Users },
@@ -1821,15 +1936,19 @@ const scrollSentinel = ref(null)
 const displayedLimit = ref(40)
 let sentinelObserver = null
 
-// Inline Editing Product State
-const editingProductId = ref(null)
+const showEditProductModal = ref(false)
 const editProductForm = reactive({
+  id: null,
   name: '',
   price: 0,
   category: '',
   unit: '',
-  manufacturer: ''
+  manufacturer: '',
+  is_in_stock: true,
+  image_url: null,
+  description: ''
 })
+
 
 // Loaders & State Refs
 const restaurants = ref([])
@@ -1874,9 +1993,6 @@ const toggleRestaurantFilter = (id) => {
 }
 const loadingUsers = ref(true)
 
-const products = ref([])
-const loadingProducts = ref(true)
-
 const orders = ref([])
 const loadingOrders = ref(true)
 
@@ -1898,22 +2014,18 @@ const fetchRestaurants = async () => {
   }
 }
 
+const productsStore = useProductsStore()
+const products = computed(() => productsStore.products)
+const loadingProducts = computed(() => productsStore.loading)
+
+
 const fetchProducts = async () => {
-  try {
-    loadingProducts.value = true
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/products`)
-    if (response.ok) {
-      products.value = await response.json()
-    }
-  } catch (err) {
-    console.error('Failed to load products:', err)
-  } finally {
-    loadingProducts.value = false
-    nextTick(() => {
-      setupSentinelObserver()
-    })
-  }
+  await productsStore.fetchProducts()
+  nextTick(() => {
+    setupSentinelObserver()
+  })
 }
+
 
 const fetchOrders = async () => {
   try {
@@ -2777,48 +2889,85 @@ const toggleSort = (field) => {
   }
 }
 
-// Inline editing functions
+const isFindingImage = ref(false)
+
 const startProductEdit = (product) => {
-  editingProductId.value = product.id
+  editProductForm.id = product.id
   editProductForm.name = product.name
   editProductForm.price = product.price
   editProductForm.category = product.category
   editProductForm.unit = product.unit
   editProductForm.manufacturer = product.manufacturer
+  editProductForm.is_in_stock = product.is_in_stock
+  editProductForm.image_url = product.image_url
+  editProductForm.description = product.description || ''
+  showEditProductModal.value = true
 }
 
 const cancelProductEdit = () => {
-  editingProductId.value = null
+  showEditProductModal.value = false
 }
 
-const saveProductEdit = async (prodId) => {
+const saveProductEdit = async () => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/products/${prodId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify(editProductForm)
+    await productsStore.updateProduct(editProductForm.id, {
+      name: editProductForm.name,
+      price: parseFloat(editProductForm.price),
+      category: editProductForm.category,
+      unit: editProductForm.unit,
+      manufacturer: editProductForm.manufacturer,
+      is_in_stock: editProductForm.is_in_stock,
+      image_url: editProductForm.image_url,
+      description: editProductForm.description
     })
-    const data = await response.json()
-    if (response.ok) {
-      // Find and update item locally
-      const idx = products.value.findIndex(p => p.id === prodId)
-      if (idx !== -1) {
-        products.value[idx] = { ...data.product }
-      }
-      editingProductId.value = null
-      await fetchOrders()
-      toastStore.success('Товар успешно обновлен!')
-    } else {
-      toastStore.error(data.message || 'Ошибка обновления')
-    }
+    showEditProductModal.value = false
+    await fetchOrders()
+    toastStore.success('Товар успешно обновлен!')
   } catch (err) {
-    console.error(err)
-    toastStore.error('Не удалось сохранить изменения')
+    toastStore.error(err.message || 'Ошибка при обновлении товара')
   }
 }
+
+const autoFindImage = async () => {
+  if (!editProductForm.id) return
+  isFindingImage.value = true
+  try {
+    const imageUrl = await productsStore.autoFindProductImage(editProductForm.id)
+    editProductForm.image_url = imageUrl
+    toastStore.success('Изображение успешно найдено!')
+  } catch (err) {
+    toastStore.error('Не удалось автоматически найти изображение')
+  } finally {
+    isFindingImage.value = false
+  }
+}
+
+const resolveImageUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  const baseUrl = import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'
+  return `${baseUrl}${url}`
+}
+
+const toggleProductStock = async (product) => {
+  try {
+    await productsStore.updateProduct(product.id, {
+      name: product.name,
+      price: product.price,
+      category: product.category,
+      unit: product.unit,
+      manufacturer: product.manufacturer,
+      is_in_stock: !product.is_in_stock,
+      image_url: product.image_url,
+      description: product.description
+    })
+    toastStore.success('Статус наличия успешно изменен!')
+  } catch (err) {
+    toastStore.error('Не удалось изменить статус наличия')
+  }
+}
+
+
 
 const getRestaurantPrefix = (name) => {
   if (!name) return 'ГМ'
@@ -3002,24 +3151,13 @@ const deleteRestaurant = async (userId, name) => {
 const deleteProduct = async (productId, name) => {
   if (!confirm(`Вы действительно хотите удалить товар "${name}"?`)) return
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/admin/products/${productId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-    if (response.ok) {
-      products.value = products.value.filter(p => p.id !== productId)
-      toastStore.success(`Товар "${name}" успешно удален!`)
-    } else {
-      const data = await response.json()
-      toastStore.error(data.message || 'Ошибка при удалении товара')
-    }
+    await productsStore.deleteProduct(productId)
+    toastStore.success(`Товар "${name}" успешно удален!`)
   } catch (err) {
-    console.error(err)
-    toastStore.error('Не удалось удалить товар')
+    toastStore.error(err.message || 'Не удалось удалить товар')
   }
 }
+
 
 const deleteOrder = async (orderId) => {
   if (!confirm(`Вы действительно хотите удалить накладную № ${orderId}?`)) return
@@ -4365,4 +4503,40 @@ const generateDebtsPDF = async () => {
   color: var(--white) !important;
   border-color: var(--secondary) !important;
 }
+
+.admin-product-thumb-container {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-product-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-product-thumb-placeholder {
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.stock-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--secondary);
+}
+
+.admin-image-upload-preview {
+  flex-shrink: 0;
+}
 </style>
+

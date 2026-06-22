@@ -82,7 +82,19 @@
                   v-for="product in displayedProducts" 
                   :key="product.id"
                   v-motion-slide-visible-bottom
+                  :class="{ 'out-of-stock': !product.is_in_stock }"
+                  @click="openProductModal(product)"
                 >
+                  <div class="product-image-container">
+                    <img 
+                      v-if="product.image_url" 
+                      :src="resolveImageUrl(product.image_url)" 
+                      :alt="product.name" 
+                      class="product-image" 
+                    />
+                    <div v-else class="product-image-placeholder"></div>
+                    <span v-if="!product.is_in_stock" class="out-of-stock-badge">Нет в наличии</span>
+                  </div>
                   <div class="product-info">
                     <div class="product-header">
                       <span class="product-badge">{{ product.category }}</span>
@@ -94,8 +106,8 @@
                         <span class="price">{{ formatPrice(product.price) }} ₸</span>
                         <span class="unit">/ {{ product.unit }}</span>
                       </div>
-                      <div class="cart-actions">
-                        <div class="quantity-selector">
+                      <div class="cart-actions" @click.stop>
+                        <div class="quantity-selector" v-if="product.is_in_stock">
                           <button @click="decrementQty(product.id)">-</button>
                           <span>{{ getItemQty(product.id) }}</span>
                           <button @click="incrementQty(product.id)">+</button>
@@ -104,9 +116,11 @@
                           class="btn-add" 
                           @click="addToCart(product)"
                           :class="{ 'in-cart': isItemInCart(product.id) }"
+                          :disabled="!product.is_in_stock"
                         >
-                          <ShoppingCart v-if="!isItemInCart(product.id)" :size="18" />
-                          <Check v-else :size="18" />
+                          <ShoppingCart v-if="product.is_in_stock && !isItemInCart(product.id)" :size="18" />
+                          <Check v-else-if="product.is_in_stock && isItemInCart(product.id)" :size="18" />
+                          <X v-else :size="18" />
                         </button>
                       </div>
                     </div>
@@ -116,6 +130,7 @@
                   </div>
                 </div>
               </div>
+
               
               <!-- Scroll Sentinel for Infinite Scroll -->
               <div ref="scrollSentinel" class="scroll-sentinel"></div>
@@ -191,16 +206,75 @@
         </div>
       </div>
     </div>
+    <Transition name="fade">
+      <div v-if="selectedProduct" class="details-modal-overlay" @click.self="selectedProduct = null">
+        <div class="details-modal" v-motion-pop>
+          <div class="details-modal-header">
+            <h3>Описание товара</h3>
+            <button @click="selectedProduct = null" class="close-btn"><X /></button>
+          </div>
+          <div class="details-modal-body">
+            <div class="modal-product-details">
+              <div class="modal-product-image-container">
+                <img 
+                  v-if="selectedProduct.image_url" 
+                  :src="resolveImageUrl(selectedProduct.image_url)" 
+                  :alt="selectedProduct.name" 
+                  class="modal-product-image" 
+                />
+                <div v-else class="modal-product-placeholder"></div>
+              </div>
+              <div class="modal-product-info">
+                <h2>{{ selectedProduct.name }}</h2>
+                <div class="modal-badge-row">
+                  <span class="modal-badge">{{ selectedProduct.category }}</span>
+                  <span class="modal-badge secondary">{{ selectedProduct.manufacturer }}</span>
+                </div>
+                <div class="modal-price-box">
+                  <span class="modal-price">{{ formatPrice(selectedProduct.price) }} ₸</span>
+                  <span class="modal-unit">/ {{ selectedProduct.unit }}</span>
+                </div>
+                <div class="modal-description-box">
+                  <h4>Описание:</h4>
+                  <p>{{ selectedProduct.description || 'Описание товара временно отсутствует.' }}</p>
+                </div>
+                <div class="modal-actions-box">
+                  <span v-if="!selectedProduct.is_in_stock" class="modal-out-of-stock-text">Товар временно отсутствует</span>
+                  <div v-else class="modal-cart-control">
+                    <div class="quantity-selector">
+                      <button @click="decrementQty(selectedProduct.id)">-</button>
+                      <span>{{ getItemQty(selectedProduct.id) }}</span>
+                      <button @click="incrementQty(selectedProduct.id)">+</button>
+                    </div>
+                    <button 
+                      class="btn btn-secondary modal-add-btn"
+                      @click="addToCart(selectedProduct)"
+                      :class="{ 'in-cart': isItemInCart(selectedProduct.id) }"
+                    >
+                      {{ isItemInCart(selectedProduct.id) ? 'В корзине' : 'Добавить в корзину' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
+
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { Search, ShoppingCart, Check, PackageX, Info, Download } from 'lucide-vue-next'
+import { Search, ShoppingCart, Check, PackageX, Info, Download, X } from 'lucide-vue-next'
 import { useCartStore, isWeightProduct } from '@/stores/cart'
+import { useProductsStore } from '@/stores/products'
 import logoImg from '@/assets/logo.png'
 
 const cartStore = useCartStore()
+const productsStore = useProductsStore()
+
 const searchQuery = ref('')
 const activeCategory = ref('all')
 const productsRef = ref(null)
@@ -292,30 +366,32 @@ const handleMouseMove = (e) => {
   bar.scrollLeft = scrollLeft - walk
 }
 
-const products = ref([])
-const loading = ref(true)
+const products = computed(() => productsStore.products)
+const loading = computed(() => productsStore.loading)
+const selectedProduct = ref(null)
 
-// Infinite Scroll State
+const openProductModal = (product) => {
+  selectedProduct.value = product
+}
+
+const resolveImageUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  const baseUrl = import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'
+  return `${baseUrl}${url}`
+}
+
 const scrollSentinel = ref(null)
 const displayedLimit = ref(40)
 let sentinelObserver = null
 
 const fetchProducts = async () => {
-  try {
-    loading.value = true
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'}/api/products`)
-    if (response.ok) {
-      products.value = await response.json()
-    }
-  } catch (err) {
-    console.error('Failed to fetch products:', err)
-  } finally {
-    loading.value = false
-    nextTick(() => {
-      setupSentinelObserver()
-    })
-  }
+  await productsStore.fetchProducts()
+  nextTick(() => {
+    setupSentinelObserver()
+  })
 }
+
 
 const setupSentinelObserver = () => {
   if (sentinelObserver) sentinelObserver.disconnect()
@@ -867,4 +943,248 @@ const isItemInCart = (id) => {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+.product-image-container {
+  width: 100%;
+  height: 180px;
+  position: relative;
+  overflow: hidden;
+  background-color: #f1f5f9;
+  cursor: pointer;
+}
+
+.product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-image {
+  transform: scale(1.05);
+}
+
+.product-image-placeholder {
+  width: 100%;
+  height: 100%;
+  background-color: #e2e8f0;
+}
+
+.out-of-stock-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: #ef4444;
+  color: #fff;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+
+.product-card.out-of-stock {
+  opacity: 0.75;
+}
+
+.product-card.out-of-stock .product-info {
+  background-color: #fafafa;
+}
+
+.details-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(11, 18, 33, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.details-modal {
+  background: var(--white);
+  border-radius: 1.5rem;
+  width: 100%;
+  max-width: 800px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+}
+
+.details-modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.details-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--gray);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: var(--primary);
+}
+
+.details-modal-body {
+  padding: 2rem;
+}
+
+.modal-product-details {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 2rem;
+}
+
+.modal-product-image-container {
+  width: 100%;
+  height: 300px;
+  border-radius: 1rem;
+  overflow: hidden;
+  background-color: #f1f5f9;
+}
+
+.modal-product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modal-product-placeholder {
+  width: 100%;
+  height: 100%;
+  background-color: #e2e8f0;
+}
+
+.modal-product-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.modal-product-info h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.75rem;
+  line-height: 1.3;
+  color: var(--primary);
+}
+
+.modal-badge-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.modal-badge {
+  background-color: #f1f5f9;
+  color: var(--secondary);
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.modal-badge.secondary {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: var(--secondary-dark);
+}
+
+.modal-price-box {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.modal-price {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.modal-unit {
+  font-size: 1rem;
+  color: var(--gray);
+}
+
+.modal-description-box {
+  margin-bottom: 2rem;
+  flex: 1;
+}
+
+.modal-description-box h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.modal-description-box p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--gray);
+  line-height: 1.6;
+}
+
+.modal-out-of-stock-text {
+  display: block;
+  text-align: center;
+  color: #ef4444;
+  font-weight: 700;
+  padding: 0.75rem;
+  background-color: #fee2e2;
+  border-radius: 9999px;
+  font-size: 0.95rem;
+}
+
+.modal-cart-control {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.modal-add-btn {
+  flex: 1;
+  border-radius: 9999px !important;
+  font-weight: 700 !important;
+}
+
+@media (max-width: 768px) {
+  .modal-product-details {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .modal-product-image-container {
+    height: 200px;
+  }
+  .details-modal-body {
+    padding: 1.5rem;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+  }
+}
 </style>
+
