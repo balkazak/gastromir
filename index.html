@@ -4,8 +4,76 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/src/assets/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GASTROMIR — Закупки для ресторанов в один клик</title>
-    <meta name="description" content="GASTROMIR — это современная система снабжения для HoReCa. Быстрый заказ, стабильная доставка и полный контроль закупа." />
+    <title>Поставщик продуктов для ресторанов в Астане | GASTROMIR</title>
+    <meta name="description" content="GASTROMIR — единый поставщик продуктов питания и хозяйственных товаров для ресторанов, кафе, баров и общепита в Астане. Более 1 000 товаров в одном заказе с доставкой точно в срок." />
+    
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://gastromir.kz/" />
+    <meta property="og:title" content="GASTROMIR — Поставщик продуктов для ресторанов в Астане" />
+    <meta property="og:description" content="Единый поставщик продуктов и хозтоваров для HoReCa в Астане. Заказ в 1 клик, накладные Форма 3-2, доставка с 07:00 до 18:00." />
+    <meta property="og:image" content="https://gastromir.kz/src/assets/logo.png" />
+
+    <!-- Schema.org JSON-LD (Organization, LocalBusiness, WebSite) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://gastromir.kz/#organization",
+          "name": "GASTROMIR",
+          "legalName": "ИП Ибраев Р.Т.",
+          "url": "https://gastromir.kz/",
+          "logo": "https://gastromir.kz/src/assets/logo.png",
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+7-701-514-1404",
+            "contactType": "customer service",
+            "areaServed": "KZ",
+            "availableLanguage": ["Russian", "Kazakh"]
+          }
+        },
+        {
+          "@type": "WholesaleStore",
+          "@id": "https://gastromir.kz/#store",
+          "name": "GASTROMIR — Снабжение HoReCa в Астане",
+          "image": "https://gastromir.kz/src/assets/logo.png",
+          "telephone": "+7-701-514-1404",
+          "priceRange": "$$",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Шоссе Алаш 4/2",
+            "addressLocality": "Астана",
+            "addressCountry": "KZ"
+          },
+          "openingHoursSpecification": {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": [
+              "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
+            ],
+            "opens": "07:00",
+            "closes": "18:00"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://gastromir.kz/#website",
+          "url": "https://gastromir.kz/",
+          "name": "GASTROMIR",
+          "description": "Поставщик продуктов и хозтоваров для ресторанов и кафе в Астане",
+          "publisher": {
+            "@id": "https://gastromir.kz/#organization"
+          },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://gastromir.kz/catalog?query={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
+    }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">

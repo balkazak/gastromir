@@ -28,8 +28,10 @@
         <div class="footer-links">
           <h4>Навигация</h4>
           <router-link to="/">Главная</router-link>
-          <router-link to="/catalog">Каталог</router-link>
-          <router-link to="/process">Как мы работаем</router-link>
+          <router-link to="/horeca">Поставщик HoReCa</router-link>
+          <router-link to="/catalog">Каталог товаров</router-link>
+          <router-link to="/price">Оптовый прайс</router-link>
+          <router-link to="/dostavka">Условия доставки</router-link>
           <router-link to="/about">О нас</router-link>
           <router-link to="/social-mission">Социальная инициатива «Мейірім Тарелкесі»</router-link>
         </div>

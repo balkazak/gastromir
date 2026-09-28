@@ -11,6 +11,7 @@
     </main>
 
     <Footer v-if="route.name !== 'register' && route.name !== 'login'" />
+    <MobileBottomNav v-if="route.name !== 'register' && route.name !== 'login'" />
     <CartModal />
     <ToastContainer />
     
@@ -18,7 +19,7 @@
     <a 
       v-if="route.name !== 'register' && route.name !== 'login'"
       href="https://wa.me/77015141404?text=Здравствуйте!%20Хочу%20подключить%20ресторан%20к%20GASTROMIR." 
-      class="whatsapp-float"
+      class="whatsapp-float desktop-only-float"
       target="_blank"
       v-motion-pop
     >
@@ -30,6 +31,7 @@
 <script setup>
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
+import MobileBottomNav from './components/MobileBottomNav.vue'
 import CartModal from './components/CartModal.vue'
 import ToastContainer from './components/ToastContainer.vue'
 import { ShoppingCart } from 'lucide-vue-next'
@@ -74,6 +76,15 @@ main {
 .whatsapp-float img {
   width: 35px;
   height: 35px;
+}
+
+@media (max-width: 768px) {
+  .desktop-only-float {
+    display: none !important;
+  }
+  main {
+    padding-bottom: 60px;
+  }
 }
 
 .cart-float {

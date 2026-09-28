@@ -103,73 +103,83 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="bin_iin">БИН (ИИН) ресторана</label>
-          <div class="input-wrapper">
-            <FileText class="input-icon" />
-            <input 
-              type="text" 
-              id="bin_iin" 
-              v-model="bin_iin" 
-              placeholder="123456789012" 
-              required
-            />
-          </div>
+        <!-- Optional Legal Requisites Toggle -->
+        <div class="requisites-toggle-box">
+          <button 
+            type="button" 
+            class="toggle-req-btn" 
+            @click="showRequisites = !showRequisites"
+          >
+            <span>Реквизиты для накладных (необязательно при регистрации)</span>
+            <span class="toggle-indicator">{{ showRequisites ? '▲ Свернуть' : '▼ Заполнить сейчас' }}</span>
+          </button>
+          <p class="req-hint">Банковские реквизиты и БИН можно будет внести позже в личном кабинете.</p>
         </div>
 
-        <div class="form-group">
-          <label for="bank">Наименование банка</label>
-          <div class="input-wrapper">
-            <Landmark class="input-icon" />
-            <input 
-              type="text" 
-              id="bank" 
-              v-model="bank" 
-              placeholder="АО &quot;Kaspi Bank&quot;" 
-              required
-            />
+        <div v-show="showRequisites" class="optional-requisites-section" v-motion-fade>
+          <div class="form-group">
+            <label for="bin_iin">БИН (ИИН) ресторана</label>
+            <div class="input-wrapper">
+              <FileText class="input-icon" />
+              <input 
+                type="text" 
+                id="bin_iin" 
+                v-model="bin_iin" 
+                placeholder="123456789012" 
+              />
+            </div>
           </div>
-        </div>
 
-        <div class="form-group">
-          <label for="kbe">КБе</label>
-          <div class="input-wrapper">
-            <Hash class="input-icon" />
-            <input 
-              type="text" 
-              id="kbe" 
-              v-model="kbe" 
-              placeholder="17" 
-              required
-            />
+          <div class="form-group">
+            <label for="bank">Наименование банка</label>
+            <div class="input-wrapper">
+              <Landmark class="input-icon" />
+              <input 
+                type="text" 
+                id="bank" 
+                v-model="bank" 
+                placeholder="АО &quot;Kaspi Bank&quot;" 
+              />
+            </div>
           </div>
-        </div>
 
-        <div class="form-group">
-          <label for="bic">БИК</label>
-          <div class="input-wrapper">
-            <Globe class="input-icon" />
-            <input 
-              type="text" 
-              id="bic" 
-              v-model="bic" 
-              placeholder="CASPKZKA" 
-              required
-            />
+          <div class="form-group">
+            <label for="kbe">КБе</label>
+            <div class="input-wrapper">
+              <Hash class="input-icon" />
+              <input 
+                type="text" 
+                id="kbe" 
+                v-model="kbe" 
+                placeholder="17" 
+              />
+            </div>
           </div>
-        </div>
 
-        <div class="form-group">
-          <label for="account_number">Номер счета</label>
-          <div class="input-wrapper">
-            <CreditCard class="input-icon" />
-            <input 
-              type="text" 
-              id="account_number" 
-              v-model="account_number" 
-              placeholder="KZ000000000000000000" 
-              required
-            />
+          <div class="form-group">
+            <label for="bic">БИК</label>
+            <div class="input-wrapper">
+              <Globe class="input-icon" />
+              <input 
+                type="text" 
+                id="bic" 
+                v-model="bic" 
+                placeholder="CASPKZKA" 
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="account_number">Номер счета</label>
+            <div class="input-wrapper">
+              <CreditCard class="input-icon" />
+              <input 
+                type="text" 
+                id="account_number" 
+                v-model="account_number" 
+                placeholder="KZ000000000000000000" 
+              />
+            </div>
           </div>
         </div>
 
@@ -193,6 +203,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { User, Mail, Lock, Phone, MapPin, FileText, Landmark, Hash, Globe, CreditCard } from 'lucide-vue-next'
 import { formatPhone } from '@/utils/format'
+import { trackEvent } from '@/utils/analytics'
 
 const name = ref('')
 const email = ref('')
@@ -206,6 +217,7 @@ const kbe = ref('')
 const bic = ref('')
 const account_number = ref('')
 const errorMsg = ref('')
+const showRequisites = ref(false)
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -237,44 +249,20 @@ const handleRegister = async () => {
     return
   }
 
-  if (!bin_iin.value.trim()) {
-    errorMsg.value = 'Укажите БИН (ИИН) ресторана'
-    return
-  }
-
-  if (!bank.value.trim()) {
-    errorMsg.value = 'Укажите наименование банка'
-    return
-  }
-
-  if (!kbe.value.trim()) {
-    errorMsg.value = 'Укажите КБе'
-    return
-  }
-
-  if (!bic.value.trim()) {
-    errorMsg.value = 'Укажите БИК'
-    return
-  }
-
-  if (!account_number.value.trim()) {
-    errorMsg.value = 'Укажите номер банковского счета'
-    return
-  }
-
   const success = await authStore.register(
     name.value, 
     email.value, 
     password.value, 
     phone.value, 
     address.value,
-    bin_iin.value,
-    bank.value,
-    kbe.value,
-    bic.value,
-    account_number.value
+    bin_iin.value || '',
+    bank.value || '',
+    kbe.value || '',
+    bic.value || '',
+    account_number.value || ''
   )
   if (success) {
+    trackEvent('registration', { method: 'quick_b2b_form' })
     router.push('/profile')
   }
 }
@@ -300,6 +288,43 @@ const handleRegister = async () => {
   border-radius: 24px;
   padding: 3rem;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.requisites-toggle-box {
+  margin: 1.25rem 0 1rem;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+.toggle-req-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  text-align: left;
+}
+
+.toggle-indicator {
+  color: var(--secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.req-hint {
+  font-size: 0.75rem;
+  color: #94A3B8;
+  margin-top: 0.35rem;
+}
+
+.optional-requisites-section {
+  padding-left: 0.5rem;
+  border-left: 2px solid rgba(245, 158, 11, 0.4);
+  margin-bottom: 1.25rem;
 }
 
 .brand-header {

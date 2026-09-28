@@ -9,10 +9,10 @@
         <router-link to="/restaurant-order" class="blink-link" @click="isMobileMenuOpen = false">
           <Zap class="zap-icon" :size="16" />Заказ в <span class="blink-text">1 клик</span>
         </router-link>
+        <router-link to="/horeca" @click="isMobileMenuOpen = false">HoReCa</router-link>
         <router-link to="/catalog" @click="isMobileMenuOpen = false">Каталог</router-link>
-        <router-link to="/process" @click="isMobileMenuOpen = false">Как это работает</router-link>
-        <router-link to="/about" @click="isMobileMenuOpen = false">О нас</router-link>
-        <router-link to="/social-mission" @click="isMobileMenuOpen = false">Соц инициатива «Мейірім Тарелкесі»</router-link>
+        <router-link to="/price" @click="isMobileMenuOpen = false">Прайс</router-link>
+        <router-link to="/dostavka" @click="isMobileMenuOpen = false">Доставка</router-link>
         <router-link to="/contacts" @click="isMobileMenuOpen = false">Контакты</router-link>
         
         <template v-if="authStore.isAuthenticated">

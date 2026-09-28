@@ -2,8 +2,8 @@
   <div class="contact-page">
     <section class="page-header section-padding">
       <div class="container">
-        <h1>Связаться с <span>нами</span></h1>
-        <p>Выберите удобный способ связи или оставьте заявку</p>
+        <h1>Поставщик продуктов для ресторанов в Астане — <span>GASTROMIR</span></h1>
+        <p>Прямой контакт с отделом снабжения, отделом логистики и руководством компании</p>
       </div>
     </section>
 
@@ -67,24 +67,32 @@
 
           <div class="contact-form-container">
             <div class="form-card">
-              <h2>Оставить заявку</h2>
-              <p>Мы свяжемся с вами в течение 5–15 минут</p>
+              <h2>Получить условия поставки</h2>
+              <p>Для вашего ресторана, кафе или сети заведений</p>
               
               <form @submit.prevent="handleSubmit" v-if="!submitted">
                 <div class="form-group">
-                  <label>Название ресторана</label>
-                  <input type="text" v-model="formData.restaurant" placeholder="Укажите название" required />
+                  <label>Название заведения</label>
+                  <input type="text" v-model="formData.restaurant" placeholder="Например: Ресторан Угли" required />
+                </div>
+                <div class="form-group">
+                  <label>Количество заведений</label>
+                  <input type="text" v-model="formData.venuesCount" placeholder="Например: 1 точка / сеть из 3" />
                 </div>
                 <div class="form-group">
                   <label>Ваше имя</label>
                   <input type="text" v-model="formData.name" placeholder="Как к вам обращаться?" required />
                 </div>
                 <div class="form-group">
-                  <label>Телефон</label>
+                  <label>Телефон / WhatsApp</label>
                   <input type="tel" v-model="formData.phone" placeholder="+7 (___) ___ __ __" required />
                 </div>
+                <div class="form-group">
+                  <label>Что закупаете в первую очередь?</label>
+                  <input type="text" v-model="formData.categories" placeholder="Овощи, сыры, мясо, бакалея, хозтовары..." />
+                </div>
                 <button type="submit" class="btn btn-primary btn-block" :disabled="isSubmitting">
-                  {{ isSubmitting ? 'Отправка...' : 'Отправить заявку' }}
+                  {{ isSubmitting ? 'Отправка...' : 'Получить условия поставки' }}
                 </button>
               </form>
 
@@ -94,11 +102,11 @@
                 <p>Наш менеджер уже изучает ваш запрос и скоро позвонит.</p>
               </div>
 
-              <div class="form-divider">ИЛИ</div>
+              <div class="form-divider">ИЛИ БЫСТРАЯ СВЯЗЬ</div>
 
               <div class="direct-actions">
-                <a href="https://wa.me/77015141404" class="btn btn-whatsapp" target="_blank">
-                  Написать в WhatsApp
+                <a href="https://wa.me/77015141404?text=Здравствуйте!%20Хочу%20отправить%20список%20закупки%20для%20заведения." class="btn btn-whatsapp" target="_blank" @click="handleWhatsApp('contacts_list_cta')">
+                  Отправить список закупки в WhatsApp
                 </a>
               </div>
             </div>
@@ -113,6 +121,7 @@
 import { ref, reactive } from 'vue'
 import { MapPin, Mail, Clock, Phone } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toast'
+import { trackWhatsAppClick, trackEvent } from '@/utils/analytics'
 
 const toastStore = useToastStore()
 
@@ -120,8 +129,10 @@ const submitted = ref(false)
 const isSubmitting = ref(false)
 const formData = reactive({
   restaurant: '',
+  venuesCount: '',
   name: '',
-  phone: ''
+  phone: '',
+  categories: ''
 })
 
 const requisites = {
@@ -133,16 +144,22 @@ const requisites = {
   'Номер счёта': 'KZ96722S000053776272'
 }
 
+const handleWhatsApp = (source) => {
+  trackWhatsAppClick(source)
+}
+
 const handleSubmit = async () => {
   isSubmitting.value = true
   try {
     const formDataPayload = new FormData()
     formDataPayload.append("access_key", "a4c51ae1-a7d6-4ac4-9d54-3183cb69f4f5")
-    formDataPayload.append("subject", `Новая заявка от ${formData.restaurant}`)
+    formDataPayload.append("subject", `Новая заявка HoReCa: ${formData.restaurant}`)
     formDataPayload.append("from_name", "GASTROMIR")
     formDataPayload.append("Ресторан", formData.restaurant)
+    formDataPayload.append("Количество заведений", formData.venuesCount || '1')
     formDataPayload.append("Имя", formData.name)
     formDataPayload.append("Телефон", formData.phone)
+    formDataPayload.append("Категории закупки", formData.categories || 'Не указаны')
 
     const response = await fetch('https://api.web3forms.com/submit', {
       method: 'POST',
@@ -151,6 +168,7 @@ const handleSubmit = async () => {
 
     if (response.ok) {
       submitted.value = true
+      trackEvent('submit_form', { form: 'contact_lead' })
       toastStore.success('Заявка успешно отправлена!')
     } else {
       toastStore.error('Произошла ошибка при отправке заявки. Пожалуйста, попробуйте позже.')

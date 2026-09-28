@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Allow: /horeca
+Allow: /catalog
+Allow: /price
+Allow: /dostavka
+Allow: /contacts
+Allow: /about
+Allow: /social-mission
+
+# Disallow indexing of private data, documents, and admin panels
+Disallow: /admin
+Disallow: /profile
+Disallow: /login
+Disallow: /register
+Disallow: /api/
+Disallow: /*?*query=
+Disallow: /*?*filter=
+
+Sitemap: https://gastromir.kz/sitemap.xml
