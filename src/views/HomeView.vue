@@ -186,11 +186,56 @@
                 />
               </div>
 
+              <!-- Поле для прикрепления файла с Dropzone и Preview -->
+              <div 
+                class="file-upload-zone"
+                :class="{ 'is-dragging': isDragging, 'has-file': !!attachedFile }"
+                @dragover.prevent="isDragging = true"
+                @dragleave.prevent="isDragging = false"
+                @drop.prevent="handleDrop"
+                @click="triggerFileInput"
+              >
+                <input 
+                  type="file" 
+                  ref="fileInputRef" 
+                  class="hidden-file-input" 
+                  accept=".xlsx,.xls,.csv,.pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" 
+                  @change="handleFileChange"
+                />
+
+                <div v-if="!attachedFile" class="upload-placeholder">
+                  <div class="upload-icon-circle">
+                    <Paperclip :size="24" />
+                  </div>
+                  <div class="upload-text">
+                    <span class="upload-title">Нажмите или перетащите файл со списком</span>
+                    <span class="upload-subtitle">Excel, PDF, Word, фото списка (до 15 МБ)</span>
+                  </div>
+                </div>
+
+                <div v-else class="file-preview-card" @click.stop>
+                  <div class="preview-media">
+                    <img v-if="filePreviewUrl" :src="filePreviewUrl" alt="Превью списка" class="preview-img" />
+                    <div v-else class="preview-doc-icon">
+                      <FileSpreadsheet v-if="isExcelFile" :size="28" />
+                      <FileText v-else :size="28" />
+                    </div>
+                  </div>
+                  <div class="preview-info">
+                    <div class="preview-name" :title="attachedFile.name">{{ attachedFile.name }}</div>
+                    <div class="preview-size">{{ formatFileSize(attachedFile.size) }}</div>
+                  </div>
+                  <button type="button" class="btn-remove-file" @click.stop="removeFile" title="Удалить файл">
+                    <Trash2 :size="18" />
+                  </button>
+                </div>
+              </div>
+
               <textarea 
                 v-model="quickForm.listText" 
-                rows="6" 
-                placeholder="Вставьте список товаров сюда (наименование - количество):&#10;Сыр моцарелла 45% - 10 кг&#10;Мука Макфа в/с - 3 мешка&#10;Масло оливковое Extra Virgin - 6 бут&#10;Салфетки барные белые - 15 пачек"
-                required
+                rows="4" 
+                :placeholder="textareaPlaceholder"
+                :required="!attachedFile"
               ></textarea>
 
               <div class="form-submit-actions">
@@ -279,23 +324,16 @@ import {
   CheckCircle, 
   Send, 
   Check, 
-  X 
+  X,
+  Paperclip,
+  Trash2,
+  FileText
 } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toast'
 import { trackWhatsAppClick, trackUploadPurchaseList, trackEvent } from '@/utils/analytics'
 
 const router = useRouter()
 const toastStore = useToastStore()
-
-const whatsappHeroUrl = computed(() => {
-  const msg = encodeURIComponent('Здравствуйте! Хочу заказать товары для заведения в GASTROMIR. Помогите сформировать закупку.')
-  return `https://wa.me/77015141404?text=${msg}`
-})
-
-const whatsappQuickListUrl = computed(() => {
-  const msg = encodeURIComponent('Здравствуйте! Отправляю список закупки для нашего заведения. Прошу рассчитать стоимость и наличие.')
-  return `https://wa.me/77015141404?text=${msg}`
-})
 
 const categoriesList = [
   { name: 'Бакалея', icon: '🌾' },
@@ -346,25 +384,146 @@ const quickForm = ref({
   phone: '',
   listText: ''
 })
+const fileInputRef = ref(null)
+const attachedFile = ref(null)
+const filePreviewUrl = ref(null)
+const isDragging = ref(false)
 const isSubmittingList = ref(false)
 
+const isExcelFile = computed(() => {
+  if (!attachedFile.value) return false
+  const name = attachedFile.value.name.toLowerCase()
+  return name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv')
+})
+
+const textareaPlaceholder = computed(() => {
+  if (attachedFile.value) {
+    return 'Комментарий к файлу или дополнительный список товаров (необязательно)...'
+  }
+  return 'Или вставьте список товаров текстом:\nСыр моцарелла 45% - 10 кг\nМука Макфа в/с - 3 мешка\nМасло оливковое Extra Virgin - 6 бут'
+})
+
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
+}
+
+const triggerFileInput = () => {
+  if (fileInputRef.value) {
+    fileInputRef.value.click()
+  }
+}
+
+const handleFile = (file) => {
+  if (!file) return
+  const maxBytes = 15 * 1024 * 1024 // 15MB max
+  if (file.size > maxBytes) {
+    toastStore.error('Размер файла не должен превышать 15 МБ')
+    return
+  }
+
+  attachedFile.value = file
+
+  // Если это изображение, строим preview
+  if (file.type && file.type.startsWith('image/')) {
+    if (filePreviewUrl.value) {
+      URL.revokeObjectURL(filePreviewUrl.value)
+    }
+    filePreviewUrl.value = URL.createObjectURL(file)
+  } else {
+    filePreviewUrl.value = null
+  }
+}
+
+const handleFileChange = (e) => {
+  const file = e.target.files?.[0]
+  if (file) {
+    handleFile(file)
+  }
+}
+
+const handleDrop = (e) => {
+  isDragging.value = false
+  const file = e.dataTransfer?.files?.[0]
+  if (file) {
+    handleFile(file)
+  }
+}
+
+const removeFile = () => {
+  attachedFile.value = null
+  if (filePreviewUrl.value) {
+    URL.revokeObjectURL(filePreviewUrl.value)
+    filePreviewUrl.value = null
+  }
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
+}
+
+const whatsappHeroUrl = computed(() => {
+  const msg = encodeURIComponent('Здравствуйте! Хочу заказать товары для заведения в GASTROMIR. Помогите сформировать закупку.')
+  return `https://wa.me/77015141404?text=${msg}`
+})
+
+const whatsappQuickListUrl = computed(() => {
+  let lines = ['Здравствуйте! Отправляю список закупки в GASTROMIR.']
+  if (quickForm.value.restaurant) {
+    lines.push(`Заведение: ${quickForm.value.restaurant}`)
+  }
+  if (quickForm.value.phone) {
+    lines.push(`Телефон: ${quickForm.value.phone}`)
+  }
+  if (attachedFile.value) {
+    lines.push(`Прикрепляю файл со списком: "${attachedFile.value.name}"`)
+  }
+  if (quickForm.value.listText) {
+    lines.push(`\nСписок / комментарий:\n${quickForm.value.listText}`)
+  } else if (attachedFile.value) {
+    lines.push(`\n(Файл прикрепляю в этом чате)`)
+  }
+  const msg = encodeURIComponent(lines.join('\n'))
+  return `https://wa.me/77015141404?text=${msg}`
+})
+
 const submitPurchaseList = async () => {
+  if (!quickForm.value.listText && !attachedFile.value) {
+    toastStore.error('Пожалуйста, прикрепите файл или введите список товаров текстом')
+    return
+  }
+
   isSubmittingList.value = true
   try {
     const payload = new FormData()
     payload.append("access_key", "a4c51ae1-a7d6-4ac4-9d54-3183cb69f4f5")
-    payload.append("subject", `Новый список закупки: ${quickForm.value.restaurant}`)
+    payload.append("subject", `Новый список закупки: ${quickForm.value.restaurant || 'Без названия'}`)
     payload.append("Заведение", quickForm.value.restaurant)
     payload.append("Телефон", quickForm.value.phone)
-    payload.append("Список закупки", quickForm.value.listText)
+    if (quickForm.value.listText) {
+      payload.append("Список закупки / Комментарий", quickForm.value.listText)
+    }
+    if (attachedFile.value) {
+      payload.append("attachment", attachedFile.value)
+    }
 
-    await fetch('https://api.web3forms.com/submit', { method: 'POST', body: payload })
-    trackUploadPurchaseList('text')
-    trackEvent('submit_form', { form: 'quick_purchase_list' })
-    toastStore.success('Список закупки успешно отправлен! Менеджер свяжется с вами с готовым расчетом.')
+    const response = await fetch('https://api.web3forms.com/submit', { method: 'POST', body: payload })
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok || data.success === false) {
+      throw new Error(data.message || 'Ошибка отправки формы')
+    }
+
+    trackUploadPurchaseList(attachedFile.value ? 'file' : 'text')
+    trackEvent('submit_form', { form: 'quick_purchase_list', has_file: !!attachedFile.value })
+    toastStore.success('Список закупки успешно отправлен на почту! Менеджер свяжется с вами с готовым расчетом.')
     quickForm.value = { restaurant: '', phone: '', listText: '' }
+    removeFile()
   } catch (e) {
-    toastStore.error('Произошла ошибка при отправке. Пожалуйста, напишите нам в WhatsApp.')
+    console.error('Ошибка отправки формы:', e)
+    toastStore.error('Произошла ошибка при отправке. Пожалуйста, отправьте файл через кнопку WhatsApp.')
   } finally {
     isSubmittingList.value = false
   }
@@ -733,6 +892,145 @@ h1 span {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
+.file-upload-zone {
+  border: 2px dashed #334155;
+  border-radius: 1rem;
+  background: rgba(30, 41, 59, 0.6);
+  padding: 1.25rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.file-upload-zone:hover,
+.file-upload-zone.is-dragging {
+  border-color: #F59E0B;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.file-upload-zone.has-file {
+  border-style: solid;
+  border-color: rgba(245, 158, 11, 0.4);
+  background: #1E293B;
+  cursor: default;
+  padding: 0.9rem 1.2rem;
+}
+
+.upload-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.upload-icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.15);
+  color: #F59E0B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.upload-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: left;
+}
+
+.upload-title {
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.upload-subtitle {
+  color: #94A3B8;
+  font-size: 0.82rem;
+}
+
+.file-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.preview-media {
+  width: 52px;
+  height: 52px;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: #0B1221;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid #334155;
+}
+
+.preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-doc-icon {
+  color: #F59E0B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: left;
+}
+
+.preview-name {
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preview-size {
+  color: #94A3B8;
+  font-size: 0.8rem;
+}
+
+.btn-remove-file {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #EF4444;
+  width: 36px;
+  height: 36px;
+  border-radius: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-remove-file:hover {
+  background: #EF4444;
+  color: #FFFFFF;
 }
 
 .quick-list-form input,
