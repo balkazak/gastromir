@@ -87,6 +87,7 @@ import { ref, computed } from 'vue'
 import { Download, FileCheck } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toast'
 import { trackWhatsAppClick, trackEvent } from '@/utils/analytics'
+import { submitForm } from '@/services/formService'
 
 const toastStore = useToastStore()
 
@@ -107,21 +108,24 @@ const isSubmitting = ref(false)
 const submitPriceLead = async () => {
   isSubmitting.value = true
   try {
-    const payload = new FormData()
-    payload.append("access_key", "a4c51ae1-a7d6-4ac4-9d54-3183cb69f4f5")
-    payload.append("subject", `Запрос оптового прайса от ${form.value.restaurant}`)
-    payload.append("Заведение", form.value.restaurant)
-    payload.append("Контактное лицо", form.value.name)
-    payload.append("Телефон", form.value.phone)
-    payload.append("Месячный объем", form.value.volume || 'Не указан')
-    payload.append("Комментарий", form.value.comment || 'Не указан')
+    await submitForm({
+      formType: 'price_request',
+      subject: `Запрос оптового прайса от ${form.value.restaurant}`,
+      restaurant: form.value.restaurant,
+      name: form.value.name,
+      phone: form.value.phone,
+      message: form.value.comment,
+      details: {
+        volume: form.value.volume || 'Не указан'
+      }
+    })
 
-    await fetch('https://api.web3forms.com/submit', { method: 'POST', body: payload })
     trackEvent('submit_form', { form: 'price_request' })
     toastStore.success('Запрос успешно принят! Менеджер подготовит прайс и свяжется с вами.')
     form.value = { restaurant: '', name: '', phone: '', volume: '', comment: '' }
   } catch (e) {
-    toastStore.error('Произошла ошибка, пожалуйста свяжитесь с нами в WhatsApp.')
+    console.error('Ошибка отправки формы:', e)
+    toastStore.error(e.message || 'Произошла ошибка, пожалуйста свяжитесь с нами в WhatsApp.')
   } finally {
     isSubmitting.value = false
   }

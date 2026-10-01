@@ -617,6 +617,119 @@
             </table>
           </div>
         </div>
+
+        <!-- Tab 6: Website Submissions & Leads -->
+        <div v-if="activeTab === 'submissions'" class="tab-pane animate-fade">
+          <div class="card-header">
+            <div>
+              <h2>Заявки с сайта и списки закупок</h2>
+              <p>Все отправленные формы, запросы условий, прайс-листы и прикрепленные файлы</p>
+            </div>
+            <button @click="fetchSubmissions" class="btn-inspect" title="Обновить список" :disabled="loadingSubmissions">
+              <History :size="18" /> Обновить
+            </button>
+          </div>
+
+          <!-- Filters & Search -->
+          <div class="table-controls" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+            <div class="search-box" style="flex: 1; min-width: 250px;">
+              <Search :size="18" />
+              <input 
+                type="text" 
+                v-model="submissionSearch" 
+                placeholder="Поиск по заведению, имени, телефону, тексту..."
+              />
+            </div>
+
+            <div class="filter-group">
+              <select v-model="filterSubmissionType">
+                <option value="all">Все типы заявок</option>
+                <option value="quick_purchase_list">Списки закупки</option>
+                <option value="price_request">Запросы прайса</option>
+                <option value="contact_lead">Заявки из контактов</option>
+                <option value="horeca_lead">HoReCa условия</option>
+                <option value="cart_invoice">Заказы из корзины</option>
+              </select>
+            </div>
+          </div>
+
+          <div v-if="loadingSubmissions" class="loading-state">
+            <span class="loader"></span>
+            <p>Загрузка заявок...</p>
+          </div>
+
+          <div v-else-if="filteredSubmissions.length === 0" class="empty-state">
+            <Inbox :size="48" />
+            <p>Заявок не найдено</p>
+          </div>
+
+          <div v-else class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Тип</th>
+                  <th>Заведение / Контакт</th>
+                  <th>Телефон</th>
+                  <th>Сообщение / Данные</th>
+                  <th>Файл</th>
+                  <th style="text-align: right;">Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="sub in filteredSubmissions" :key="sub.id">
+                  <td data-label="Дата" style="font-size: 0.85rem; white-space: nowrap;">
+                    {{ formatDate(sub.created_at) }}
+                  </td>
+                  <td data-label="Тип">
+                    <span class="submission-badge" :class="getSubmissionBadge(sub.form_type).class">
+                      {{ getSubmissionBadge(sub.form_type).label }}
+                    </span>
+                  </td>
+                  <td data-label="Заведение">
+                    <strong>{{ sub.restaurant || 'Не указано' }}</strong>
+                    <div v-if="sub.name" style="font-size: 0.82rem; color: var(--gray);">{{ sub.name }}</div>
+                  </td>
+                  <td data-label="Телефон">
+                    <a v-if="sub.phone" :href="`tel:${sub.phone}`" style="color: #2563eb; font-weight: 600; text-decoration: none;">
+                      {{ sub.phone }}
+                    </a>
+                    <span v-else style="color: var(--gray);">-</span>
+                  </td>
+                  <td data-label="Сообщение" style="max-width: 320px;">
+                    <div v-if="sub.message" style="white-space: pre-wrap; font-size: 0.85rem; max-height: 80px; overflow-y: auto;">
+                      {{ sub.message }}
+                    </div>
+                    <div v-if="sub.details && Object.keys(sub.details).length" style="margin-top: 4px; font-size: 0.78rem; color: var(--gray);">
+                      <div v-for="(v, k) in sub.details" :key="k">
+                        <strong>{{ k }}:</strong> {{ v }}
+                      </div>
+                    </div>
+                  </td>
+                  <td data-label="Файл">
+                    <a 
+                      v-if="sub.file_url" 
+                      :href="`${baseUrl}${sub.file_url}`" 
+                      target="_blank" 
+                      class="btn-file-link"
+                      :title="sub.file_name"
+                    >
+                      <Paperclip :size="15" />
+                      <span>{{ sub.file_name || 'Скачать' }}</span>
+                      <ExternalLink :size="13" />
+                    </a>
+                    <span v-else style="color: var(--gray); font-size: 0.85rem;">-</span>
+                  </td>
+                  <td data-label="Действия" style="text-align: right;">
+                    <button @click="deleteSubmission(sub.id)" class="btn-delete" title="Удалить заявку">
+                      <Trash2 :size="18" />
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1661,7 +1774,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { useProductsStore } from '@/stores/products'
 import { resizeImage } from '@/utils/image'
-import { ShieldCheck, Users, DollarSign, Calendar, Eye, Trash2, Check, Search, ClipboardList, X, Edit3, ArrowUpDown, Plus, FileText, Download, Wallet, TrendingUp, History } from 'lucide-vue-next'
+import { ShieldCheck, Users, DollarSign, Calendar, Eye, Trash2, Check, Search, ClipboardList, X, Edit3, ArrowUpDown, Plus, FileText, Download, Wallet, TrendingUp, History, Inbox, Paperclip, ExternalLink } from 'lucide-vue-next'
 import printImg from '@/assets/docs/print.png'
 import signatureImg from '@/assets/docs/signature.png'
 
@@ -1910,10 +2023,12 @@ const tabs = [
   { id: 'debts', name: 'Взаиморасчеты', icon: Wallet },
   { id: 'products', name: 'Каталог цен', icon: DollarSign },
   { id: 'invoices', name: 'Накладные', icon: ClipboardList },
-  { id: 'reports', name: 'Отчет по дням', icon: TrendingUp }
+  { id: 'reports', name: 'Отчет по дням', icon: TrendingUp },
+  { id: 'submissions', name: 'Заявки с сайта', icon: Inbox }
 ]
 
 const activeTab = ref('restaurants')
+const baseUrl = import.meta.env.VITE_API_URL || 'https://gastroback-production.up.railway.app'
 const productSearch = ref('')
 const filterCategory = ref('all')
 const filterManufacturer = ref('all')
@@ -2073,14 +2188,89 @@ const resetLimit = () => {
   })
 }
 
-// Observe tab change to trigger sentinel setup
+// Observe tab change to trigger sentinel setup and fetch tab data
 watch(activeTab, (newTab) => {
   if (newTab === 'products') {
     nextTick(() => {
       setupSentinelObserver()
     })
+  } else if (newTab === 'submissions') {
+    fetchSubmissions()
   }
 })
+
+// --- Form Submissions State & Logic ---
+const submissions = ref([])
+const loadingSubmissions = ref(false)
+const submissionSearch = ref('')
+const filterSubmissionType = ref('all')
+
+const fetchSubmissions = async () => {
+  try {
+    loadingSubmissions.value = true
+    const response = await fetch(`${baseUrl}/api/admin/submissions`, {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    if (response.ok) {
+      submissions.value = await response.json()
+    } else {
+      toastStore.error('Не удалось загрузить список заявок')
+    }
+  } catch (err) {
+    console.error('Failed to load submissions:', err)
+  } finally {
+    loadingSubmissions.value = false
+  }
+}
+
+const deleteSubmission = async (id) => {
+  if (!confirm('Вы действительно хотите удалить эту заявку?')) return
+  try {
+    const response = await fetch(`${baseUrl}/api/admin/submissions/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    if (response.ok) {
+      submissions.value = submissions.value.filter(s => s.id !== id)
+      toastStore.success('Заявка успешно удалена')
+    } else {
+      toastStore.error('Ошибка при удалении заявки')
+    }
+  } catch (err) {
+    console.error('Failed to delete submission:', err)
+    toastStore.error('Ошибка сети при удалении')
+  }
+}
+
+const filteredSubmissions = computed(() => {
+  return submissions.value.filter(sub => {
+    const matchesType = filterSubmissionType.value === 'all' || sub.form_type === filterSubmissionType.value
+    const searchLower = submissionSearch.value.toLowerCase().trim()
+    const matchesSearch = !searchLower ||
+      (sub.restaurant && sub.restaurant.toLowerCase().includes(searchLower)) ||
+      (sub.name && sub.name.toLowerCase().includes(searchLower)) ||
+      (sub.phone && sub.phone.toLowerCase().includes(searchLower)) ||
+      (sub.message && sub.message.toLowerCase().includes(searchLower)) ||
+      (sub.subject && sub.subject.toLowerCase().includes(searchLower))
+
+    return matchesType && matchesSearch
+  })
+})
+
+const getSubmissionBadge = (type) => {
+  const map = {
+    quick_purchase_list: { label: 'Список закупки', class: 'badge-list' },
+    contact_lead: { label: 'Контакты', class: 'badge-contact' },
+    price_request: { label: 'Запрос прайса', class: 'badge-price' },
+    horeca_lead: { label: 'Заявка HoReCa', class: 'badge-horeca' },
+    cart_invoice: { label: 'Заказ / Накладная', class: 'badge-order' },
+  }
+  return map[type] || { label: type || 'Заявка', class: 'badge-default' }
+}
 
 // Reset on searches and filters
 watch([productSearch, filterCategory, filterManufacturer, sortField, sortOrder], () => {
@@ -4519,6 +4709,48 @@ const generateDebtsPDF = async () => {
 
 .admin-image-upload-preview {
   flex-shrink: 0;
+}
+
+.submission-badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.badge-list { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+.badge-contact { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+.badge-price { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+.badge-horeca { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.3); }
+.badge-order { background: rgba(236, 72, 153, 0.15); color: #ec4899; border: 1px solid rgba(236, 72, 153, 0.3); }
+.badge-default { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
+
+.btn-file-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  max-width: 180px;
+  transition: all 0.2s;
+}
+.btn-file-link span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.btn-file-link:hover {
+  background: rgba(37, 99, 235, 0.22);
+  color: #1d4ed8;
+  border-color: #2563eb;
 }
 </style>
 

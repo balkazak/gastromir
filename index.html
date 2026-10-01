@@ -4,17 +4,28 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/src/assets/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Поставщик продуктов для ресторанов в Астане | GASTROMIR</title>
-    <meta name="description" content="GASTROMIR — единый поставщик продуктов питания и хозяйственных товаров для ресторанов, кафе, баров и общепита в Астане. Более 1 000 товаров в одном заказе с доставкой точно в срок." />
-    
+    <title>Поставщик продуктов для ресторанов в Астане | GASTROMIR HoReCa</title>
+    <meta name="description" content="GASTROMIR — оптовый поставщик продуктов питания и хозтоваров для ресторанов, кафе, баров и столовых в Астане. Более 1 000 товаров, доставка с 07:00 до 18:00, накладные Форма 3-2." />
+    <meta name="keywords" content="поставка продуктов Астана, продукты для ресторанов Астана, horeca астана, поставщик хорека астана, продукты для кафе оптом, сыры для ресторанов оптом астана, моцарелла для пиццы оптом астана, мясо для ресторанов астана, куриное филе оптом астана, бакалея оптом астана, масло фритюрное оптом, бытовая химия для общепита астана, одноразовая посуда астана, доставка продуктов horeca астана, снабжение ресторанов Астана" />
+    <meta name="robots" content="index, follow" />
+    <meta name="geo.region" content="KZ-AST" />
+    <meta name="geo.placename" content="Астана" />
+    <meta name="geo.position" content="51.1801;71.4460" />
+    <meta name="ICBM" content="51.1801, 71.4460" />
+
     <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://gastromir.kz/" />
-    <meta property="og:title" content="GASTROMIR — Поставщик продуктов для ресторанов в Астане" />
-    <meta property="og:description" content="Единый поставщик продуктов и хозтоваров для HoReCa в Астане. Заказ в 1 клик, накладные Форма 3-2, доставка с 07:00 до 18:00." />
+    <meta property="og:title" content="GASTROMIR — Единый поставщик продуктов для ресторанов в Астане" />
+    <meta property="og:description" content="Оптовое снабжение заведений HoReCa в Астане. 1000+ товаров в одном заказе, накладные Форма 3-2, доставка с 07:00 до 18:00." />
     <meta property="og:image" content="https://gastromir.kz/src/assets/logo.png" />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:site_name" content="GASTROMIR HoReCa Astana" />
 
-    <!-- Schema.org JSON-LD (Organization, LocalBusiness, WebSite) -->
+    <!-- Canonical -->
+    <link rel="canonical" href="https://gastromir.kz/" />
+
+    <!-- Schema.org JSON-LD (Organization, WholesaleStore, WebSite, FAQPage) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -41,11 +52,18 @@
           "image": "https://gastromir.kz/src/assets/logo.png",
           "telephone": "+7-701-514-1404",
           "priceRange": "$$",
+          "currenciesAccepted": "KZT",
+          "paymentAccepted": "Cash, Credit Card, Bank Transfer",
           "address": {
             "@type": "PostalAddress",
             "streetAddress": "Шоссе Алаш 4/2",
             "addressLocality": "Астана",
             "addressCountry": "KZ"
+          },
+          "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": 51.1801,
+            "longitude": 71.4460
           },
           "openingHoursSpecification": {
             "@type": "OpeningHoursSpecification",
@@ -70,6 +88,44 @@
             "target": "https://gastromir.kz/catalog?query={search_term_string}",
             "query-input": "required name=search_term_string"
           }
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://gastromir.kz/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Как заказать продукты для ресторана или кафе в Астане в GASTROMIR?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Вы можете оформить заказ онлайн через каталог на сайте, отправить файл списка закупки (Excel, PDF или фото накладной) через форму на сайте, либо написать нашему менеджеру напрямую в WhatsApp по номеру +7 (701) 514-14-04."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Каковы условия и график доставки по Астане?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Доставка осуществляется ежедневно с 07:00 до 18:00 собственным автопарком, оборудованным рефрижераторами. Минимальный порог заказа составляет 15 000 ₸. При регулярных закупках доставка выполняется точно к открытию кухни."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Предоставляете ли вы закрывающие бухгалтерские документы (Форма 3-2, ЭСФ)?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Да, мы предоставляем полный комплект бухгалтерских закрывающих документов: расходные накладные установленной Формы 3-2, электронные счета-фактуры (ЭСФ) через ИС ЭСФ, а также ветеринарные справки и сертификаты соответствия на продукцию."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Какие категории товаров есть в ассортименте?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "В ассортименте GASTROMIR более 1 000 товаров: сыры и молочная продукция, мясо и птица, замороженные ягоды и овощи, бакалея, макаронные изделия, соусы, консервация, масла, чай, кофе, а также профессиональная бытовая химия, перчатки и одноразовая посуда."
+              }
+            }
+          ]
         }
       ]
     }

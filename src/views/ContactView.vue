@@ -122,6 +122,7 @@ import { ref, reactive } from 'vue'
 import { MapPin, Mail, Clock, Phone } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toast'
 import { trackWhatsAppClick, trackEvent } from '@/utils/analytics'
+import { submitForm } from '@/services/formService'
 
 const toastStore = useToastStore()
 
@@ -151,31 +152,24 @@ const handleWhatsApp = (source) => {
 const handleSubmit = async () => {
   isSubmitting.value = true
   try {
-    const formDataPayload = new FormData()
-    formDataPayload.append("access_key", "a4c51ae1-a7d6-4ac4-9d54-3183cb69f4f5")
-    formDataPayload.append("subject", `Новая заявка HoReCa: ${formData.restaurant}`)
-    formDataPayload.append("from_name", "GASTROMIR")
-    formDataPayload.append("Ресторан", formData.restaurant)
-    formDataPayload.append("Количество заведений", formData.venuesCount || '1')
-    formDataPayload.append("Имя", formData.name)
-    formDataPayload.append("Телефон", formData.phone)
-    formDataPayload.append("Категории закупки", formData.categories || 'Не указаны')
-
-    const response = await fetch('https://api.web3forms.com/submit', {
-      method: 'POST',
-      body: formDataPayload
+    await submitForm({
+      formType: 'contact_lead',
+      subject: `Новая заявка HoReCa: ${formData.restaurant}`,
+      restaurant: formData.restaurant,
+      name: formData.name,
+      phone: formData.phone,
+      details: {
+        venuesCount: formData.venuesCount || '1',
+        categories: formData.categories || 'Не указаны'
+      }
     })
 
-    if (response.ok) {
-      submitted.value = true
-      trackEvent('submit_form', { form: 'contact_lead' })
-      toastStore.success('Заявка успешно отправлена!')
-    } else {
-      toastStore.error('Произошла ошибка при отправке заявки. Пожалуйста, попробуйте позже.')
-    }
+    submitted.value = true
+    trackEvent('submit_form', { form: 'contact_lead' })
+    toastStore.success('Заявка успешно отправлена!')
   } catch (error) {
     console.error('Ошибка отправки формы:', error)
-    toastStore.error('Произошла ошибка при отправке заявки. Пожалуйста, проверьте подключение и попробуйте позже.')
+    toastStore.error(error.message || 'Произошла ошибка при отправке заявки. Пожалуйста, попробуйте позже.')
   } finally {
     isSubmitting.value = false
   }

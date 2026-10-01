@@ -204,6 +204,7 @@ import {
 } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toast'
 import { trackWhatsAppClick, trackUploadPurchaseList, trackEvent } from '@/utils/analytics'
+import { submitForm } from '@/services/formService'
 
 const toastStore = useToastStore()
 
@@ -251,18 +252,19 @@ const isSubmittingLead = ref(false)
 const handleLeadSubmit = async () => {
   isSubmittingLead.value = true
   try {
-    const payload = new FormData()
-    payload.append("access_key", "a4c51ae1-a7d6-4ac4-9d54-3183cb69f4f5")
-    payload.append("subject", `Запрос условий поставки HoReCa: ${leadForm.value.restaurant}`)
-    payload.append("Заведение", leadForm.value.restaurant)
-    payload.append("Телефон", leadForm.value.phone)
+    await submitForm({
+      formType: 'horeca_lead',
+      subject: `Запрос условий поставки HoReCa: ${leadForm.value.restaurant}`,
+      restaurant: leadForm.value.restaurant,
+      phone: leadForm.value.phone
+    })
 
-    await fetch('https://api.web3forms.com/submit', { method: 'POST', body: payload })
     toastStore.success('Спасибо! Менеджер свяжется с вами в течение 15 минут.')
     trackEvent('submit_form', { form: 'horeca_lead' })
     leadForm.value = { restaurant: '', phone: '' }
   } catch (e) {
-    toastStore.error('Ошибка отправки заявки, пожалуйста напишите нам в WhatsApp.')
+    console.error('Ошибка отправки заявки:', e)
+    toastStore.error(e.message || 'Ошибка отправки заявки, пожалуйста напишите нам в WhatsApp.')
   } finally {
     isSubmittingLead.value = false
   }
@@ -272,19 +274,25 @@ const quickText = ref('')
 const isSubmittingQuick = ref(false)
 
 const submitQuickText = async () => {
+  if (!quickText.value.trim()) {
+    toastStore.error('Пожалуйста, введите список товаров')
+    return
+  }
+
   isSubmittingQuick.value = true
   try {
-    const payload = new FormData()
-    payload.append("access_key", "a4c51ae1-a7d6-4ac4-9d54-3183cb69f4f5")
-    payload.append("subject", "Быстрый список закупки HoReCa")
-    payload.append("Список товаров", quickText.value)
+    await submitForm({
+      formType: 'quick_purchase_list',
+      subject: 'Быстрый список закупки HoReCa',
+      message: quickText.value
+    })
 
-    await fetch('https://api.web3forms.com/submit', { method: 'POST', body: payload })
     trackUploadPurchaseList('text')
     toastStore.success('Список закупки передан менеджеру! Мы свяжемся с расчетом.')
     quickText.value = ''
   } catch (e) {
-    toastStore.error('Не удалось отправить список, перешлите его нам в WhatsApp.')
+    console.error('Ошибка отправки списка:', e)
+    toastStore.error(e.message || 'Не удалось отправить список, перешлите его нам в WhatsApp.')
   } finally {
     isSubmittingQuick.value = false
   }

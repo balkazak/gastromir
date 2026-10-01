@@ -15,6 +15,18 @@
     <CartModal />
     <ToastContainer />
     
+    <!-- Floating Desktop Cart Button -->
+    <button 
+      v-if="route.name !== 'register' && route.name !== 'login' && cartStore.totalItems > 0"
+      class="cart-float desktop-only-float"
+      @click="cartStore.openModal"
+      title="Открыть корзину"
+      v-motion-pop
+    >
+      <ShoppingCart :size="24" />
+      <span class="badge">{{ cartStore.totalItems }}</span>
+    </button>
+
     <!-- Floating WhatsApp Button -->
     <a 
       v-if="route.name !== 'register' && route.name !== 'login'"

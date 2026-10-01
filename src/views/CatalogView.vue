@@ -14,10 +14,10 @@
         <div class="search-bar">
           <Search class="search-icon" />
           <input 
+            ref="searchInputRef"
             type="text" 
             v-model="searchQuery" 
             placeholder="Поиск товаров (например: моцарелла, креветки...)"
-            @input="filterProducts"
           />
         </div>
       </div>
@@ -35,18 +35,20 @@
           @mousemove="handleMouseMove"
         >
           <button 
-            :class="{ active: activeCategory === 'all' }"
+            :class="{ active: isCategoryActive('all') }"
             @click="setActiveCategory('all')"
             class="category-pill-btn"
+            id="cat-pill-all"
           >
             Все товары
           </button>
           <button 
             v-for="cat in uniqueCategories" 
             :key="cat"
-            :class="{ active: activeCategory === cat }"
+            :class="{ active: isCategoryActive(cat) }"
             @click="setActiveCategory(cat)"
             class="category-pill-btn"
+            :id="getPillId(cat)"
           >
             {{ cat }}
           </button>
@@ -267,15 +269,19 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Search, ShoppingCart, Check, PackageX, Info, Download, X } from 'lucide-vue-next'
 import { useCartStore, isWeightProduct } from '@/stores/cart'
 import { useProductsStore } from '@/stores/products'
 import logoImg from '@/assets/logo.png'
 
+const route = useRoute()
+const router = useRouter()
 const cartStore = useCartStore()
 const productsStore = useProductsStore()
 
 const searchQuery = ref('')
+const searchInputRef = ref(null)
 const activeCategory = ref('all')
 const productsRef = ref(null)
 const categoriesBarRef = ref(null)
@@ -421,13 +427,206 @@ const resetLimit = () => {
   })
 }
 
+// Category alias mapping for direct and fuzzy matching from query params
+const categoryAliases = {
+  'молочная продукция': 'Молочные продукты',
+  'молочные продукты': 'Молочные продукты',
+  'молочка': 'Молочные продукты',
+  'сыры': 'Сыры и сырные продукты',
+  'сыр': 'Сыры и сырные продукты',
+  'сыры и сырные продукты': 'Сыры и сырные продукты',
+  'мясо': 'Мясо птицы',
+  'птица': 'Мясо птицы',
+  'мясо птицы': 'Мясо птицы',
+  'рыба и морепродукты': 'Морепродукты',
+  'рыба': 'Морепродукты',
+  'морепродукты': 'Морепродукты',
+  'овощи и фрукты': 'Овощи',
+  'овощи': 'Овощи',
+  'фрукты': 'Фрукты',
+  'зелень': 'Зелень',
+  'замороженные продукты': 'Ягоды и овощи с/м',
+  'заморозка': 'Ягоды и овощи с/м',
+  'соусы и специи': 'Соусы и уксусы',
+  'соусы': 'Соусы и уксусы',
+  'соусы и уксусы': 'Соусы и уксусы',
+  'специи': 'Приправы и специи',
+  'приправы': 'Приправы и специи',
+  'приправы и специи': 'Приправы и специи',
+  'масла': 'Масла и жиры',
+  'масло': 'Масла и жиры',
+  'масла и жиры': 'Масла и жиры',
+  'консервация': 'Консервация',
+  'кофе и чай': 'Чай-кофе',
+  'чай и кофе': 'Чай-кофе',
+  'чай-кофе': 'Чай-кофе',
+  'чай': 'Чай-кофе',
+  'кофе': 'Чай-кофе',
+  'напитки': 'Напитки',
+  'хозяйственные товары': 'Хоз.товары',
+  'хозтовары': 'Хоз.товары',
+  'хоз.товары': 'Хоз.товары',
+  'упаковка и расходники': 'Упаковка и доставка',
+  'упаковка и доставка': 'Упаковка и доставка',
+  'упаковка': 'Упаковка и доставка'
+}
+
+function resolveCategory(queryName, availableCategories = []) {
+  if (!queryName || queryName === 'all') return 'all'
+
+  // 1. Direct exact match
+  if (availableCategories.includes(queryName)) {
+    return queryName
+  }
+
+  const clean = String(queryName).trim().toLowerCase()
+
+  // 2. Case-insensitive exact match
+  const caseMatch = availableCategories.find(c => c.toLowerCase() === clean)
+  if (caseMatch) return caseMatch
+
+  // 3. Known alias match
+  if (categoryAliases[clean]) {
+    const aliasTarget = categoryAliases[clean]
+    const found = availableCategories.find(c => c.toLowerCase() === aliasTarget.toLowerCase())
+    if (found) return found
+    if (availableCategories.length === 0) return aliasTarget
+  }
+
+  // 4. Substring / partial match
+  const partial = availableCategories.find(c => {
+    const cLower = c.toLowerCase()
+    return cLower.includes(clean) || clean.includes(cLower)
+  })
+  if (partial) return partial
+
+  return queryName
+}
+
+const isCategoryActive = (cat) => {
+  if (cat === 'all') {
+    return activeCategory.value === 'all'
+  }
+  if (activeCategory.value === cat) return true
+  const resolved = resolveCategory(activeCategory.value, uniqueCategories.value)
+  return resolved === cat
+}
+
+const getPillId = (cat) => {
+  return `cat-pill-${encodeURIComponent(cat).replace(/%/g, '_')}`
+}
+
+const scrollActivePillIntoView = () => {
+  nextTick(() => {
+    if (!categoriesBarRef.value) return
+    if (activeCategory.value === 'all') {
+      categoriesBarRef.value.scrollTo({ left: 0, behavior: 'smooth' })
+      return
+    }
+    const resolved = resolveCategory(activeCategory.value, uniqueCategories.value)
+    const el = document.getElementById(getPillId(resolved)) || document.getElementById(getPillId(activeCategory.value))
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+    }
+  })
+}
+
+const scrollToCatalog = () => {
+  nextTick(() => {
+    if (productsRef.value) {
+      const headerHeight = 120
+      const elementPosition = productsRef.value.getBoundingClientRect().top + window.pageYOffset
+      const offsetPosition = Math.max(0, elementPosition - headerHeight)
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      })
+    }
+  })
+}
+
+const setActiveCategory = (cat) => {
+  searchQuery.value = ''
+  activeCategory.value = cat
+  if (cat === 'all') {
+    router.replace({ path: '/catalog', query: {} })
+  } else {
+    router.replace({ path: '/catalog', query: { category: cat } })
+  }
+  scrollActivePillIntoView()
+  scrollToCatalog()
+}
+
+const applyCategoryFromRoute = (categoryParam, shouldScroll = false) => {
+  if (!categoryParam || categoryParam === 'all') {
+    activeCategory.value = 'all'
+    if (shouldScroll) {
+      scrollActivePillIntoView()
+    }
+    return
+  }
+
+  const resolved = resolveCategory(categoryParam, uniqueCategories.value)
+  activeCategory.value = resolved
+  if (shouldScroll) {
+    scrollActivePillIntoView()
+    scrollToCatalog()
+  }
+}
+
+// Watch route query changes
+watch(
+  () => route.query.category,
+  (newCat) => {
+    if (newCat) {
+      applyCategoryFromRoute(newCat, true)
+    } else if (activeCategory.value !== 'all') {
+      activeCategory.value = 'all'
+    }
+  }
+)
+
+// When products finish loading, re-resolve category so pill highlights and centers
+watch(
+  () => products.value.length,
+  (len) => {
+    if (len > 0 && route.query.category) {
+      applyCategoryFromRoute(route.query.category, true)
+    }
+  }
+)
+
+// Watch search focus query
+watch(
+  () => route.query.focusSearch,
+  (focus) => {
+    if (focus === 'true') {
+      nextTick(() => {
+        if (searchInputRef.value) searchInputRef.value.focus()
+      })
+    }
+  }
+)
+
 // Reset displayed limits when search query or active category changes
 watch([searchQuery, activeCategory], () => {
   resetLimit()
 })
 
-onMounted(() => {
-  fetchProducts()
+onMounted(async () => {
+  if (route.query.category) {
+    applyCategoryFromRoute(route.query.category, false)
+  }
+  await fetchProducts()
+  if (route.query.category) {
+    applyCategoryFromRoute(route.query.category, true)
+  }
+  if (route.query.focusSearch === 'true') {
+    nextTick(() => {
+      if (searchInputRef.value) searchInputRef.value.focus()
+    })
+  }
 })
 
 onUnmounted(() => {
@@ -435,10 +634,22 @@ onUnmounted(() => {
 })
 
 const filteredProducts = computed(() => {
+  const currentCat = activeCategory.value
+  const search = searchQuery.value.toLowerCase().trim()
+  const resolvedCat = currentCat === 'all' ? 'all' : resolveCategory(currentCat, uniqueCategories.value)
+
   return products.value.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-                        p.category.toLowerCase().includes(searchQuery.value.toLowerCase())
-    const matchesCategory = activeCategory.value === 'all' || p.category === activeCategory.value
+    const matchesSearch = !search ||
+      p.name.toLowerCase().includes(search) ||
+      p.category.toLowerCase().includes(search)
+
+    let matchesCategory = false
+    if (currentCat === 'all' || resolvedCat === 'all') {
+      matchesCategory = true
+    } else if (p.category === currentCat || p.category === resolvedCat) {
+      matchesCategory = true
+    }
+
     return matchesSearch && matchesCategory
   })
 })
@@ -495,21 +706,6 @@ const isFreshProduceVisible = computed(() => {
   }
   return filteredProducts.value.some(p => freshCategories.includes(p.category))
 })
-
-const setActiveCategory = (cat) => {
-  searchQuery.value = ''
-  activeCategory.value = cat
-  if (productsRef.value) {
-    const headerHeight = 100
-    const elementPosition = productsRef.value.getBoundingClientRect().top + window.pageYOffset
-    const offsetPosition = elementPosition - headerHeight
-
-    window.scrollTo({
-      top: offsetPosition,
-      behavior: 'smooth'
-    })
-  }
-}
 
 const formatPrice = (price) => {
   return new Intl.NumberFormat('ru-RU').format(price)

@@ -74,6 +74,15 @@ const router = createRouter({
       }
     },
     {
+      path: '/articles',
+      name: 'articles',
+      component: () => import('../views/ArticlesView.vue'),
+      meta: {
+        title: 'Полезные статьи о закупках для HoReCa в Астане | GASTROMIR',
+        description: 'Экспертные статьи и руководства по закупкам продуктов, сыров, мяса и хозтоваров для ресторанов, кафе и баров Астаны. Советы по оптимизации фудкоста.'
+      }
+    },
+    {
       path: '/social-mission',
       name: 'social-mission',
       component: () => import('../views/SocialMissionView.vue'),

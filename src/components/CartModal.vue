@@ -472,6 +472,7 @@ import { useToastStore } from '@/stores/toast'
 import { useRouter } from 'vue-router'
 import { parse, isValid, isBefore, startOfDay, format } from 'date-fns'
 import { formatPhone } from '@/utils/format'
+import { submitForm } from '@/services/formService'
 
 const cartStore = useCartStore()
 const authStore = useAuthStore()
@@ -912,39 +913,32 @@ const sendToEmail = async () => {
   const message = `===============================\nНАКЛАДНАЯ\n===============================\n\nПоставщик: GASTROMIR ИП ИБРАЕВ\nБИН/ИИН: 820727351424\nТелефон: +7 701 514 14 04\n\nПолучатель: ${orderData.customerName}\nТелефон: ${orderData.phone}\nАдрес: ${orderData.address}\nСпособ оплаты: ${orderData.paymentMethod}\nДата доставки: ${orderData.deliveryDate}\nВремя доставки: ${orderData.deliveryTime}\n\nДата заказа: ${date}\nВремя заказа: ${time}\n\n--------------------------------\nТОВАР\n--------------------------------\n${itemsList}\n\n--------------------------------${discountNote}\nИТОГО К ОПЛАТЕ: ${formatPrice(discountedTotalPrice.value)} тг\n\n================================\nСпасибо за заказ!\nGASTRO MIR\n================================${weightNote}${freshNote}`
 
   try {
-    const formDataPayload = new FormData()
-    formDataPayload.append("access_key", "a4c51ae1-a7d6-4ac4-9d54-3183cb69f4f5")
-    formDataPayload.append("subject", `Новый заказ от ${orderData.customerName}`)
-    formDataPayload.append("from_name", "GASTROMIR")
-    formDataPayload.append("Ресторан", orderData.customerName)
-    formDataPayload.append("Телефон", orderData.phone)
-    formDataPayload.append("Адрес", orderData.address)
-    formDataPayload.append("Способ оплаты", orderData.paymentMethod)
-    formDataPayload.append("Дата доставки", orderData.deliveryDate)
-    formDataPayload.append("Время доставки", orderData.deliveryTime)
-    formDataPayload.append("Накладная", message)
-
-    const response = await fetch('https://api.web3forms.com/submit', {
-      method: 'POST',
-      body: formDataPayload
+    await submitForm({
+      formType: 'cart_invoice',
+      subject: `Новый заказ от ${orderData.customerName}`,
+      restaurant: orderData.customerName,
+      phone: orderData.phone,
+      message: message,
+      details: {
+        address: orderData.address,
+        paymentMethod: orderData.paymentMethod,
+        deliveryDate: orderData.deliveryDate,
+        deliveryTime: orderData.deliveryTime
+      }
     })
 
-    if (response.ok) {
-      cartStore.clearCart()
-      cartStore.closeModal()
-      orderData.customerName = authStore.user?.name || ''
-      orderData.phone = ''
-      orderData.address = ''
-      orderData.paymentMethod = 'Наличный расчет'
-      orderData.deliveryDate = todayStr
-      orderData.deliveryTime = 'До 14:00'
-      toastStore.success('Накладная отправлена на Email!')
-    } else {
-      toastStore.error('Ошибка при отправке. Попробуйте ещё раз.')
-    }
+    cartStore.clearCart()
+    cartStore.closeModal()
+    orderData.customerName = authStore.user?.name || ''
+    orderData.phone = ''
+    orderData.address = ''
+    orderData.paymentMethod = 'Наличный расчет'
+    orderData.deliveryDate = todayStr
+    orderData.deliveryTime = 'До 14:00'
+    toastStore.success('Накладная отправлена на Email!')
   } catch (error) {
     console.error('Ошибка отправки:', error)
-    toastStore.error('Ошибка при отправке. Проверьте подключение к интернету.')
+    toastStore.error(error.message || 'Ошибка при отправке. Проверьте подключение к интернету.')
   } finally {
     isSendingEmail.value = false
   }

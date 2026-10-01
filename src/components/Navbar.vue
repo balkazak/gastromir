@@ -1,56 +1,85 @@
 <template>
-  <nav :class="{ 'scrolled': isScrolled }">
-    <div class="nav-container nav-content">
-      <router-link to="/" class="logo">
-        <img src="@/assets/logo.png" alt="GASTROMIR Logo" class="logo-img" />
-      </router-link>
-
-      <div class="nav-links" :class="{ 'active': isMobileMenuOpen }">
-        <router-link to="/restaurant-order" class="blink-link" @click="isMobileMenuOpen = false">
-          <Zap class="zap-icon" :size="16" />Заказ в <span class="blink-text">1 клик</span>
-        </router-link>
-        <router-link to="/horeca" @click="isMobileMenuOpen = false">HoReCa</router-link>
-        <router-link to="/catalog" @click="isMobileMenuOpen = false">Каталог</router-link>
-        <router-link to="/price" @click="isMobileMenuOpen = false">Прайс</router-link>
-        <router-link to="/dostavka" @click="isMobileMenuOpen = false">Доставка</router-link>
-        <router-link to="/contacts" @click="isMobileMenuOpen = false">Контакты</router-link>
-        
-        <template v-if="authStore.isAuthenticated">
-          <div class="user-profile-menu">
-            <router-link v-if="authStore.user.role === 'admin'" to="/admin" class="admin-link" @click="isMobileMenuOpen = false">
-              Админ панель
-            </router-link>
-            <router-link v-else to="/profile" class="user-name" @click="isMobileMenuOpen = false">
-              <User class="user-icon" />
-              Личный кабинет
-            </router-link>
-            <button @click="handleLogout" class="btn-logout" title="Выйти">
-              <LogOut class="logout-icon" />
-            </button>
-          </div>
-        </template>
-        <template v-else>
-          <router-link to="/login" class="btn btn-secondary nav-cta login-btn" @click="isMobileMenuOpen = false">
-            Войти
-          </router-link>
-          <router-link to="/register" class="btn btn-primary nav-cta" @click="isMobileMenuOpen = false">
-            Подключиться
-          </router-link>
-        </template>
+  <header class="main-header" :class="{ 'scrolled': isScrolled }">
+    <!-- Top Announcement Bar (Competitor-style Notice Ticker) -->
+    <div class="top-ticker-bar">
+      <div class="nav-container top-ticker-inner">
+        <div class="ticker-left">
+          <span class="ticker-strong">🚚 Доставка по Астане с 07:00 до 18:00</span>
+          <span class="ticker-sep">•</span>
+          <span>📦 Мин. заказ 15 000 ₸</span>
+          <span class="ticker-sep">•</span>
+          <span>📄 Накладные Форма 3-2 и ЭСФ</span>
+        </div>
+        <div class="ticker-right">
+          <a href="https://wa.me/77015141404?text=Здравствуйте!%20Хочу%20сделать%20заказ." target="_blank" rel="noopener noreferrer" class="ticker-link">
+            <MessageCircle :size="13" /> +7 (701) 514-14-04 (WhatsApp)
+          </a>
+        </div>
       </div>
-
-      <button class="mobile-toggle" @click="isMobileMenuOpen = !isMobileMenuOpen">
-        <Menu v-if="!isMobileMenuOpen" />
-        <X v-else />
-      </button>
     </div>
-  </nav>
+
+    <nav class="nav-body">
+      <div class="nav-container nav-content">
+        <router-link to="/" class="logo">
+          <img src="@/assets/logo.png" alt="GASTROMIR Logo" class="logo-img" />
+        </router-link>
+
+        <div class="nav-links" :class="{ 'active': isMobileMenuOpen }">
+          <router-link to="/restaurant-order" class="blink-link" @click="isMobileMenuOpen = false">
+            <Zap class="zap-icon" :size="16" />Заказ в <span class="blink-text">1 клик</span>
+          </router-link>
+          <router-link to="/horeca" @click="isMobileMenuOpen = false">HoReCa</router-link>
+          <router-link to="/catalog" @click="isMobileMenuOpen = false">Каталог</router-link>
+          <router-link to="/price" @click="isMobileMenuOpen = false">Прайс</router-link>
+          <router-link to="/dostavka" @click="isMobileMenuOpen = false">Доставка</router-link>
+          <router-link to="/articles" @click="isMobileMenuOpen = false">Статьи</router-link>
+          <router-link to="/contacts" @click="isMobileMenuOpen = false">Контакты</router-link>
+          
+          <template v-if="authStore.isAuthenticated">
+            <div class="user-profile-menu">
+              <router-link v-if="authStore.user.role === 'admin'" to="/admin" class="admin-link" @click="isMobileMenuOpen = false">
+                Админ панель
+              </router-link>
+              <router-link v-else to="/profile" class="user-name" @click="isMobileMenuOpen = false">
+                <User class="user-icon" />
+                Личный кабинет
+              </router-link>
+              <button @click="handleLogout" class="btn-logout" title="Выйти">
+                <LogOut class="logout-icon" />
+              </button>
+            </div>
+          </template>
+          <template v-else>
+            <router-link to="/login" class="btn btn-secondary nav-cta login-btn" @click="isMobileMenuOpen = false">
+              Войти
+            </router-link>
+            <router-link to="/register" class="btn btn-primary nav-cta" @click="isMobileMenuOpen = false">
+              Подключиться
+            </router-link>
+          </template>
+        </div>
+
+        <div class="nav-controls">
+          <!-- Desktop Cart Button -->
+          <button class="nav-cart-btn" @click="cartStore.openModal" title="Открыть корзину">
+            <ShoppingCart :size="20" />
+            <span v-if="cartStore.totalItems > 0" class="cart-pill">{{ cartStore.totalItems }}</span>
+          </button>
+
+          <button class="mobile-toggle" @click="isMobileMenuOpen = !isMobileMenuOpen">
+            <Menu v-if="!isMobileMenuOpen" />
+            <X v-else />
+          </button>
+        </div>
+      </div>
+    </nav>
+  </header>
   <div v-if="isMobileMenuOpen" class="mobile-menu-overlay" @click="isMobileMenuOpen = false"></div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Menu, X, ShoppingCart, User, LogOut, Zap } from 'lucide-vue-next'
+import { Menu, X, ShoppingCart, User, LogOut, Zap, MessageCircle } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
@@ -80,24 +109,116 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-nav {
+.main-header {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   z-index: 1000;
-  padding: 1.2rem 0;
   transition: var(--transition);
-  background: rgba(11, 13, 25, 0.05); /* Semi-transparent matching logo color */
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-nav.scrolled {
-  padding: 0.9rem 0;
-  background: #0B0D19; /* Solid logo background color */
+.top-ticker-bar {
+  background: #060913;
+  color: #94A3B8;
+  font-size: 0.8rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.top-ticker-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ticker-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ticker-strong {
+  color: #F59E0B;
+  font-weight: 600;
+}
+
+.ticker-sep {
+  color: #475569;
+}
+
+.ticker-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #25D366;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.ticker-link:hover {
+  text-decoration: underline;
+}
+
+.nav-body {
+  padding: 1rem 0;
+  transition: var(--transition);
+  background: rgba(11, 13, 25, 0.85);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.main-header.scrolled .nav-body {
+  padding: 0.75rem 0;
+  background: #0B0D19;
   backdrop-filter: none;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.nav-cart-btn {
+  position: relative;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #FFFFFF;
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-cart-btn:hover {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #F59E0B;
+  color: #F59E0B;
+  transform: translateY(-1px);
+}
+
+.cart-pill {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #F59E0B;
+  color: #0B1221;
+  font-size: 0.72rem;
+  font-weight: 800;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .nav-content {
@@ -173,10 +294,19 @@ nav.scrolled {
 }
 
 @media (max-width: 768px) {
-  nav { padding: 1rem 0; background: var(--glass); }
+  .top-ticker-bar {
+    display: none;
+  }
+  .nav-body { 
+    padding: 0.8rem 0; 
+    background: rgba(11, 13, 25, 0.96); 
+  }
+  .nav-cart-btn {
+    display: none;
+  }
   
   .logo-img {
-    height: 55px;
+    height: 52px;
   }
   
   .mobile-toggle {

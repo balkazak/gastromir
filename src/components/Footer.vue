@@ -32,6 +32,7 @@
           <router-link to="/catalog">Каталог товаров</router-link>
           <router-link to="/price">Оптовый прайс</router-link>
           <router-link to="/dostavka">Условия доставки</router-link>
+          <router-link to="/articles">Полезные статьи</router-link>
           <router-link to="/about">О нас</router-link>
           <router-link to="/social-mission">Социальная инициатива «Мейірім Тарелкесі»</router-link>
         </div>

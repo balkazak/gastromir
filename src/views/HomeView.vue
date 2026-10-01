@@ -73,7 +73,126 @@
       </div>
     </section>
 
-    <!-- Block 2: Почему GASTROMIR & 3 Главных сценария закупки (TZ Sections 4-5) -->
+    <!-- Core 4 Advantages (Competitor-style Trust Grid) -->
+    <section class="core-advantages-bar">
+      <div class="container">
+        <div class="core-advantages-grid">
+          <div class="core-adv-card" v-motion-slide-visible-bottom>
+            <div class="core-adv-icon"><Truck :size="24" /></div>
+            <div class="core-adv-text">
+              <h4>Без срывов поставок</h4>
+              <p>Доставка строго с 07:00 до 18:00 к открытию кухни. Собственный автопарк с рефрижераторами.</p>
+            </div>
+          </div>
+
+          <div class="core-adv-card" v-motion-slide-visible-bottom>
+            <div class="core-adv-icon"><PackageCheck :size="24" /></div>
+            <div class="core-adv-text">
+              <h4>Всё в одном месте</h4>
+              <p>Более 1 000 позиций: бакалея, сыры, мясо, заморозка, соусы, хозтовары и упаковка.</p>
+            </div>
+          </div>
+
+          <div class="core-adv-card" v-motion-slide-visible-bottom>
+            <div class="core-adv-icon"><Zap :size="24" /></div>
+            <div class="core-adv-text">
+              <h4>Без звонков и ожидания</h4>
+              <p>Заказ на сайте за 1 минуту или отправка накладной в WhatsApp. Повтор закупки в один клик.</p>
+            </div>
+          </div>
+
+          <div class="core-adv-card" v-motion-slide-visible-bottom>
+            <div class="core-adv-icon"><FileCheck :size="24" /></div>
+            <div class="core-adv-text">
+              <h4>Документы сразу</h4>
+              <p>Официальные накладные Форма 3-2, ЭСФ день в день, ветеринарные справки и сертификаты.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bestsellers / Popular Products Section (Competitor Signature) -->
+    <section class="bestsellers-section section-padding">
+      <div class="container">
+        <div class="section-header-flex">
+          <div>
+            <span class="sub-badge">Хиты HoReCa в Астане</span>
+            <h2>Лидеры продаж и востребованные товары</h2>
+            <p>Самые заказываемые позиции шеф-поваров и баров. Добавляйте в корзину в 1 клик прямо с главной.</p>
+          </div>
+          <router-link to="/catalog" class="btn btn-outline-dark desktop-only-btn">
+            Смотреть весь каталог (1 000+) →
+          </router-link>
+        </div>
+
+        <!-- Filter tabs for bestsellers -->
+        <div class="bestseller-tabs">
+          <button 
+            v-for="tab in bestsellerTabs" 
+            :key="tab.id"
+            class="bestseller-tab-btn"
+            :class="{ active: activeBestsellerTab === tab.id }"
+            @click="activeBestsellerTab = tab.id"
+          >
+            {{ tab.name }}
+          </button>
+        </div>
+
+        <!-- Bestsellers Grid -->
+        <div class="bestsellers-grid">
+          <div 
+            v-for="product in filteredBestsellers" 
+            :key="product.id"
+            class="bestseller-card"
+            v-motion-slide-visible-bottom
+          >
+            <div class="bestseller-img-wrap">
+              <img :src="product.image" :alt="product.name" loading="lazy" />
+              <span class="bestseller-badge">{{ product.badge }}</span>
+            </div>
+
+            <div class="bestseller-info">
+              <span class="bestseller-category">{{ product.category }}</span>
+              <h3 class="bestseller-title">{{ product.name }}</h3>
+              <p class="bestseller-desc">{{ product.desc }}</p>
+
+              <div class="bestseller-footer">
+                <div class="bestseller-price-box">
+                  <span class="price-val">{{ formatPrice(product.price) }} ₸</span>
+                  <span class="price-unit">/ {{ product.unit }}</span>
+                </div>
+
+                <div class="bestseller-actions">
+                  <div class="bestseller-qty-ctrl">
+                    <button type="button" @click="decrementBestsellerQty(product.id)">-</button>
+                    <span>{{ getBestsellerQty(product.id) }}</span>
+                    <button type="button" @click="incrementBestsellerQty(product.id)">+</button>
+                  </div>
+                  <button 
+                    type="button"
+                    class="btn-add-bestseller"
+                    :class="{ 'in-cart': isItemInCart(product.id) }"
+                    @click="addBestsellerToCart(product)"
+                    title="Добавить в корзину"
+                  >
+                    <Check v-if="isItemInCart(product.id)" :size="16" />
+                    <ShoppingCart v-else :size="16" />
+                    <span>{{ isItemInCart(product.id) ? 'В корзине' : 'В корзину' }}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="center-cta-box">
+          <router-link to="/catalog" class="btn btn-primary btn-lg">
+            <ShoppingBag :size="20" /> Открыть полный каталог (1 000+ товаров)
+          </router-link>
+        </div>
+      </div>
+    </section>
     <section class="scenarios-section section-padding">
       <div class="container">
         <div class="section-header center">
@@ -124,7 +243,7 @@
             v-for="(cat, idx) in categoriesList" 
             :key="idx" 
             class="category-tile"
-            @click="goToCategory(cat.name)"
+            @click="goToCategory(cat.target || cat.name)"
           >
             <span class="cat-emoji">{{ cat.icon }}</span>
             <h4>{{ cat.name }}</h4>
@@ -295,6 +414,103 @@
       </div>
     </section>
 
+    <!-- Block: ПОЛЕЗНЫЕ СТАТЬИ ДЛЯ РЕСТОРАТОРОВ (Competitor Articles Feature) -->
+    <section class="articles-home-section section-padding bg-light">
+      <div class="container">
+        <div class="section-header-flex">
+          <div>
+            <span class="sub-badge">База знаний HoReCa Астана</span>
+            <h2>Полезные статьи для рестораторов и шефов</h2>
+            <p>Практические руководства по закупкам, выбору поставщиков, снижению фудкоста и стандартам качества</p>
+          </div>
+          <router-link to="/articles" class="btn btn-outline-dark desktop-only-btn">
+            Все 30+ экспертных статей →
+          </router-link>
+        </div>
+
+        <div class="home-articles-grid">
+          <article 
+            v-for="article in featuredArticles" 
+            :key="article.id"
+            class="home-article-card"
+            v-motion-slide-visible-bottom
+            @click="goToArticle(article.slug)"
+          >
+            <div class="h-art-meta">
+              <span class="h-art-tag">{{ article.tag }}</span>
+              <span class="h-art-time"><Clock :size="13" /> {{ article.readTime }}</span>
+            </div>
+            <h3 class="h-art-title">{{ article.title }}</h3>
+            <p class="h-art-desc">{{ article.summary }}</p>
+            <div class="h-art-footer">
+              <span class="h-art-date">{{ article.date }}</span>
+              <span class="h-art-link">Читать →</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="mobile-only-btn-wrap">
+          <router-link to="/articles" class="btn btn-outline-dark btn-block">
+            Смотреть все статьи и гиды →
+          </router-link>
+        </div>
+      </div>
+    </section>
+
+    <!-- Block: ОТЗЫВЫ РЕСТОРАНОВ АСТАНЫ (Trust & Reviews) -->
+    <section class="reviews-section section-padding">
+      <div class="container">
+        <div class="section-header center">
+          <span class="sub-badge">Доверие шефов и управляющих</span>
+          <h2>Что говорят заведения Астаны</h2>
+          <p>Более 150 ресторанов, кофеен и столовых столицы ежедневно доверяют снабжение кухни GASTROMIR</p>
+        </div>
+
+        <div class="reviews-grid">
+          <div class="review-card" v-for="(rev, idx) in customerReviews" :key="idx" v-motion-slide-visible-bottom>
+            <div class="review-rating">
+              <Star v-for="s in 5" :key="s" :size="16" class="star-icon" fill="#F59E0B" color="#F59E0B" />
+            </div>
+            <p class="review-quote">«{{ rev.quote }}»</p>
+            <div class="review-author">
+              <div class="author-avatar">{{ rev.initials }}</div>
+              <div>
+                <div class="author-name">{{ rev.author }}</div>
+                <div class="author-role">{{ rev.role }}, <b>{{ rev.venue }}</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Block: БЫСТРЫЙ ЗВОНОК / КОНСУЛЬТАЦИЯ МЕНЕДЖЕРА -->
+    <section class="callback-section">
+      <div class="container">
+        <div class="callback-banner">
+          <div class="cb-content">
+            <span class="badge">Обратная связь за 15 минут</span>
+            <h2>Нужен индивидуальный расчет под меню?</h2>
+            <p>Оставьте номер телефона — персональный менеджер HoReCa свяжется с вами, ответит на любые вопросы и отправит оптовый прайс-лист со скидкой.</p>
+          </div>
+          <form class="cb-form" @submit.prevent="submitCallbackRequest">
+            <div class="cb-inputs">
+              <input 
+                type="tel" 
+                v-model="callbackPhone" 
+                placeholder="+7 (___) ___-__-__" 
+                required 
+              />
+              <button type="submit" class="btn btn-secondary btn-cb" :disabled="isSubmittingCallback">
+                <PhoneCall :size="18" /> {{ isSubmittingCallback ? 'Отправка...' : 'Заказать звонок' }}
+              </button>
+            </div>
+            <span class="cb-privacy">Бесплатная консультация специалиста по снабжению</span>
+          </form>
+        </div>
+      </div>
+    </section>
+
     <!-- Partners Section -->
     <section class="partners">
       <div class="container">
@@ -327,29 +543,40 @@ import {
   X,
   Paperclip,
   Trash2,
-  FileText
+  FileText,
+  Truck,
+  PackageCheck,
+  FileCheck,
+  Star,
+  PhoneCall,
+  Clock,
+  ArrowRight
 } from 'lucide-vue-next'
 import { useToastStore } from '@/stores/toast'
+import { useCartStore } from '@/stores/cart'
+import { HORECA_ARTICLES } from '@/data/articles'
 import { trackWhatsAppClick, trackUploadPurchaseList, trackEvent } from '@/utils/analytics'
+import { submitForm } from '@/services/formService'
 
 const router = useRouter()
 const toastStore = useToastStore()
+const cartStore = useCartStore()
 
 const categoriesList = [
-  { name: 'Бакалея', icon: '🌾' },
-  { name: 'Молочная продукция', icon: '🥛' },
-  { name: 'Сыры', icon: '🧀' },
-  { name: 'Мясо', icon: '🥩' },
-  { name: 'Рыба и морепродукты', icon: '🐟' },
-  { name: 'Овощи и фрукты', icon: '🥦' },
-  { name: 'Замороженные продукты', icon: '❄️' },
-  { name: 'Соусы и специи', icon: '🌶️' },
-  { name: 'Масла', icon: '🫒' },
-  { name: 'Консервация', icon: '🥫' },
-  { name: 'Кофе и чай', icon: '☕' },
-  { name: 'Напитки', icon: '🧃' },
-  { name: 'Хозяйственные товары', icon: '🧼' },
-  { name: 'Упаковка и расходники', icon: '📦' }
+  { name: 'Бакалея', target: 'Бакалея', icon: '🌾' },
+  { name: 'Молочная продукция', target: 'Молочные продукты', icon: '🥛' },
+  { name: 'Сыры', target: 'Сыры и сырные продукты', icon: '🧀' },
+  { name: 'Мясо', target: 'Мясо птицы', icon: '🥩' },
+  { name: 'Рыба и морепродукты', target: 'Морепродукты', icon: '🐟' },
+  { name: 'Овощи и фрукты', target: 'Овощи', icon: '🥦' },
+  { name: 'Замороженные продукты', target: 'Ягоды и овощи с/м', icon: '❄️' },
+  { name: 'Соусы и специи', target: 'Соусы и уксусы', icon: '🌶️' },
+  { name: 'Масла', target: 'Масла и жиры', icon: '🫒' },
+  { name: 'Консервация', target: 'Консервация', icon: '🥫' },
+  { name: 'Кофе и чай', target: 'Чай-кофе', icon: '☕' },
+  { name: 'Напитки', target: 'Напитки', icon: '🧃' },
+  { name: 'Хозяйственные товары', target: 'Хоз.товары', icon: '🧼' },
+  { name: 'Упаковка и расходники', target: 'Упаковка и доставка', icon: '📦' }
 ]
 
 const supplierAdvantages = [
@@ -497,33 +724,23 @@ const submitPurchaseList = async () => {
 
   isSubmittingList.value = true
   try {
-    const payload = new FormData()
-    payload.append("access_key", "a4c51ae1-a7d6-4ac4-9d54-3183cb69f4f5")
-    payload.append("subject", `Новый список закупки: ${quickForm.value.restaurant || 'Без названия'}`)
-    payload.append("Заведение", quickForm.value.restaurant)
-    payload.append("Телефон", quickForm.value.phone)
-    if (quickForm.value.listText) {
-      payload.append("Список закупки / Комментарий", quickForm.value.listText)
-    }
-    if (attachedFile.value) {
-      payload.append("attachment", attachedFile.value)
-    }
-
-    const response = await fetch('https://api.web3forms.com/submit', { method: 'POST', body: payload })
-    const data = await response.json().catch(() => ({}))
-
-    if (!response.ok || data.success === false) {
-      throw new Error(data.message || 'Ошибка отправки формы')
-    }
+    await submitForm({
+      formType: 'quick_purchase_list',
+      subject: `Новый список закупки: ${quickForm.value.restaurant || 'Без названия'}`,
+      restaurant: quickForm.value.restaurant,
+      phone: quickForm.value.phone,
+      message: quickForm.value.listText,
+      file: attachedFile.value
+    })
 
     trackUploadPurchaseList(attachedFile.value ? 'file' : 'text')
     trackEvent('submit_form', { form: 'quick_purchase_list', has_file: !!attachedFile.value })
-    toastStore.success('Список закупки успешно отправлен на почту! Менеджер свяжется с вами с готовым расчетом.')
+    toastStore.success('Список закупки успешно отправлен! Менеджер свяжется с вами с готовым расчетом.')
     quickForm.value = { restaurant: '', phone: '', listText: '' }
     removeFile()
   } catch (e) {
     console.error('Ошибка отправки формы:', e)
-    toastStore.error('Произошла ошибка при отправке. Пожалуйста, отправьте файл через кнопку WhatsApp.')
+    toastStore.error(e.message || 'Произошла ошибка при отправке. Пожалуйста, отправьте файл через кнопку WhatsApp.')
   } finally {
     isSubmittingList.value = false
   }
@@ -535,6 +752,214 @@ const goToCategory = (categoryName) => {
 
 const trackWhatsApp = (source) => {
   trackWhatsAppClick(source)
+}
+
+// Bestsellers Logic (Competitor-style Popular Products)
+const activeBestsellerTab = ref('all')
+const bestsellerTabs = [
+  { id: 'all', name: 'Все лидеры' },
+  { id: 'cheese', name: 'Сыры & Молочка' },
+  { id: 'grocery', name: 'Бакалея & Масла' },
+  { id: 'meat', name: 'Мясо & Птица' },
+  { id: 'hygiene', name: 'Хозтовары & Расходники' }
+]
+
+const bestsellerProducts = [
+  {
+    id: 9001,
+    name: 'Сыр Моцарелла Pizza Cheese 45% (брусок 2 кг)',
+    category: 'Сыры',
+    group: 'cheese',
+    price: 3850,
+    unit: 'кг',
+    badge: 'Хит продаж',
+    image: 'https://images.unsplash.com/photo-1589881133595-a3c085cb731d?w=500&auto=format&fit=crop&q=80',
+    desc: 'Идеальное плавление для неаполитанской и римской пиццы, золотистая корочка без подгорания'
+  },
+  {
+    id: 9002,
+    name: 'Масло оливковое Extra Virgin 5 л',
+    category: 'Масла',
+    group: 'grocery',
+    price: 18900,
+    unit: 'бут',
+    badge: 'Топ выбор',
+    image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=500&auto=format&fit=crop&q=80',
+    desc: 'Первый холодный отжим, кислотность <0.8%, для салатов, пиццы и ресторанных соусов'
+  },
+  {
+    id: 9003,
+    name: 'Филе куриное охлажденное ГОСТ (калибр)',
+    category: 'Мясо',
+    group: 'meat',
+    price: 1950,
+    unit: 'кг',
+    badge: 'Хит кухни',
+    image: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=500&auto=format&fit=crop&q=80',
+    desc: 'Без накачки и влаги, одинаковый калиброванный выход готовой порции на гриль'
+  },
+  {
+    id: 9004,
+    name: 'Сливки кулинарные Mlekovita 33% 1 л',
+    category: 'Молочные продукты',
+    group: 'cheese',
+    price: 2450,
+    unit: 'шт',
+    badge: 'Профи выбор',
+    image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500&auto=format&fit=crop&q=80',
+    desc: 'Стабильное взбивание, идеальная густота для сливочных соусов, пасты и десертов'
+  },
+  {
+    id: 9005,
+    name: 'Масло для фритюра профессиональное 10 л',
+    category: 'Масла',
+    group: 'grocery',
+    price: 11200,
+    unit: 'шт',
+    badge: 'Выгода',
+    image: 'https://images.unsplash.com/photo-1620706857370-e1b9770e8bb1?w=500&auto=format&fit=crop&q=80',
+    desc: 'Точка дымления 220°C, работает до 4 смен без запаха гари и потемнения'
+  },
+  {
+    id: 9006,
+    name: 'Картофель фри 9×9 мм McCain 2.5 кг',
+    category: 'Заморозка',
+    group: 'grocery',
+    price: 3200,
+    unit: 'пач',
+    badge: 'Хит продаж',
+    image: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500&auto=format&fit=crop&q=80',
+    desc: 'Шоковая заморозка IQF, хрустящая золотистая корочка и нежная сердцевина'
+  },
+  {
+    id: 9007,
+    name: 'Сыр Чеддер слайсы 1083 г (84 ломтика)',
+    category: 'Сыры',
+    group: 'cheese',
+    price: 4950,
+    unit: 'упак',
+    badge: 'Бургер Топ',
+    image: 'https://images.unsplash.com/photo-1552767059-ce182ead6c1b?w=500&auto=format&fit=crop&q=80',
+    desc: 'Быстрое таяние на горячей котлете, насыщенный сливочно-сырный вкус'
+  },
+  {
+    id: 9008,
+    name: 'Перчатки нитриловые черные L (100 шт)',
+    category: 'Хозтовары',
+    group: 'hygiene',
+    price: 2150,
+    unit: 'упак',
+    badge: 'Расходник',
+    image: 'https://images.unsplash.com/photo-1584744982491-665216d95f8b?w=500&auto=format&fit=crop&q=80',
+    desc: 'Повышенная прочность, гипоаллергенные, текстурированные пальцы для кухни'
+  }
+]
+
+const filteredBestsellers = computed(() => {
+  if (activeBestsellerTab.value === 'all') {
+    return bestsellerProducts
+  }
+  return bestsellerProducts.filter(p => p.group === activeBestsellerTab.value)
+})
+
+const bestsellerQuantities = ref({})
+
+const getBestsellerQty = (id) => {
+  return bestsellerQuantities.value[id] || 1
+}
+
+const incrementBestsellerQty = (id) => {
+  bestsellerQuantities.value[id] = (bestsellerQuantities.value[id] || 1) + 1
+}
+
+const decrementBestsellerQty = (id) => {
+  const current = bestsellerQuantities.value[id] || 1
+  if (current > 1) {
+    bestsellerQuantities.value[id] = current - 1
+  }
+}
+
+const addBestsellerToCart = (product) => {
+  const qty = getBestsellerQty(product.id)
+  for (let i = 0; i < qty; i++) {
+    cartStore.addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      unit: product.unit,
+      category: product.category,
+      image_url: product.image
+    })
+  }
+  toastStore.success(`«${product.name}» (${qty} ${product.unit}) добавлен в корзину!`)
+  trackEvent('add_to_cart_bestseller', { product: product.name, qty })
+}
+
+const isItemInCart = (productId) => {
+  return cartStore.items.some(item => item.id === productId)
+}
+
+const formatPrice = (val) => {
+  return new Intl.NumberFormat('ru-RU').format(val)
+}
+
+// Featured Articles Preview
+const featuredArticles = computed(() => {
+  return HORECA_ARTICLES.slice(0, 3)
+})
+
+const goToArticle = (slug) => {
+  router.push({ path: '/articles', query: { article: slug } })
+}
+
+// Customer Reviews (Real Astana venues)
+const customerReviews = [
+  {
+    author: 'Ильяс С.',
+    role: 'Шеф-пиццайоло',
+    venue: 'Пиццерия Bella Napoli, Астана',
+    initials: 'ИС',
+    quote: 'Сыр моцарелла и мука приходят всегда точно к 08:30 утра. Ни одного срыва за 8 месяцев работы. Накладные Форма 3-2 скачиваем прямо в личном кабинете.'
+  },
+  {
+    author: 'Дамир К.',
+    role: 'Управляющий',
+    venue: 'Кофейня-пекарня Urban Coffee, левый берег',
+    initials: 'ДК',
+    quote: 'Заказываем замороженные ягоды для авторских чаев, молоко, сиропы и стаканчики в одном месте. Закрыли 4 поставщиков одним договором с GASTROMIR.'
+  },
+  {
+    author: 'Арман М.',
+    role: 'Бренд-шеф',
+    venue: 'Гриль-бар Steak & Smoke, ул. Достык',
+    initials: 'АМ',
+    quote: 'Калиброванное куриное филе и фритюрное масло премиум качества. Фудкост горячего цеха снизился на 14% благодаря оптовым ценам и стабильному выходу.'
+  }
+]
+
+// Quick Callback Form
+const callbackPhone = ref('')
+const isSubmittingCallback = ref(false)
+
+const submitCallbackRequest = async () => {
+  if (!callbackPhone.value) return
+  isSubmittingCallback.value = true
+  try {
+    await submitForm({
+      formType: 'callback_request',
+      subject: `Заказ обратного звонка: ${callbackPhone.value}`,
+      phone: callbackPhone.value,
+      message: 'Запрос на экспресс-консультацию по оптовым поставкам продуктов в Астане'
+    })
+    toastStore.success('Спасибо! Менеджер свяжется с вами в течение 15 минут.')
+    callbackPhone.value = ''
+    trackEvent('submit_callback', { phone: callbackPhone.value })
+  } catch (err) {
+    console.error('Ошибка отправки заявки на звонок:', err)
+    toastStore.error('Произошла ошибка. Пожалуйста, напишите нам в WhatsApp.')
+  } finally {
+    isSubmittingCallback.value = false
+  }
 }
 </script>
 
@@ -1164,6 +1589,586 @@ h1 span {
   color: #94A3B8;
 }
 
+/* Core Advantages Bar */
+.core-advantages-bar {
+  background: #0B1221;
+  padding: 2rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.core-advantages-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.core-adv-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 1.25rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.core-adv-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(245, 158, 11, 0.3);
+  transform: translateY(-2px);
+}
+
+.core-adv-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #F59E0B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.core-adv-text h4 {
+  font-size: 0.98rem;
+  color: #FFFFFF;
+  margin-bottom: 0.3rem;
+  font-weight: 700;
+}
+
+.core-adv-text p {
+  font-size: 0.82rem;
+  color: #94A3B8;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Bestsellers Section */
+.bestsellers-section {
+  background: #FFFFFF;
+}
+
+.section-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+  gap: 1.5rem;
+}
+
+.section-header-flex h2 {
+  font-size: 2.2rem;
+  color: #0F172A;
+  margin: 0.4rem 0 0.5rem;
+}
+
+.section-header-flex p {
+  color: #64748B;
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.bestseller-tabs {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding: 0.5rem 0 1.5rem;
+  margin-bottom: 1.5rem;
+  scrollbar-width: thin;
+}
+
+.bestseller-tab-btn {
+  padding: 0.6rem 1.25rem;
+  border-radius: 9999px;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bestseller-tab-btn:hover {
+  border-color: #F59E0B;
+  color: #F59E0B;
+}
+
+.bestseller-tab-btn.active {
+  background: #0B1221;
+  color: #FFFFFF;
+  border-color: #0B1221;
+  box-shadow: 0 4px 10px rgba(11, 18, 33, 0.15);
+}
+
+.bestsellers-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.75rem;
+  margin-bottom: 3rem;
+}
+
+.bestseller-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.bestseller-card:hover {
+  transform: translateY(-4px);
+  border-color: #F59E0B;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.08);
+}
+
+.bestseller-img-wrap {
+  position: relative;
+  height: 180px;
+  background: #F1F5F9;
+  overflow: hidden;
+}
+
+.bestseller-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.bestseller-card:hover .bestseller-img-wrap img {
+  transform: scale(1.05);
+}
+
+.bestseller-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(11, 18, 33, 0.85);
+  backdrop-filter: blur(4px);
+  color: #F59E0B;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.bestseller-info {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.bestseller-category {
+  font-size: 0.78rem;
+  color: #94A3B8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+.bestseller-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.35;
+  margin-bottom: 0.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.bestseller-desc {
+  font-size: 0.82rem;
+  color: #64748B;
+  line-height: 1.45;
+  margin-bottom: 1.25rem;
+  flex: 1;
+}
+
+.bestseller-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid #F1F5F9;
+  flex-wrap: wrap;
+}
+
+.bestseller-price-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.price-val {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.price-unit {
+  font-size: 0.8rem;
+  color: #94A3B8;
+}
+
+.bestseller-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bestseller-qty-ctrl {
+  display: flex;
+  align-items: center;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #F8FAFC;
+}
+
+.bestseller-qty-ctrl button {
+  width: 28px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bestseller-qty-ctrl button:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.bestseller-qty-ctrl span {
+  width: 24px;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.btn-add-bestseller {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.85rem;
+  height: 34px;
+  background: #F59E0B;
+  color: #0B1221;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-add-bestseller:hover {
+  background: #D97706;
+  color: #FFFFFF;
+}
+
+.btn-add-bestseller.in-cart {
+  background: #10B981;
+  color: #FFFFFF;
+}
+
+.center-cta-box {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+/* Articles Section on Home */
+.articles-home-section {
+  background: #F8FAFC;
+}
+
+.home-articles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.home-article-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 1.25rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.home-article-card:hover {
+  transform: translateY(-4px);
+  border-color: #F59E0B;
+  box-shadow: 0 16px 25px -5px rgba(0, 0, 0, 0.07);
+}
+
+.h-art-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.h-art-tag {
+  background: rgba(245, 158, 11, 0.12);
+  color: #D97706;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+}
+
+.h-art-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #94A3B8;
+  font-size: 0.78rem;
+}
+
+.h-art-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.35;
+  margin-bottom: 0.75rem;
+  transition: color 0.2s;
+}
+
+.home-article-card:hover .h-art-title {
+  color: #D97706;
+}
+
+.h-art-desc {
+  font-size: 0.9rem;
+  color: #64748B;
+  line-height: 1.55;
+  flex: 1;
+  margin-bottom: 1.5rem;
+}
+
+.h-art-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid #F1F5F9;
+}
+
+.h-art-date {
+  font-size: 0.8rem;
+  color: #94A3B8;
+}
+
+.h-art-link {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0F172A;
+  transition: color 0.2s;
+}
+
+.home-article-card:hover .h-art-link {
+  color: #D97706;
+}
+
+.mobile-only-btn-wrap {
+  display: none;
+}
+
+/* Reviews Section */
+.reviews-section {
+  background: #FFFFFF;
+}
+
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+
+.review-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 1.25rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.review-rating {
+  display: flex;
+  gap: 0.3rem;
+  margin-bottom: 1rem;
+}
+
+.review-quote {
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: #334155;
+  font-style: italic;
+  flex: 1;
+  margin-bottom: 1.5rem;
+}
+
+.review-author {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #E2E8F0;
+}
+
+.author-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #0B1221;
+  color: #F59E0B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.author-name {
+  font-weight: 700;
+  color: #0F172A;
+  font-size: 0.95rem;
+}
+
+.author-role {
+  font-size: 0.82rem;
+  color: #64748B;
+}
+
+.author-role b {
+  color: #1E293B;
+}
+
+/* Callback Banner */
+.callback-section {
+  padding: 2rem 0 4rem;
+}
+
+.callback-banner {
+  background: linear-gradient(135deg, #0B1221 0%, #17233B 100%);
+  border-radius: 1.75rem;
+  padding: 3rem;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  align-items: center;
+  gap: 3rem;
+  box-shadow: 0 20px 40px rgba(11, 18, 33, 0.15);
+}
+
+.cb-content h2 {
+  font-size: 2rem;
+  color: #FFFFFF;
+  margin: 0.75rem 0;
+  line-height: 1.25;
+}
+
+.cb-content p {
+  color: #94A3B8;
+  font-size: 1rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.cb-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cb-inputs {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.cb-inputs input {
+  flex: 1;
+  padding: 0.85rem 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+  font-size: 1rem;
+}
+
+.cb-inputs input:focus {
+  outline: none;
+  border-color: #F59E0B;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.btn-cb {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  padding: 0.85rem 1.5rem;
+}
+
+.cb-privacy {
+  font-size: 0.78rem;
+  color: #64748B;
+}
+
+.btn-outline-dark {
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #1E293B;
+  padding: 0.65rem 1.25rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-outline-dark:hover {
+  border-color: #0F172A;
+  background: #0F172A;
+  color: #FFFFFF;
+}
+
+@media (max-width: 1200px) {
+  .core-advantages-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .bestsellers-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 992px) {
   .hero-grid {
     grid-template-columns: 1fr;
@@ -1177,6 +2182,23 @@ h1 span {
   .vs-badge {
     margin: 0 auto;
   }
+  .bestsellers-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .home-articles-grid {
+    grid-template-columns: 1fr;
+  }
+  .reviews-grid {
+    grid-template-columns: 1fr;
+  }
+  .callback-banner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 2.5rem 1.5rem;
+  }
+  .cb-inputs {
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1188,6 +2210,55 @@ h1 span {
   }
   .quick-order-banner {
     padding: 2.5rem 1.5rem;
+  }
+  .core-advantages-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .section-header-flex {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+  }
+  .desktop-only-btn {
+    display: none;
+  }
+  .mobile-only-btn-wrap {
+    display: block;
+    margin-top: 1rem;
+  }
+  .btn-block {
+    display: block;
+    width: 100%;
+    text-align: center;
+  }
+  .bestsellers-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  .bestseller-img-wrap {
+    height: 140px;
+  }
+  .bestseller-info {
+    padding: 0.85rem;
+  }
+  .bestseller-title {
+    font-size: 0.95rem;
+  }
+  .bestseller-desc {
+    display: none; /* Hide description on mobile for compact touch layout */
+  }
+  .bestseller-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .bestseller-actions {
+    justify-content: space-between;
+  }
+  .btn-add-bestseller {
+    flex: 1;
+    justify-content: center;
   }
 }
 </style>
