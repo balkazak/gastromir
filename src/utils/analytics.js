@@ -1,15 +1,15 @@
 // GA4 & Metrika Event Tracking Helper
 
 const getGaId = () => {
-  if (typeof window === 'undefined') return 'G-XN3ZX5EX86'
-  const id = window.GA_MEASUREMENT_ID || import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-XN3ZX5EX86'
-  return (id && id !== 'G-MEASUREMENT_ID' && !id.includes('%')) ? id : 'G-XN3ZX5EX86'
+  if (typeof window === 'undefined') return 'G-7DPLRPS06B'
+  const id = window.GA_MEASUREMENT_ID || import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-7DPLRPS06B'
+  return (id && id !== 'G-MEASUREMENT_ID' && !id.includes('%')) ? id : 'G-7DPLRPS06B'
 }
 
 const getYmId = () => {
-  if (typeof window === 'undefined') return 113462837
-  const id = Number(window.YA_COUNTER_ID) || Number(import.meta.env.VITE_YM_COUNTER_ID) || 113462837
-  return (id > 0 && !isNaN(id)) ? id : 113462837
+  if (typeof window === 'undefined') return 113476942
+  const id = Number(window.YA_COUNTER_ID) || Number(import.meta.env.VITE_YM_COUNTER_ID) || 113476942
+  return (id > 0 && !isNaN(id)) ? id : 113476942
 }
 
 // Track SPA Page Views for both GA4 and Yandex Metrika
