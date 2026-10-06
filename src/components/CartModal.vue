@@ -473,6 +473,7 @@ import { useRouter } from 'vue-router'
 import { parse, isValid, isBefore, startOfDay, format } from 'date-fns'
 import { formatPhone } from '@/utils/format'
 import { submitForm } from '@/services/formService'
+import { trackOrderCompleted } from '@/utils/analytics'
 
 const cartStore = useCartStore()
 const authStore = useAuthStore()
@@ -868,6 +869,12 @@ const sendToWhatsApp = async () => {
     window.open(whatsappUrl, '_blank')
   }
 
+  trackOrderCompleted({
+    sum: discountedTotalPrice.value,
+    items_count: cartStore.totalItems,
+    method: 'whatsapp'
+  })
+
   cartStore.clearCart()
   cartStore.closeModal()
 }
@@ -925,6 +932,12 @@ const sendToEmail = async () => {
         deliveryDate: orderData.deliveryDate,
         deliveryTime: orderData.deliveryTime
       }
+    })
+
+    trackOrderCompleted({
+      sum: discountedTotalPrice.value,
+      items_count: cartStore.totalItems,
+      method: 'email'
     })
 
     cartStore.clearCart()

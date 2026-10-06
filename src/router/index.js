@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import { useAuthStore } from '@/stores/auth'
+import { trackPageView } from '@/utils/analytics'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -174,6 +175,13 @@ router.beforeEach(async (to, from, next) => {
   } else {
     next()
   }
+})
+
+// SPA PageView Tracking (GA4 & Yandex Metrika)
+router.afterEach((to) => {
+  setTimeout(() => {
+    trackPageView(to)
+  }, 100)
 })
 
 export default router

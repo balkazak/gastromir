@@ -48,17 +48,30 @@ export async function submitForm({
   }
 
   const baseUrl = getApiBaseUrl();
-  const response = await fetch(`${baseUrl}/api/forms/submit`, {
-    method: 'POST',
-    body: formData
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 25000);
 
-  const result = await response.json().catch(() => ({}));
+  try {
+    const response = await fetch(`${baseUrl}/api/forms/submit`, {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal
+    });
 
-  if (!response.ok || result.success === false) {
-    const errorMsg = result.message || `Ошибка сервера (${response.status})`;
-    throw new Error(errorMsg);
+    clearTimeout(timeoutId);
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || result.success === false) {
+      const errorMsg = result.message || `Ошибка сервера (${response.status})`;
+      throw new Error(errorMsg);
+    }
+
+    return result;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error('Превышено время ожидания ответа сервера. Пожалуйста, повторите попытку или свяжитесь с нами через WhatsApp.');
+    }
+    throw err;
   }
-
-  return result;
 }
