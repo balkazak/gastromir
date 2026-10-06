@@ -6,7 +6,7 @@
         <div class="ticker-left">
           <span class="ticker-strong">🚚 Доставка по Астане с 07:00 до 18:00</span>
           <span class="ticker-sep">•</span>
-          <span>📦 Мин. заказ 15 000 ₸</span>
+          <span>📦 Мин. заказ 50 000 ₸</span>
           <span class="ticker-sep">•</span>
           <span>📄 Накладные Форма 3-2 и ЭСФ</span>
         </div>
